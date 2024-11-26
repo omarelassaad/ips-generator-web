@@ -1,0 +1,32 @@
+# Python
+*.pyc
+*.pyo
+__pycache__/
+
+# Virtual environments
+weasyprint-env/
+
+# Django
+db.sqlite3
+/media/
+*.log
+
+# Static files
+/staticfiles/
+*.css.map
+*.js.map
+
+# Environment variables
+.env
+.env.*
+
+# Editor and IDE
+.idea/
+.vscode/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Other
+*.swp
