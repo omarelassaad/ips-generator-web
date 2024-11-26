@@ -1,0 +1,547 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Let the PM Choose</h2>
+
+
+
+  <form id="pm-selection-form" method="POST">
+    {% csrf_token %}
+    <h3 style="text-align: left;">Account Selection</h3>
+      <div id="version-section" style="margin-top: 20px; margin-bottom: 20px;">
+        <label for="version-number" style="display: block;">Please enter the version number: (this is the version referenced in the footer of the IPS) </label>
+        <input type="text" id="version-number" style="width: 100%; margin-top: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" inputmode="numeric" pattern="\d*" />
+      </div>
+    <div id="account-list" style="margin-top: 20px;">
+      <table style="width: 100%; table-layout: fixed; border-spacing: 0;">
+        <thead>
+          <tr>
+            <th style="width: 25%; text-align: center;">Account Owner</th>
+            <th style="width: 25%; text-align: center;">Account Type</th>
+            <th style="width: 25%; text-align: center;">Amount ($)</th>
+            <th style="width: 25%; text-align: center;">Percentage (%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input type="text" name="account_owner" style="width: 100%; text-align: center;"></td>
+            <td>
+              <select name="account_type" style="width: 100%; text-align: left;">
+                <option value="Cash">Cash</option>
+                <option value="Corporate">Corporate</option>
+                <option value="RRSP">RRSP</option>
+                <option value="RRIF">RRIF</option>
+                <option value="LIF">LIF</option>
+                <option value="TFSA">TFSA</option>
+                <option value="SRSP">SRSP</option>
+                <option value="SRIF">SRIF</option>
+                <option value="LIRA">LIRA</option>
+                <option value="IPP">IPP</option>
+                <option value="Non-profit">Non-profit</option>
+                <option value="PRIF">PRIF</option>
+                <option value="RESP">RESP</option>
+                <option value="FHSA">FHSA</option>
+                <option value="LRIF">LRIF</option>
+              </select>
+            </td>
+            <td><input type="text" name="amount" class="amount-input" style="width: 100%; text-align: center;" inputmode="numeric"></td>
+            <td class="percentage-column" style="text-align: center;">0%</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="text-align: right; font-weight: bold;">Total</td>
+            <td class="total-amount" style="font-weight: bold; text-align: center;">$0</td>
+            <td class="total-percentage" style="font-weight: bold; text-align: center;">100%</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="text-align: left; margin-top: 10px;">
+        <button type="button" id="add-row-button" style="background-color: #205098; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Add an account</button>
+        <button type="button" id="remove-row-button" style="background-color: #205098; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Remove last row</button>
+      </div>
+    </div>
+
+    <div id="trailer-rate-section" style="margin-top: 20px;">
+      <label for="desired-trailer-rate" style="font-weight: bold;">Indicate the desired trailer rate to target in this proposal:</label>
+      <input type="text" id="desired-trailer-rate" name="desired_trailer_rate" style="width: 100%; margin-top: 10px;" />
+    </div>
+
+    <div id="proceed-button-section" style="display: none; margin-top: 20px;">
+      <button type="button" id="proceed-button" style="background-color: #205098; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">Proceed</button>
+    </div>
+  </form>
+
+<!-- Client Managed Holdings Section -->
+<div id="client-managed-holdings-section" style="display: none; margin-top: 20px;">
+  <form id="cmh-form" class="form-container">
+    <h3 style="text-align: left;">Client Managed Holdings</h3>
+    <div class="form-group">
+      <label>Do you plan on integrating any client-managed holdings into any of the above CMP accounts?</label>
+      <div class="radio-option">
+        <input type="radio" id="cmh-no" name="client_managed_holdings" value="No">
+        <label for="cmh-no">No</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="cmh-yes" name="client_managed_holdings" value="Yes">
+        <label for="cmh-yes">Yes</label>
+      </div>
+    </div>
+
+    <div id="cmh-details" style="display: none;">
+      <h4>Please Identify which of the above accounts will have a dedicated client-managed Sleeve</h4>
+      <div id="cmh-accounts-container">
+        <div class="cmh-account form-group">
+          <select name="cmh_combined_account" class="form-control">
+            {% for account in combined_accounts %}
+              <option value="{{ account }}">{{ account }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="cmh_amount" class="cmh-amount-input form-control" placeholder="Amount ($)" inputmode="numeric">
+        </div>
+      </div>
+      <div class="button-container">
+        <button type="button" class="button" onclick="addAccount()">Add Another Account</button>
+        <button type="button" class="button" onclick="removeLastAccount()">Remove Last Row</button>
+      </div>
+      <div class="form-group">
+        <p id="total-cms-assets-text">Total CMS Assets: $0</p>
+        <p id="overall-total-assets-text">Overall Total Assets: $0</p>
+      </div>
+      <div class="form-group">
+        <p id="cms-fee-range-text" style="display: none;"></p>
+      </div>
+      <div class="form-group">
+        <label for="cms_fee"><strong>Please indicate the CMS fee that you would like to charge:</strong></label>
+        <input type="text" id="cms_fee" name="cms_fee" class="form-control">
+      </div>
+    </div>
+  </form>
+</div>
+
+  <!-- Form for creating IPS PDF -->
+  <form id="create-ips-form" method="POST" action="{% url 'generate_ips' %}" target="_blank">
+    {% csrf_token %}
+    <div id="fact-sheets-section" style="display: none; margin-bottom: 20px;">
+      <h4 style="margin-top: 0;">Would you like to attach the fact sheets to the end of the IPS?</h4>
+      <div style="margin-bottom: 10px;">
+        <input type="radio" id="fs-no" name="attach_fact_sheets" value="No" checked> No<br>
+        <input type="radio" id="fs-yes" name="attach_fact_sheets" value="Yes"> Yes<br>
+      </div>
+      <div id="comments-section" style="display: none; margin-top: 20px;">
+  <h4 style="margin-top: 0;">Please include any additional comments that you would like the PM to consider in constructing the proposed portfolio:</h4>
+  <textarea id="pm-comments" name="pm_comments" rows="4" style="width: 100%; margin-top: 10px; border: 1px solid #ccc; padding: 5px; border-radius: 4px;"></textarea>
+</div>
+    </div>
+   <button type="button" id="submit-to-pm-button" style="display: none; background-color: #205098; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">Submit to PM</button>
+  </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tableBody = document.querySelector('#account-list tbody');
+  const desiredTrailerRateInput = document.getElementById('desired-trailer-rate');
+  const proceedButtonSection = document.getElementById('proceed-button-section');
+  const cmsFeeInput = document.getElementById('cms_fee');
+  const cmsFeeRangeText = document.getElementById('cms-fee-range-text');
+  const submitToPmButton = document.getElementById('submit-to-pm-button');
+  const factSheetsSection = document.getElementById('fact-sheets-section');
+
+  const cmsFeeData = [
+    { lower: 100000, upper: 249999, standardRate: 2.25, lowestRate: 1.50 },
+    { lower: 250000, upper: 499999, standardRate: 2.00, lowestRate: 1.25 },
+    { lower: 500000, upper: 999999, standardRate: 1.75, lowestRate: 1.00 },
+    { lower: 1000000, upper: 1999999, standardRate: 1.75, lowestRate: 1.00 },
+    { lower: 2000000, upper: 999999999, standardRate: 1.50, lowestRate: 0.75 }
+  ];
+
+  document.getElementById('version-number').addEventListener('change', saveLetPmChooseData);
+
+  function attachEventListeners(row) {
+    row.querySelector('.amount-input').addEventListener('blur', function() {
+      formatCurrency(this);
+      calculatePercentages();
+      updateTotals();
+      saveLetPmChooseData();
+    });
+    
+    row.querySelector('input[name="account_owner"]').addEventListener('input', function() {
+      updateClientManagedHoldingsSection();
+      saveLetPmChooseData();
+    });
+    row.querySelector('select[name="account_type"]').addEventListener('change', function() {
+      updateClientManagedHoldingsSection();
+      saveLetPmChooseData();
+    });
+  }
+  
+  // Attach event listeners to existing rows
+  document.querySelectorAll('#account-list tbody tr').forEach(attachEventListeners);
+
+  document.getElementById('add-row-button').addEventListener('click', function() {
+    const newRow = tableBody.rows[0].cloneNode(true);
+    newRow.querySelectorAll('input, select').forEach(input => input.value = '');
+    tableBody.appendChild(newRow);
+    attachEventListeners(newRow);
+    updateClientManagedHoldingsSection();
+    saveLetPmChooseData();
+  });
+
+  document.getElementById('remove-row-button').addEventListener('click', function() {
+    if (tableBody.rows.length > 1) {
+      tableBody.deleteRow(-1);
+    }
+    calculatePercentages();
+    updateTotals();
+    updateClientManagedHoldingsSection();
+    saveLetPmChooseData();
+  });
+  
+  document.getElementById('remove-row-button').addEventListener('click', function() {
+    if (tableBody.rows.length > 1) {
+      tableBody.deleteRow(-1);
+    }
+    calculatePercentages();
+    updateTotals();
+    updateClientManagedHoldingsSection();
+    saveLetPmChooseData();
+  });
+
+  document.querySelectorAll('.amount-input').forEach(input => {
+    input.addEventListener('blur', function() {
+      formatCurrency(this);
+      calculatePercentages();
+      updateTotals();
+      saveLetPmChooseData();
+    });
+  });
+
+  function formatCurrency(input) {
+    let value = input.value.replace(/[$,]/g, '');
+    value = parseFloat(value);
+    if (!isNaN(value)) {
+      input.value = '$' + value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    } else {
+      input.value = '';
+    }
+  }
+
+  function calculatePercentages() {
+    const rows = Array.from(tableBody.rows);
+    const totalAmount = rows.reduce((total, row) => {
+      const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+      const amount = parseFloat(amountCell) || 0;
+      return total + amount;
+    }, 0);
+
+    rows.forEach(row => {
+      const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+      const amount = parseFloat(amountCell) || 0;
+      const percentageCell = row.querySelector('.percentage-column');
+      const percentage = totalAmount ? (amount / totalAmount) * 100 : 0;
+      percentageCell.textContent = Math.round(percentage) + '%';
+    });
+
+    document.querySelector('.total-amount').textContent = '$' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.querySelector('.total-percentage').textContent = '100%';
+  }
+
+  desiredTrailerRateInput.addEventListener('input', function() {
+    if (desiredTrailerRateInput.value.trim() !== '') {
+      proceedButtonSection.style.display = 'block';
+    } else {
+      proceedButtonSection.style.display = 'none';
+    }
+    saveLetPmChooseData();
+  });
+
+  document.getElementById('proceed-button').addEventListener('click', function(event) {
+    event.preventDefault();
+    document.getElementById('client-managed-holdings-section').style.display = 'block';
+    factSheetsSection.style.display = 'block';
+    document.getElementById('comments-section').style.display = 'block';
+    submitToPmButton.style.display = 'block';
+  });
+
+  document.getElementById('cmh-no').addEventListener('change', function() {
+    document.getElementById('cmh-details').style.display = 'none';
+    clearClientManagedHoldings();
+    saveLetPmChooseData();
+  });
+
+  document.getElementById('cmh-yes').addEventListener('change', function() {
+    document.getElementById('cmh-details').style.display = 'block';
+    updateClientManagedHoldingsSection();
+    saveLetPmChooseData();
+  });
+
+  document.getElementById('fs-no').addEventListener('change', saveLetPmChooseData);
+  document.getElementById('fs-yes').addEventListener('change', saveLetPmChooseData);
+
+  window.addAccount = function() {
+    const container = document.getElementById('cmh-accounts-container');
+    const accountDiv = document.querySelector('.cmh-account').cloneNode(true);
+    accountDiv.querySelector('.cmh-amount-input').value = '';
+    container.appendChild(accountDiv);
+    attachCmsEventListeners(accountDiv);
+    saveLetPmChooseData();
+  }
+
+  window.removeLastAccount = function() {
+    const container = document.getElementById('cmh-accounts-container');
+    if (container.children.length > 1) {
+      container.removeChild(container.lastChild);
+    }
+    updateTotals();
+    saveLetPmChooseData();
+  }
+
+  function updateTotals() {
+    const totalCmsAssetsText = document.getElementById('total-cms-assets-text');
+    const overallTotalAssetsText = document.getElementById('overall-total-assets-text');
+    const totalCmsAssets = calculateTotalCmsAssets();
+    const overallTotalAssets = calculateOverallTotalAssets();
+
+    totalCmsAssetsText.textContent = `Total CMS Assets: $${totalCmsAssets.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    overallTotalAssetsText.textContent = `Overall Total Assets: $${overallTotalAssets.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+    if (totalCmsAssets > 0) {
+      updateCmsFeeRange(overallTotalAssets);
+    } else {
+      cmsFeeRangeText.style.display = 'none';
+    }
+  }
+
+  function attachCmsEventListeners(accountDiv) {
+    const amountInput = accountDiv.querySelector('.cmh-amount-input');
+    amountInput.addEventListener('input', function(e) {
+      let cursorPosition = e.target.selectionStart;
+      let value = e.target.value.replace(/[^\d.]/g, '');
+      let decimalCount = (value.match(/\./g) || []).length;
+      if (decimalCount > 1) {
+        let parts = value.split('.');
+        value = parts[0] + '.' + parts.slice(1).join('');
+      }
+      e.target.value = value;
+      e.target.setSelectionRange(cursorPosition, cursorPosition);
+    });
+
+    amountInput.addEventListener('blur', function() {
+      formatCurrency(this);
+      updateTotals();
+      saveLetPmChooseData();
+    });
+  }
+
+  function updateClientManagedHoldingsSection() {
+    const rows = Array.from(tableBody.rows);
+    const combinedAccounts = rows.map(row => {
+      const accountOwner = row.querySelector('input[name="account_owner"]').value;
+      const accountType = row.querySelector('select[name="account_type"]').value;
+      return `${accountOwner} - ${accountType}`;
+    });
+
+    const cmhAccountSelects = document.querySelectorAll('select[name="cmh_combined_account"]');
+    cmhAccountSelects.forEach(select => {
+      const currentValue = select.value;
+      select.innerHTML = combinedAccounts.map(account => `<option value="${account}">${account}</option>`).join('');
+      if (combinedAccounts.includes(currentValue)) {
+        select.value = currentValue;
+      }
+    });
+  }
+
+  function calculateTotalCmsAssets() {
+    const container = document.getElementById('cmh-accounts-container');
+    const cmsAmountInputs = container.querySelectorAll('.cmh-amount-input');
+    let totalCmsAssets = 0;
+
+    cmsAmountInputs.forEach(input => {
+      const amount = parseFloat(input.value.replace(/[$,]/g, '')) || 0;
+      totalCmsAssets += amount;
+    });
+
+    return totalCmsAssets;
+  }
+
+  function calculateOverallTotalAssets() {
+    const rows = Array.from(tableBody.rows);
+    const strategyTotal = rows.reduce((total, row) => {
+      const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+      const amount = parseFloat(amountCell) || 0;
+      return total + amount;
+    }, 0);
+
+    const cmsTotal = calculateTotalCmsAssets();
+    return strategyTotal + cmsTotal;
+  }
+
+  function updateCmsFeeRange(totalAssets) {
+    let standardRate = 0, lowestRate = 0;
+
+    cmsFeeData.forEach(range => {
+      if (totalAssets >= range.lower && totalAssets <= range.upper) {
+        standardRate = range.standardRate;
+        lowestRate = range.lowestRate;
+      }
+    });
+
+    cmsFeeRangeText.textContent = `The standard fee for this proposal is ${standardRate.toFixed(2)}% and the lowest acceptable fee is ${lowestRate.toFixed(2)}%.`;
+    cmsFeeRangeText.style.display = 'block';
+  }
+
+  cmsFeeInput.addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9.]/g, '');
+
+    const parts = this.value.split('.');
+    if (parts.length > 2) {
+      this.value = parts[0] + '.' + parts.slice(1).join('');
+    }
+
+    saveLetPmChooseData();
+  });
+
+  cmsFeeInput.addEventListener('blur', function() {
+    const cmsFee = parseFloat(this.value);
+    const totalAssets = calculateOverallTotalAssets();
+    let standardRate = 0, lowestRate = 0;
+
+    cmsFeeData.forEach(range => {
+      if (totalAssets >= range.lower && totalAssets <= range.upper) {
+        standardRate = range.standardRate;
+        lowestRate = range.lowestRate;
+      }
+    });
+
+    if (!isNaN(cmsFee) && cmsFee >= lowestRate && cmsFee <= standardRate) {
+      submitToPmButton.style.display = 'block';
+    } else {
+      submitToPmButton.style.display = 'none';
+      if (this.value.trim() !== '') {
+        alert("Please enter a CMS fee within the specified range.");
+        this.value = '';
+      }
+    }
+
+    saveLetPmChooseData();
+  });
+
+  function clearClientManagedHoldings() {
+    const cmhAmountInputs = document.querySelectorAll('.cmh-amount-input');
+    cmhAmountInputs.forEach(input => {
+      input.value = '$0';
+    });
+    updateTotals();
+  }
+
+  function saveLetPmChooseData() {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData(document.getElementById('pm-selection-form'));
+
+      // Add version number
+      const versionNumber = document.getElementById('version-number').value;
+      formData.append('version_number', versionNumber);
+
+      // Add account details
+      const accountOwners = document.querySelectorAll('input[name="account_owner"]');
+      const accountTypes = document.querySelectorAll('select[name="account_type"]');
+      const amounts = document.querySelectorAll('input[name="amount"]');
+
+      accountOwners.forEach((owner, index) => {
+        formData.append(`account_owner_${index}`, owner.value);
+        formData.append(`account_type_${index}`, accountTypes[index].value);
+        formData.append(`amount_${index}`, amounts[index].value);
+      });
+
+      // Add desired trailer rate
+      const desiredTrailerRate = document.getElementById('desired-trailer-rate').value;
+      formData.append('desired_trailer_rate', desiredTrailerRate);
+
+      // Add client managed holdings information
+      const clientManagedHoldings = document.querySelector('input[name="client_managed_holdings"]:checked');
+      const clientManagedHoldingsValue = clientManagedHoldings ? clientManagedHoldings.value : 'No';
+      formData.append('client_managed_holdings', clientManagedHoldingsValue);
+
+      if (clientManagedHoldingsValue === 'Yes') {
+        const cmhAccounts = document.querySelectorAll('#cmh-accounts-container .cmh-account');
+        cmhAccounts.forEach((account, index) => {
+          const accountType = account.querySelector('select[name="cmh_combined_account"]').value;
+          const amount = account.querySelector('.cmh-amount-input').value;
+          formData.append(`cmh_account_${index}`, accountType);
+          formData.append(`cmh_amount_${index}`, amount);
+        });
+
+        // Add CMS fee
+        const cmsFee = document.getElementById('cms_fee').value;
+        formData.append('cms_fee', cmsFee);
+      } else {
+        // If client managed holdings are not enabled, set all CMH amounts to 0
+        const cmhAccounts = document.querySelectorAll('#cmh-accounts-container .cmh-account');
+        cmhAccounts.forEach((account, index) => {
+          const accountType = account.querySelector('select[name="cmh_combined_account"]').value;
+          formData.append(`cmh_account_${index}`, accountType);
+          formData.append(`cmh_amount_${index}`, '$0');
+        });
+        formData.append('cms_fee', '0');
+      }
+
+      // Add fact sheets information
+      const attachFactSheets = document.querySelector('input[name="attach_fact_sheets"]:checked');
+      const attachFactSheetsValue = attachFactSheets ? attachFactSheets.value : 'No';
+      formData.append('attach_fact_sheets', attachFactSheetsValue);
+
+      // Add PM comments
+      const pmComments = document.getElementById('pm-comments').value;
+      formData.append('pm_comments', pmComments);
+
+      fetch("{% url 'save_let_pm_choose_data' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      }).then(data => {
+        if (data.status === 'success') {
+          console.log('Data saved successfully');
+          resolve(data);
+        } else {
+          console.error('Error:', data.message);
+          reject(new Error(data.message));
+        }
+      }).catch(error => {
+        console.error('Error:', error);
+        reject(error);
+      });
+    });
+  }
+
+  // Initial setup
+  document.querySelectorAll('.cmh-amount-input').forEach(input => {
+    attachCmsEventListeners(input.closest('.cmh-account'));
+  });
+  updateClientManagedHoldingsSection();
+  updateTotals();
+  saveLetPmChooseData();
+
+  // Update the submit to PM button event listener
+  document.getElementById('submit-to-pm-button').addEventListener('click', function() {
+    saveLetPmChooseData().then(function(response) {
+      if (response.status === 'success') {
+        window.open("{% url 'generate_ips_details_for_pm' %}", '_blank');
+      } else {
+        alert('Error saving data. Please try again.');
+      }
+    }).catch(function(error) {
+      console.error('Error:', error);
+      alert('An unexpected error occurred. Please try again.');
+    });
+  });
+});
+</script>
+
+{% endblock %}

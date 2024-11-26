@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Investment Policy Statement - Details for PM </title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header, .content { padding: 20px; }
+        .header { background-color: #f5f5f5; }
+        .content { background-color: #ffffff; }
+        .content table { width: 100%; border-collapse: collapse; }
+        .content table, .content th, .content td { border: 1px solid #ddd; }
+        .content th, .content td { padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Please email this PDF to maptrading@aviso.ca</h1>
+            <p>Generated for: {{ user.first_name }} {{ user.last_name }}</p>
+            <p>Investment Advisor: {{ advisor_name }}</p>
+            <p>Version Number: {{ version_number }}</p>
+        </div>
+        <div class="content">
+            <!-- Include all content from ips_pcq.html -->
+            {% include "ips_pcq.html" %}
+
+            <!-- Add new section for Let PM Choose data -->
+            <h2>Account Details for PM Review</h2>
+            <table>
+                <tr>
+                    <th>Account Owner</th>
+                    <th>Account Type</th>
+                    <th>Amount</th>
+                </tr>
+                {% for account in let_pm_choose_data %}
+                <tr>
+                    <td>{{ account.account_owner }}</td>
+                    <td>{{ account.account_type }}</td>
+                    <td>${{ account.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <h3>Desired Trailer Rate</h3>
+            <p>{{ desired_trailer_rate }}%</p>
+
+            <h3>Client Managed Holdings</h3>
+            <p>{{ client_managed_holdings }}</p>
+
+            {% if client_managed_holdings == 'Yes' %}
+                <h4>Client Managed Accounts</h4>
+                <table>
+                    <tr>
+                        <th>Account</th>
+                        <th>Amount</th>
+                    </tr>
+                    {% for account in client_managed_accounts %}
+                    <tr>
+                        <td>{{ account.account_type }}</td>
+                        <td>${{ account.amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+                <h4>CMS Fee</h4>
+                <p>{{ cms_fee }}%</p>
+            {% endif %}
+
+            <h3>Attach Fact Sheets</h3>
+            <p>{{ attach_fact_sheets }}</p>
+
+            {% if pm_comments %}
+            <h3>Additional Comments for PM</h3>
+            <p>{{ pm_comments }}</p>
+            {% endif %}
+
+            <!-- Add any additional sections or information as needed -->
+        </div>
+    </div>
+</body>
+</html>

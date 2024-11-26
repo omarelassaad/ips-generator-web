@@ -1,0 +1,33 @@
+# urls.py
+from django.urls import path
+from .views import (
+    questionnaire_view,
+    generate_ips_questionnaire_responses,
+    generate_ips,
+    choose_myself_view,
+    let_pm_choose_view,
+    get_target_weights,
+    choose_myself_result,
+    let_pm_choose_result,
+    save_choose_myself_data,
+    choose_myself_performance,
+    calculate_fees,
+    save_let_pm_choose_data,
+    generate_ips_details_for_pm,
+)
+
+urlpatterns = [
+    path('questionnaire/', questionnaire_view, name='questionnaire'),
+    path('generate_ips_questionnaire_responses/', generate_ips_questionnaire_responses, name='generate_ips_questionnaire_responses'),
+    path('generate_ips/', generate_ips, name='generate_ips'),
+    path('choose_myself/', choose_myself_view, name='choose_myself'),
+    path('let_pm_choose/', let_pm_choose_view, name='let_pm_choose'),
+    path('get_target_weights/', get_target_weights, name='get_target_weights'),
+    path('choose_myself_result/', choose_myself_result, name='choose_myself_result'),
+    path('let_pm_choose_result/', let_pm_choose_result, name='let_pm_choose_result'),
+    path('choose_myself_performance/', choose_myself_performance, name='choose_myself_performance'),
+    path('save_choose_myself_data/', save_choose_myself_data, name='save_choose_myself_data'),
+    path('calculate_fees/', calculate_fees, name='calculate_fees'),
+    path('save_let_pm_choose_data/', save_let_pm_choose_data, name='save_let_pm_choose_data'),
+    path('generate_ips_details_for_pm/', generate_ips_details_for_pm, name='generate_ips_details_for_pm'),
+    ]

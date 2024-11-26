@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  /* Add these styles to make the page responsive */
+  @media screen and (max-width: 768px) {
+    table {
+      font-size: 12px;
+    }
+    
+    th, td {
+      padding: 4px !important;
+    }
+    
+    .responsive-table {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    #disclaimers {
+      font-size: 10px;
+    }
+
+    h2 {
+      font-size: 18px;
+    }
+  }
+
+  a.strategy-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a.strategy-link:hover {
+    text-decoration: underline;
+  }
+
+  table {
+    width: 100%;
+    table-layout: fixed;
+    border-spacing: 0;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px;
+  }
+
+  thead tr {
+    background-color: #BEBEBE;
+  }
+
+  .portfolio-row {
+    background-color: #CDCDCD;
+  }
+
+  .benchmark-row {
+    background-color: #f2f2f2;
+  }
+
+  .responsive-table {
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    margin-top: 30px;
+  }
+</style>
+
+<h2>Rolling Returns</h2>
+
+<div class="responsive-table">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">Strategy</th>
+        <th>Weight</th>
+        <th>1M</th>
+        <th>3M</th>
+        <th>YTD</th>
+        <th>1YR</th>
+        <th>3YR</th>
+        <th>5YR</th>
+        <th>10YR</th>
+        <th>SI</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in performance_summary %}
+        <tr class="{% if row.Strategy == 'Portfolio' %}portfolio-row{% elif row.Strategy == 'Benchmark' %}benchmark-row{% endif %}">
+          <td>
+            {% if row.Strategy != "Portfolio" and row.Strategy != "Benchmark" %}
+              <a href="{% static 'strategies/' %}{{ row.Strategy }}.pdf" target="_blank" class="strategy-link">{{ row.Strategy }}</a>
+            {% else %}
+              {{ row.Strategy }}
+            {% endif %}
+          </td>
+          <td>{{ row.Weight }}</td>
+          <td>{{ row.1M }}</td>
+          <td>{{ row.3M }}</td>
+          <td>{{ row.YTD }}</td>
+          <td>{{ row.1YR }}</td>
+          <td>{{ row.3YR }}</td>
+          <td>{{ row.5YR }}</td>
+          <td>{{ row.10YR }}</td>
+          <td>{{ row.SI }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>Calendar Year Returns</h2>
+
+<div class="responsive-table">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">Strategy</th>
+        <th>Weight</th>
+        <th>2023</th>
+        <th>2022</th>
+        <th>2021</th>
+        <th>2020</th>
+        <th>2019</th>
+        <th>2018</th>
+        <th>2017</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in calendar_year_summary %}
+        <tr class="{% if row.Strategy == 'Portfolio' %}portfolio-row{% elif row.Strategy == 'Benchmark' %}benchmark-row{% endif %}">
+          <td>
+            {% if row.Strategy != "Portfolio" and row.Strategy != "Benchmark" %}
+              <a href="{% static 'strategies/' %}{{ row.Strategy }}.pdf" target="_blank" class="strategy-link">{{ row.Strategy }}</a>
+            {% else %}
+              {{ row.Strategy }}
+            {% endif %}
+          </td>
+          <td>{{ row.Weight }}</td>
+          <td>{{ row.2023 }}</td>
+          <td>{{ row.2022 }}</td>
+          <td>{{ row.2021 }}</td>
+          <td>{{ row.2020 }}</td>
+          <td>{{ row.2019 }}</td>
+          <td>{{ row.2018 }}</td>
+          <td>{{ row.2017 }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="disclaimers" style="margin-top: 20px; margin-bottom: 60px;">
+  <p>The return data is as of September 30, 2024. Indicated rates of return are historical annual compounded total returns including reinvestment of all distributions for the period ended, and do not take into account management expenses, account sales, redemption, distribution or optional charges or income taxes payable by any security holder that would have reduced returns.</p>
+  {% for line in disclaimer_lines %}
+    <p>{{ line }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

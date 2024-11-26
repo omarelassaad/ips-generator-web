@@ -1,0 +1,1236 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  #account-strategy-table .table td,
+  #account-strategy-table .table th {
+    vertical-align: middle;
+  }
+  
+  #account-strategy-table .table input,
+  #account-strategy-table .table select {
+    margin: 0;
+  }
+
+  /* Rest of your existing styles */
+</style>
+<h2>Choose Myself</h2>
+
+<form id="strategy-selection-form" method="POST" action="{% url 'choose_myself_performance' %}">
+  {% csrf_token %}
+    
+    <h3 style="text-align: left;">Account Selection</h3>
+    <div id="version-section" style="margin-top: 20px; margin-bottom: 20px;">
+      <label for="version-number" style="display: block;">Please enter the version number: (this is the version referenced in the footer of the IPS) </label>
+      <input type="text" id="version-number" style="width: 100%; margin-top: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" inputmode="numeric" pattern="\d*" />
+    </div>
+<div id="account-strategy-table" class="container mt-3">
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th class="text-center">Account Owner</th>
+                    <th class="text-center">Account Type</th>
+                    <th class="text-center">Amount ($)</th>
+                    <th class="text-center">Percentage (%)</th>
+                    <th class="text-center strategy-column">Select Strategy</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+        </thead>
+        <tbody id="account-strategy-body">
+          <tr>
+            <td><input type="text" name="account_owner" style="width: 100%; text-align: left;"></td>
+            <td>
+              <select name="account_type" style="width: 100%; text-align: left;">
+                <option value="Cash">Cash</option>
+                <option value="Corporate">Corporate</option>
+                <option value="RRSP">RRSP</option>
+                <option value="RRIF">RRIF</option>
+                <option value="LIF">LIF</option>
+                <option value="TFSA">TFSA</option>
+                <option value="SRSP">SRSP</option>
+                <option value="SRIF">SRIF</option>
+                <option value="LIRA">LIRA</option>
+                <option value="IPP">IPP</option>
+                <option value="Non-profit">Non-profit</option>
+                <option value="PRIF">PRIF</option>
+                <option value="RESP">RESP</option>
+                <option value="FHSA">FHSA</option>
+                <option value="LRIF">LRIF</option>
+              </select>
+            </td>
+            <td><input type="text" name="amount" class="amount-input" style="width: 100%; text-align: center;" inputmode="numeric"></td>
+            <td class="percentage-column" style="text-align: center;">0%</td>
+            <td class="strategy-column">
+              <select name="strategy" style="width: 100%; text-align: left;">
+                <option value="Aviso 5-year Bond Ladder (Income)">Aviso 5-year Bond Ladder (Income)</option>
+                <option value="Aviso 5-year Bond Ladder (Taxable)">Aviso 5-year Bond Ladder (Taxable)</option>
+                <option value="Beutel Goodman Conservative Balanced">Beutel Goodman Conservative Balanced</option>
+                <option value="Beutel Goodman Structured Bond">Beutel Goodman Structured Bond</option>
+                <option value="Brookfield Private Real Assets Fund">Brookfield Private Real Assets Fund</option>
+                <option value="Dixon Mitchell Total Equity">Dixon Mitchell Total Equity</option>
+                <option value="Guardian Balanced Fund">Guardian Balanced Fund</option>
+                <option value="Guardian Canadian Balanced (RI)">Guardian Canadian Balanced (RI)</option>
+                <option value="Guardian Canadian Bond (RI)">Guardian Canadian Bond (RI)</option>
+                <option value="Guardian Canadian Bond Fund">Guardian Canadian Bond Fund</option>
+                <option value="Guardian Canadian Equity (RI)">Guardian Canadian Equity (RI)</option>
+                <option value="Guardian Canadian Equity Fund">Guardian Canadian Equity Fund</option>
+                <option value="Guardian Canadian Equity Income">Guardian Canadian Equity Income</option>
+                <option value="Guardian Global Dividend">Guardian Global Dividend</option>
+                <option value="Guardian Global Dividend Fund">Guardian Global Dividend Fund</option>
+                <option value="Guardian Global Equity (RI)">Guardian Global Equity (RI)</option>
+                <option value="Hamilton Lane Global Private Assets Fund">Hamilton Lane Global Private Assets Fund</option>
+                <option value="Jarislowsky Fraser North American Balanced">Jarislowsky Fraser North American Balanced</option>
+                <option value="Jarislowsky Fraser North American Equity">Jarislowsky Fraser North American Equity</option>
+                <option value="Lazard Global Equity">Lazard Global Equity</option>
+                <option value="Lazard International Equity">Lazard International Equity</option>
+                <option value="Manning & Napier US Equity (RI)">Manning & Napier US Equity (RI)</option>
+                <option value="QV Dividend Income (RI)">QV Dividend Income (RI)</option>
+                <option value="QV Small Cap (RI)">QV Small Cap (RI)</option>
+                <option value="Scheer Rowlett Canadian Equity">Scheer Rowlett Canadian Equity</option>
+                <option value="Sionna Canadian Equity">Sionna Canadian Equity</option>
+              </select>
+            </td>
+            <td><button type="button" class="remove-row-button" onclick="removeRow(this)">Remove</button></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="text-align: right; font-weight: bold;">Total</td>
+            <td class="total-amount" style="font-weight: bold; text-align: center;">$0</td>
+            <td class="total-percentage" style="font-weight: bold; text-align: center;">100%</td>
+            <td class="strategy-column"></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="button-container" style="display: flex; align-items: center; margin-top: 10px; gap: 10px;">
+      <button type="button" id="add-row-button" class="button">Add an account/strategy</button>
+      <button type="button" id="remove-row-button" class="button">Remove last row</button>
+      <button type="button" id="see-performance-button" class="button">See Performance</button>
+    </div>
+  </div>
+
+  <div id="target-vs-proposed" style="margin-top: 20px;">
+  <h3 id="portfolio-recommendation-title">Target vs. Proposed Asset Mix</h3>
+  <div class="table-responsive">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th class="text-center">Asset Class</th>
+          <th class="text-center">Target Weight (%)</th>
+          <th class="text-center">Proposed Weight (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cash</td>
+          <td class="target-weight-cash text-center"></td>
+          <td class="proposed-weight-cash text-center"></td>
+        </tr>
+        <tr>
+          <td>Fixed Income</td>
+          <td class="target-weight-fixed-income text-center"></td>
+          <td class="proposed-weight-fixed-income text-center"></td>
+        </tr>
+        <tr>
+          <td>Canadian Equity</td>
+          <td class="target-weight-canadian-equity text-center"></td>
+          <td class="proposed-weight-canadian-equity text-center"></td>
+        </tr>
+        <tr>
+          <td>U.S. Equity</td>
+          <td class="target-weight-us-equity text-center"></td>
+          <td class="proposed-weight-us-equity text-center"></td>
+        </tr>
+        <tr>
+          <td>International Equity</td>
+          <td class="target-weight-international-equity text-center"></td>
+          <td class="proposed-weight-international-equity text-center"></td>
+        </tr>
+        <tr>
+          <td>Alternatives</td>
+          <td class="target-weight-alternatives text-center"></td>
+          <td class="proposed-weight-alternatives text-center"></td>
+        </tr>
+        <tr>
+          <td><strong>Total</strong></td>
+          <td class="target-weight-total text-center"><strong>100%</strong></td>
+          <td class="proposed-weight-total text-center"><strong>100%</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+  <div id="comments-section" style="display: none; margin-top: 20px;">
+    <label style="font-weight: normal;">
+      <strong>Please provide a reason as to why the proposed asset mix is not in line with the target asset mix as determined by the suitability questionnaire:</strong>
+    </label>
+    <textarea id="comments-box" name="comments" style="width: 100%; height: 100px; margin-top: 10px;"></textarea>
+  </div>
+
+  <div id="fees-section" style="margin-top: 20px;">
+    <p id="fee-range-text"></p>
+    <label for="desired-rate">Enter desired rate:</label>
+    <input type="text" id="desired-rate" name="desired_rate" style="width: 100%; margin-top: 10px;" />
+    <p id="trailer-text" style="display: none;"></p>
+  </div>
+
+  <div id="ips-type-section" style="display: none; margin-top: 20px;">
+    <h4 style="margin-bottom: 10px;">Is this a new IPS or an existing IPS?</h4>
+    <div class="radio-options">
+        <label class="radio-option" style="font-weight: normal !important;">
+            <input type="radio" id="ips-new" name="ips_type" value="New">
+            <span style="font-weight: normal !important;">New</span>
+        </label>
+        <label class="radio-option" style="font-weight: normal !important;">
+            <input type="radio" id="ips-existing" name="ips_type" value="Existing">
+            <span style="font-weight: normal !important;">Existing</span>
+        </label>
+    </div>
+  </div>
+
+  <div id="ips-changes-section" style="display: none; margin-top: 20px;">
+    <label style="font-weight: normal;">
+        <strong>Please explain what is being changed in this IPS for the existing client:</strong>
+    </label>
+    <textarea id="ips-changes-box" name="ips_changes" style="width: 100%; height: 100px; margin-top: 10px;"></textarea>
+  </div>
+
+  <button type="button" id="proceed-button" style="display: none; background-color: #205098; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">Proceed</button>
+</form>
+
+<!-- Client Managed Holdings Section -->
+<div id="client-managed-holdings-section" style="display: none; margin-top: 20px;">
+  <form id="cmh-form" class="form-container">
+    <h3 style="text-align: left;">Client-directed Holdings</h3>
+    <div class="form-group">
+  <label style="margin-bottom: 5px;">Do you plan on integrating any Client-directed holdings into any of the above CMP accounts?</label>
+  <div class="radio-options">
+    <label class="radio-option" style="font-weight: normal !important;">
+      <input type="radio" id="cmh-no" name="client_managed_holdings" value="No">
+      <span style="font-weight: normal !important;">No</span>
+    </label>
+    <label class="radio-option" style="font-weight: normal !important;">
+      <input type="radio" id="cmh-yes" name="client_managed_holdings" value="Yes">
+      <span style="font-weight: normal !important;">Yes</span>
+    </label>
+  </div>
+</div>
+
+    <div id="cmh-details" style="display: none;">
+  <h4>Please Identify which of the above accounts will have a dedicated Client-directed sleeve?</h4>
+  <div id="cmh-accounts-container">
+    <div class="cmh-account form-group">
+      <select name="cmh_combined_account" class="form-control">
+        {% for account in combined_accounts %}
+          <option value="{{ account }}">{{ account }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="cmh_amount" class="cmh-amount-input form-control" placeholder="Amount ($)" inputmode="numeric">
+    </div>
+  </div>
+  <div class="button-container" style="display: flex; align-items: center; margin-top: 10px; gap: 10px;">
+    <button type="button" class="button" onclick="addAccount()">Add Another Account</button>
+    <button type="button" class="button" onclick="removeLastAccount()">Remove Last Row</button>
+  </div>
+  <div class="form-group">
+    <p id="total-cms-assets-text">Total CDS (Client-directed Sleeve) Assets: $0</p>
+    <p id="overall-total-assets-text">Overall Total Assets: $0</p>
+  </div>
+  <div class="form-group">
+    <p id="cms-fee-range-text" style="display: none;"></p>
+  </div>
+  <div class="form-group">
+    <label for="cms_fee"><strong>Please indicate the CDS fee that you would like to charge:</strong></label>
+    <input type="text" id="cms_fee" name="cms_fee" class="form-control">
+  </div>
+</div>
+  </form>
+</div>
+
+<!-- Form for creating IPS PDF -->
+<form id="create-ips-form" method="POST" action="{% url 'generate_ips' %}" target="_blank">
+  {% csrf_token %}
+  <div id="fact-sheets-section" style="display: none; margin-bottom: 20px;">
+  <h4 style="margin-top: 0; margin-bottom: 5px;">Would you like to attach the fact sheets to the end of the IPS?</h4>
+  <div class="radio-options">
+    <label class="radio-option" style="font-weight: normal !important;">
+      <input type="radio" id="fs-no" name="attach_fact_sheets" value="No" checked>
+      <span style="font-weight: normal !important;">No</span>
+    </label>
+    <label class="radio-option" style="font-weight: normal !important;">
+      <input type="radio" id="fs-yes" name="attach_fact_sheets" value="Yes">
+      <span style="font-weight: normal !important;">Yes</span>
+    </label>
+  </div>
+</div>
+<button type="submit" id="create-ips-button" style="display: none; background-color: #205098; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Create the IPS</button>
+</form>
+
+
+<script>
+const strategyData = {
+  "Beutel Goodman Conservative Balanced": {"Cash": 1.50, "Fixed Income": 68.50, "Canadian Equity": 22.50, "U.S. Equity": 7.50, "International Equity": 0.00, "Alternatives": 0.00},
+  "Beutel Goodman Structured Bond": {"Cash": 5.00, "Fixed Income": 95.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Dixon Mitchell Total Equity": {"Cash": 2.00, "Fixed Income": 0.00, "Canadian Equity": 64.00, "U.S. Equity": 34.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Guardian Balanced Fund": {"Cash": 2.00, "Fixed Income": 38.00, "Canadian Equity": 35.00, "U.S. Equity": 20.00, "International Equity": 5.00, "Alternatives": 0.00},
+  "Guardian Canadian Bond Fund": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Guardian Canadian Balanced (RI)": {"Cash": 2.50, "Fixed Income": 39.00, "Canadian Equity": 58.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Guardian Canadian Equity (RI)": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Guardian Canadian Equity Fund": {"Cash": 2.00, "Fixed Income": 0.00, "Canadian Equity": 98.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Guardian Canadian Equity Income": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Guardian Canadian Bond (RI)": {"Cash": 2.50, "Fixed Income": 97.50, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Guardian Global Dividend": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
+  "Guardian Global Equity (RI)": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
+  "Guardian Global Dividend Fund": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
+  "Jarislowsky Fraser North American Balanced": {"Cash": 10.00, "Fixed Income": 45.00, "Canadian Equity": 20.00, "U.S. Equity": 25.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Jarislowsky Fraser North American Equity": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 45.00, "U.S. Equity": 45.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Lazard Global Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
+  "Lazard International Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 97.50, "Alternatives": 0.00},
+  "Manning & Napier U.S. Equity (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 95.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "QV Dividend Income (RI)": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 90.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "QV Small Cap (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 95.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Scheer Rowlett Canadian Equity": {"Cash": 3.00, "Fixed Income": 0.00, "Canadian Equity": 97.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Aviso 5-year Bond Ladder (Taxable)": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Aviso 5-year Bond Ladder (Income)": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Sionna Canadian Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Brookfield Private Real Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
+  "Hamilton Lane Global Private Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00}
+};
+
+const strategyMinimums = {
+  "Aviso 5-year Bond Ladder (Income)": 100000,
+  "Aviso 5-year Bond Ladder (Taxable)": 100000,
+  "Beutel Goodman Conservative Balanced": 150000,
+  "Beutel Goodman Structured Bond": 150000,
+  "Brookfield Private Real Assets Fund": 100000,
+  "Dixon Mitchell Total Equity": 150000,
+  "Guardian Balanced Fund": 5000,
+  "Guardian Canadian Balanced (RI)": 150000,
+  "Guardian Canadian Bond (RI)": 150000,
+  "Guardian Canadian Bond Fund": 5000,
+  "Guardian Canadian Equity (RI)": 150000,
+  "Guardian Canadian Equity Fund": 5000,
+  "Guardian Canadian Equity Income": 150000,
+  "Guardian Global Dividend": 150000,
+  "Guardian Global Dividend Fund": 5000,
+  "Guardian Global Equity (RI)": 150000,
+  "Hamilton Lane Global Private Assets Fund": 100000,
+  "Jarislowsky Fraser North American Balanced": 150000,
+  "Jarislowsky Fraser North American Equity": 150000,
+  "Lazard Global Equity": 150000,
+  "Lazard International Equity": 150000,
+  "Manning & Napier US Equity (RI)": 150000,
+  "QV Dividend Income (RI)": 150000,
+  "QV Small Cap (RI)": 150000,
+  "Scheer Rowlett Canadian Equity": 150000,
+  "Sionna Canadian Equity": 150000
+};
+
+const cmsFeeData = [
+  { lower: 100000, upper: 249999, standardRate: 2.25, lowestRate: 1.50 },
+  { lower: 250000, upper: 499999, standardRate: 2.00, lowestRate: 1.25 },
+  { lower: 500000, upper: 999999, standardRate: 1.75, lowestRate: 1.00 },
+  { lower: 1000000, upper: 1999999, standardRate: 1.75, lowestRate: 1.00 },
+  { lower: 2000000, upper: 999999999, standardRate: 1.50, lowestRate: 0.75 }
+];
+
+let lastValidRate = null;
+
+function isDesiredRateValid() {
+  const desiredRateInput = document.getElementById('desired-rate');
+  const desiredRate = parseFloat(desiredRateInput.value);
+  const feeRangeText = document.getElementById('fee-range-text').textContent;
+  const min_fee = parseFloat(feeRangeText.match(/(\d+(\.\d+)?)%/)[1]);
+  const max_fee = parseFloat(feeRangeText.match(/to (\d+(\.\d+)?)%/)[1]);
+
+  return !isNaN(desiredRate) && desiredRate >= min_fee && desiredRate <= max_fee;
+}
+
+function canProceed() {
+    const commentsSection = document.getElementById('comments-section');
+    const commentsBox = document.getElementById('comments-box');
+    const desiredRateInput = document.getElementById('desired-rate');
+    const ipsType = document.querySelector('input[name="ips_type"]:checked');
+    const ipsChangesBox = document.getElementById('ips-changes-box');
+
+    const hasValidComments = commentsSection.style.display === 'none' || commentsBox.value.trim() !== '';
+    const hasValidIpsType = ipsType !== null;
+    const hasValidIpsChanges = ipsType?.value !== 'Existing' || 
+                              (ipsType?.value === 'Existing' && ipsChangesBox.value.trim() !== '');
+
+    return isDesiredRateValid() && hasValidComments && hasValidIpsType && hasValidIpsChanges;
+}
+
+document.querySelectorAll('input[name="ips_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const ipsChangesSection = document.getElementById('ips-changes-section');
+        const clientManagedHoldingsSection = document.getElementById('client-managed-holdings-section');
+        
+        if (this.value === 'Existing') {
+            ipsChangesSection.style.display = 'block';
+            clientManagedHoldingsSection.style.display = 'none'; // Hide CMS section until changes are explained
+        } else {
+            ipsChangesSection.style.display = 'none';
+            document.getElementById('ips-changes-box').value = '';
+            if (canProceed()) {
+                clientManagedHoldingsSection.style.display = 'block';
+            }
+        }
+        saveChooseMyselfData();
+    });
+});
+
+// Add event listener for the ips-changes-box
+document.getElementById('ips-changes-box').addEventListener('input', function() {
+    const clientManagedHoldingsSection = document.getElementById('client-managed-holdings-section');
+    if (canProceed()) {
+        clientManagedHoldingsSection.style.display = 'block';
+    } else {
+        clientManagedHoldingsSection.style.display = 'none';
+    }
+    saveChooseMyselfData();
+});
+
+// Update the proceed button click handler
+document.getElementById('proceed-button').addEventListener('click', function(event) {
+    event.preventDefault();
+    if (canProceed()) {
+        document.getElementById('client-managed-holdings-section').style.display = 'block';
+    }
+});
+
+document.getElementById('add-row-button').addEventListener('click', function() {
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  const newRow = tableBody.rows[0].cloneNode(true);
+  newRow.querySelectorAll('input, select').forEach(input => input.value = '');
+  tableBody.appendChild(newRow);
+  attachEventListeners(newRow);
+  attachRowEventListeners(newRow);
+  updateClientManagedHoldingsSection();
+  saveChooseMyselfData();
+});
+
+document.getElementById('remove-row-button').addEventListener('click', function() {
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  if (tableBody.rows.length > 1) {
+    tableBody.deleteRow(-1);
+  }
+  calculatePercentages();
+  calculateWeights();
+  updateFeeRangeAndTrailer();
+  updateClientManagedHoldingsSection();
+  saveChooseMyselfData();
+});
+
+document.getElementById('see-performance-button').addEventListener('click', function() {
+  const form = document.getElementById('strategy-selection-form');
+  form.target = "_blank";
+  form.submit();
+});
+
+function removeRow(button) {
+  const row = button.closest('tr');
+  const tbody = document.getElementById('account-strategy-body');
+  
+  if (tbody.rows.length > 1) {
+    row.remove();
+    calculatePercentages();
+    calculateWeights();
+    updateFeeRangeAndTrailer();
+    updateClientManagedHoldingsSection();
+    saveChooseMyselfData();
+  } else {
+    alert("You cannot remove the last row. At least one row must remain.");
+  }
+}
+
+function attachEventListeners(row) {
+  row.querySelector('.amount-input').addEventListener('blur', function() {
+    formatCurrency(this);
+    enforceMinimums(row.querySelector('select[name="strategy"]'));
+    calculatePercentages();
+    calculateWeights();
+    updateFeeRangeAndTrailer();
+    saveChooseMyselfData();
+  });
+
+  row.querySelector('select[name="strategy"]').addEventListener('change', function() {
+    enforceMinimums(this);
+    enforceAccountRestrictions(this);
+    calculatePercentages();
+    calculateWeights();
+    updateFeeRangeAndTrailer();
+    saveChooseMyselfData();
+  });
+
+  row.querySelector('select[name="account_type"]').addEventListener('change', function() {
+    enforceAccountRestrictions(row.querySelector('select[name="strategy"]'));
+    updateClientManagedHoldingsSection();
+    saveChooseMyselfData();
+  });
+
+  row.querySelector('input[name="account_owner"]').addEventListener('input', function() {
+    updateClientManagedHoldingsSection();
+    saveChooseMyselfData();
+  });
+}
+
+function attachRowEventListeners(row) {
+  const amountInput = row.querySelector('input[name="amount"]');
+  const strategySelect = row.querySelector('select[name="strategy"]');
+
+  amountInput.addEventListener('blur', updateFeeRangeAndTrailer);
+  strategySelect.addEventListener('change', updateFeeRangeAndTrailer);
+}
+
+document.querySelectorAll('.amount-input').forEach(input => {
+  input.addEventListener('blur', function() {
+    formatCurrency(this);
+    enforceMinimums(this.closest('tr').querySelector('select[name="strategy"]'));
+    calculatePercentages();
+    calculateWeights();
+    updateFeeRangeAndTrailer();
+    saveChooseMyselfData();
+  });
+});
+
+document.querySelectorAll('select[name="strategy"]').forEach(select => {
+  select.addEventListener('change', function() {
+    enforceMinimums(this);
+    enforceAccountRestrictions(this);
+    calculatePercentages();
+    calculateWeights();
+    updateFeeRangeAndTrailer();
+    saveChooseMyselfData();
+  });
+});
+
+document.querySelectorAll('select[name="account_type"]').forEach(select => {
+  select.addEventListener('change', function() {
+    enforceAccountRestrictions(this.closest('tr').querySelector('select[name="strategy"]'));
+    updateClientManagedHoldingsSection();
+    saveChooseMyselfData();
+  });
+});
+
+document.querySelectorAll('input[name="account_owner"]').forEach(input => {
+  input.addEventListener('input', function() {
+    updateClientManagedHoldingsSection();
+    saveChooseMyselfData();
+  });
+});
+
+function enforceMinimums(strategySelect) {
+  const amountInput = strategySelect.closest('tr').querySelector('input[name="amount"]');
+  const amount = parseFloat(amountInput.value.replace(/[$,]/g, '')) || 0;
+  const strategy = strategySelect.value;
+
+  if (amount < strategyMinimums[strategy]) {
+    alert(`The selected strategy requires a minimum amount of $${strategyMinimums[strategy].toLocaleString()}.`);
+    strategySelect.value = '';
+  }
+}
+
+function enforceAccountRestrictions(strategySelect) {
+  const accountType = strategySelect.closest('tr').querySelector('select[name="account_type"]').value;
+  const strategy = strategySelect.value;
+
+  if (strategy === "Brookfield Private Real Assets Fund" && accountType !== "Cash" && accountType !== "Corporate") {
+    alert(`The Brookfield Private Real Assets Fund can only be selected for Cash or Corporate account types.`);
+    strategySelect.value = '';
+  }
+}
+
+function formatCurrency(input) {
+  let value = input.value.replace(/[$,]/g, '');
+  value = parseFloat(value);
+  if (!isNaN(value)) {
+    input.value = '$' + value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  } else {
+    input.value = '';
+  }
+  updateFeeRangeAndTrailer();
+}
+
+function calculatePercentages() {
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  const rows = Array.from(tableBody.rows);
+  const totalAmount = rows.reduce((total, row) => {
+    const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+    const amount = parseFloat(amountCell) || 0;
+    return total + amount;
+  }, 0);
+
+  rows.forEach(row => {
+    const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+    const amount = parseFloat(amountCell) || 0;
+    const percentageCell = row.querySelector('.percentage-column');
+    const percentage = totalAmount ? (amount / totalAmount) * 100 : 0;
+    percentageCell.textContent = Math.round(percentage) + '%';
+  });
+
+  document.querySelector('.total-amount').textContent = '$' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  document.querySelector('.total-percentage').textContent = '100%';
+}
+
+function calculateWeights() {
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  const rows = Array.from(tableBody.rows);
+  const totalAmount = rows.reduce((total, row) => {
+    const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+    const amount = parseFloat(amountCell) || 0;
+    return total + amount;
+  }, 0);
+
+  const proposedWeights = {
+    "Cash": 0,
+    "Fixed Income": 0,
+    "Canadian Equity": 0,
+    "U.S. Equity": 0,
+    "International Equity": 0,
+    "Alternatives": 0
+  };
+
+  rows.forEach(row => {
+    const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+    const amount = parseFloat(amountCell) || 0;
+    const strategy = row.querySelector('select[name="strategy"]').value;
+    const percentage = totalAmount ? (amount / totalAmount) * 100 : 0;
+
+    if (strategy in strategyData) {
+      const strategyWeights = strategyData[strategy];
+      Object.keys(proposedWeights).forEach(assetClass => {
+        proposedWeights[assetClass] += (strategyWeights[assetClass] / 100) * percentage;
+      });
+    }
+  });
+
+  document.querySelector('.proposed-weight-cash').textContent = Math.round(proposedWeights["Cash"]) + '%';
+  document.querySelector('.proposed-weight-fixed-income').textContent = Math.round(proposedWeights["Fixed Income"]) + '%';
+  document.querySelector('.proposed-weight-canadian-equity').textContent = Math.round(proposedWeights["Canadian Equity"]) + '%';
+  document.querySelector('.proposed-weight-us-equity').textContent = Math.round(proposedWeights["U.S. Equity"]) + '%';
+  document.querySelector('.proposed-weight-international-equity').textContent = Math.round(proposedWeights["International Equity"]) + '%';
+  document.querySelector('.proposed-weight-alternatives').textContent = Math.round(proposedWeights["Alternatives"]) + '%';
+
+  checkWeightDifferences();
+}
+
+function checkWeightDifferences() {
+  const targetWeights = {
+    "Cash": parseFloat(document.querySelector('.target-weight-cash').textContent),
+    "Fixed Income": parseFloat(document.querySelector('.target-weight-fixed-income').textContent),
+    "Canadian Equity": parseFloat(document.querySelector('.target-weight-canadian-equity').textContent),
+    "U.S. Equity": parseFloat(document.querySelector('.target-weight-us-equity').textContent),
+    "International Equity": parseFloat(document.querySelector('.target-weight-international-equity').textContent),
+    "Alternatives": parseFloat(document.querySelector('.target-weight-alternatives').textContent)
+  };
+
+  const proposedWeights = {
+    "Cash": parseFloat(document.querySelector('.proposed-weight-cash').textContent),
+    "Fixed Income": parseFloat(document.querySelector('.proposed-weight-fixed-income').textContent),
+    "Canadian Equity": parseFloat(document.querySelector('.proposed-weight-canadian-equity').textContent),
+    "U.S. Equity": parseFloat(document.querySelector('.proposed-weight-us-equity').textContent),
+    "International Equity": parseFloat(document.querySelector('.proposed-weight-international-equity').textContent),
+    "Alternatives": parseFloat(document.querySelector('.proposed-weight-alternatives').textContent)
+  };
+
+  let hasSignificantDifference = false;
+
+  Object.keys(targetWeights).forEach(assetClass => {
+    const targetWeight = targetWeights[assetClass];
+    const proposedWeight = proposedWeights[assetClass];
+
+    if (Math.abs(targetWeight - proposedWeight) > 25) {
+      hasSignificantDifference = true;
+    }
+  });
+
+  const commentsSection = document.getElementById('comments-section');
+  const proceedButton = document.getElementById('proceed-button');
+  const clientManagedHoldingsSection = document.getElementById('client-managed-holdings-section');
+
+  if (hasSignificantDifference) {
+    commentsSection.style.display = 'block';
+  } else {
+    commentsSection.style.display = 'none';
+  }
+
+  if (canProceed()) {
+    proceedButton.style.display = 'block';
+  } else {
+    proceedButton.style.display = 'none';
+    clientManagedHoldingsSection.style.display = 'none';
+    hideCreateIpsButton();
+  }
+}
+
+function updateFeeRangeAndTrailer() {
+  const desiredRateInput = document.getElementById('desired-rate');
+  const trailerText = document.getElementById('trailer-text');
+  const feeRangeText = document.getElementById('fee-range-text');
+  const feesSection = document.getElementById('fees-section');
+  const proceedButton = document.getElementById('proceed-button');
+  const clientManagedHoldingsSection = document.getElementById('client-managed-holdings-section');
+
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  const rows = Array.from(tableBody.rows);
+  
+  const strategies = rows.map(row => row.querySelector('select[name="strategy"]').value);
+  const amounts = rows.map(row => parseFloat(row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '')) || 0);
+
+  // Check if all rows have both an amount and a strategy selected
+  const allRowsComplete = rows.every(row => {
+    const amount = parseFloat(row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '')) || 0;
+    const strategy = row.querySelector('select[name="strategy"]').value;
+    return amount > 0 && strategy !== '';
+  });
+
+  if (allRowsComplete) {
+    fetch('{% url "calculate_fees" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({strategies, amounts})
+    })
+    .then(response => response.json())
+    .then(data => {
+      const {min_fee, min_trailer, max_fee, max_trailer, admin_fee} = data;
+
+      feeRangeText.textContent = `The management fee range for this proposal is ${min_fee}% (includes a ${min_trailer}% trailer) to ${max_fee}% (includes a ${max_trailer}% trailer).`;
+      feesSection.style.display = 'block';
+
+      const desiredRate = parseFloat(desiredRateInput.value);
+
+      if (isDesiredRateValid()) {
+        const trailerRate = desiredRate - (max_fee - max_trailer);
+        trailerText.textContent = `The trailer will be approximately ${trailerRate.toFixed(2)}%.`;
+        trailerText.style.display = 'block';
+
+        if (canProceed()) {
+          proceedButton.style.display = 'block';
+          clientManagedHoldingsSection.style.display = 'block';
+        } else {
+          proceedButton.style.display = 'none';
+          clientManagedHoldingsSection.style.display = 'none';
+          hideCreateIpsButton();
+        }
+      } else {
+        trailerText.style.display = 'none';
+        proceedButton.style.display = 'none';
+        clientManagedHoldingsSection.style.display = 'none';
+        hideCreateIpsButton();
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      feeRangeText.textContent = "An error occurred while calculating fees.";
+    });
+  } else {
+    feeRangeText.textContent = "Please complete all amount and strategy fields to see the management fee range.";
+    feesSection.style.display = 'block';
+    trailerText.style.display = 'none';
+    proceedButton.style.display = 'none';
+    clientManagedHoldingsSection.style.display = 'none';
+    hideCreateIpsButton();
+  }
+}
+
+document.getElementById('desired-rate').addEventListener('input', function() {
+  updateFeeRangeAndTrailer();
+  updateIpsTypeVisibility();
+  if (!canProceed()) {
+    document.getElementById('client-managed-holdings-section').style.display = 'none';
+    hideCreateIpsButton();
+  }
+  saveChooseMyselfData();
+});
+
+document.getElementById('desired-rate').addEventListener('blur', function() {
+  if (!isDesiredRateValid()) {
+    alert("Please enter a desired rate within the management fee range.");
+    this.setCustomValidity("Please enter a desired rate within the management fee range.");
+  } else {
+    this.setCustomValidity("");
+  }
+  
+  if (canProceed()) {
+    document.getElementById('proceed-button').style.display = 'block';
+    document.getElementById('client-managed-holdings-section').style.display = 'block';
+  } else {
+    document.getElementById('proceed-button').style.display = 'none';
+    document.getElementById('client-managed-holdings-section').style.display = 'none';
+    hideCreateIpsButton();
+  }
+  
+  updateFeeRangeAndTrailer();
+  saveChooseMyselfData();
+});
+
+document.getElementById('comments-box').addEventListener('input', function() {
+  if (canProceed()) {
+    document.getElementById('proceed-button').style.display = 'block';
+    document.getElementById('client-managed-holdings-section').style.display = 'block';
+  } else {
+    document.getElementById('proceed-button').style.display = 'none';
+    document.getElementById('client-managed-holdings-section').style.display = 'none';
+    hideCreateIpsButton();
+  }
+  saveChooseMyselfData();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  fetch('{% url "get_target_weights" %}', {
+    method: 'GET',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    const targetWeights = data.target_weights;
+    const portfolioRecommendation = data.portfolio_recommendation;
+
+    document.querySelector('.target-weight-cash').textContent = targetWeights["Cash"];
+    document.querySelector('.target-weight-fixed-income').textContent = targetWeights["Fixed Income"];
+    document.querySelector('.target-weight-canadian-equity').textContent = targetWeights["Canadian Equity"];
+    document.querySelector('.target-weight-us-equity').textContent = targetWeights["U.S. Equity"];
+    document.querySelector('.target-weight-international-equity').textContent = targetWeights["International Equity"];
+    document.querySelector('.target-weight-alternatives').textContent = targetWeights["Alternatives"];
+    document.querySelector('.target-weight-total').textContent = '100%';
+
+    document.getElementById('portfolio-recommendation-title').textContent = `${portfolioRecommendation} Target vs. Proposed Asset Mix`;
+  });
+
+  document.querySelectorAll('#strategy-selection-form input, #strategy-selection-form select').forEach(input => {
+    input.addEventListener('change', saveChooseMyselfData);
+  });
+  
+  const versionNumberInput = document.getElementById('version-number');
+  versionNumberInput.addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    saveChooseMyselfData();
+  });
+
+  versionNumberInput.addEventListener('blur', saveChooseMyselfData);
+
+  document.getElementById('create-ips-form').addEventListener('submit', function(e) {
+    const versionNumber = document.getElementById('version-number').value;
+    const attachFactSheets = document.querySelector('input[name="attach_fact_sheets"]:checked')?.value || 'No';
+    
+    let hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'version_number';
+    hiddenInput.value = versionNumber;
+    this.appendChild(hiddenInput);
+
+    hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'attach_fact_sheets';
+    hiddenInput.value = attachFactSheets;
+    this.appendChild(hiddenInput);
+  });
+  
+  document.getElementById('cmh-no').addEventListener('change', function() {
+    document.getElementById('cmh-details').style.display = 'none';
+    clearClientManagedHoldings();
+    showCreateIpsButton();
+    saveChooseMyselfData();
+  });
+  
+  document.getElementById('cmh-yes').addEventListener('change', function() {
+    document.getElementById('cmh-details').style.display = 'block';
+    hideCreateIpsButton();
+    updateClientManagedHoldingsSection();
+    saveChooseMyselfData();
+  });
+  
+  document.getElementById('cms_fee').addEventListener('blur', handleCmsFeeBlur);
+  document.getElementById('cms_fee').addEventListener('input', handleCmsFeeInput);
+
+  document.getElementById('desired-rate').addEventListener('blur', saveChooseMyselfData);
+  document.getElementById('comments-box').addEventListener('input', saveChooseMyselfData);
+
+  document.getElementById('version-number').addEventListener('input', saveChooseMyselfData);
+  document.getElementById('version-number').addEventListener('blur', saveChooseMyselfData);
+
+  document.getElementById('fs-no').addEventListener('change', saveChooseMyselfData);
+  document.getElementById('fs-yes').addEventListener('change', saveChooseMyselfData);
+
+  // Attach event listeners to existing rows
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  Array.from(tableBody.rows).forEach(attachRowEventListeners);
+
+  saveChooseMyselfData();
+});
+
+const style = document.createElement('style');
+style.textContent = `
+  @media (max-width: 600px) {
+    .table-responsive {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    th, td {
+      min-width: 100px;
+    }
+    #add-row-button, #remove-row-button, #see-performance-button, #proceed-button {
+      width: 100%;
+      margin-top: 10px;
+    }
+  }
+`;
+document.head.appendChild(style);
+
+document.getElementById('proceed-button').addEventListener('click', function(event) {
+  event.preventDefault();
+  document.getElementById('client-managed-holdings-section').style.display = 'block';
+});
+
+function addAccount() {
+  const container = document.getElementById('cmh-accounts-container');
+  const accountDiv = document.querySelector('.cmh-account').cloneNode(true);
+  
+  accountDiv.querySelector('.cmh-amount-input').value = '';
+  
+  container.appendChild(accountDiv);
+  attachCmsEventListeners(accountDiv);
+  saveChooseMyselfData();
+}
+
+function removeLastAccount() {
+  const container = document.getElementById('cmh-accounts-container');
+  if (container.children.length > 1) {
+    container.removeChild(container.lastChild);
+  }
+  updateCmsTotals();
+  saveChooseMyselfData();
+}
+
+function calculateTotalCmsAssets() {
+  const container = document.getElementById('cmh-accounts-container');
+  const cmsAmountInputs = container.querySelectorAll('.cmh-amount-input');
+  let totalCmsAssets = 0;
+
+  cmsAmountInputs.forEach(input => {
+    const amount = parseFloat(input.value.replace(/[$,]/g, '')) || 0;
+    totalCmsAssets += amount;
+  });
+
+  return totalCmsAssets;
+}
+
+function calculateOverallTotalAssets() {
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  const strategyRows = Array.from(tableBody.rows);
+  const strategyTotal = strategyRows.reduce((total, row) => {
+    const amountCell = row.querySelector('input[name="amount"]').value.replace(/[$,]/g, '');
+    const amount = parseFloat(amountCell) || 0;
+    return total + amount;
+  }, 0);
+
+  const cmsTotal = calculateTotalCmsAssets();
+
+  return strategyTotal + cmsTotal;
+}
+
+function updateCmsTotals() {
+  const totalCmsAssetsText = document.getElementById('total-cms-assets-text');
+  const overallTotalAssetsText = document.getElementById('overall-total-assets-text');
+
+  const totalCmsAssets = calculateTotalCmsAssets();
+  const overallTotalAssets = calculateOverallTotalAssets();
+
+  totalCmsAssetsText.textContent = `Total CDS Assets: $${totalCmsAssets.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  overallTotalAssetsText.textContent = `Overall Total Assets: $${overallTotalAssets.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function attachCmsEventListeners(accountDiv) {
+  const amountInput = accountDiv.querySelector('.cmh-amount-input');
+  amountInput.addEventListener('input', function(e) {
+    let cursorPosition = e.target.selectionStart;
+    let value = e.target.value.replace(/[^\d.]/g, '');
+    let decimalCount = (value.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+      let parts = value.split('.');
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    e.target.value = value;
+    e.target.setSelectionRange(cursorPosition, cursorPosition);
+  });
+
+  amountInput.addEventListener('blur', function() {
+    formatCurrency(this);
+    updateCmsTotals();
+    document.getElementById('cms_fee').dispatchEvent(new Event('input'));
+    saveChooseMyselfData();
+  });
+}
+
+document.querySelectorAll('.cmh-amount-input').forEach(input => {
+  input.removeEventListener('blur', formatCurrency);
+  input.addEventListener('input', function() {
+    formatCurrency(this);
+    updateCmsTotals();
+    document.getElementById('cms_fee').dispatchEvent(new Event('input'));
+    saveChooseMyselfData();
+  });
+  input.addEventListener('blur', function() {
+    formatCurrency(this);
+  });
+});
+
+function updateClientManagedHoldingsSection() {
+  const tableBody = document.querySelector('#account-strategy-table tbody');
+  const rows = Array.from(tableBody.rows);
+  const combinedAccounts = rows.map(row => {
+    const accountOwner = row.querySelector('input[name="account_owner"]').value;
+    const accountType = row.querySelector('select[name="account_type"]').value;
+    return `${accountOwner} - ${accountType}`;
+  });
+
+  const cmhAccountSelects = document.querySelectorAll('select[name="cmh_combined_account"]');
+  cmhAccountSelects.forEach(select => {
+    const currentValue = select.value;
+    select.innerHTML = combinedAccounts.map(account => `<option value="${account}">${account}</option>`).join('');
+    if (combinedAccounts.includes(currentValue)) {
+      select.value = currentValue;
+    }
+  });
+}
+
+function saveChooseMyselfData() {
+    const formData = new FormData(document.getElementById('strategy-selection-form'));
+    const cmhAccounts = document.querySelectorAll('#cmh-accounts-container .cmh-account');
+    const clientManagedHoldingsEnabled = document.getElementById('cmh-yes').checked;
+
+    cmhAccounts.forEach((account, index) => {
+        const accountType = account.querySelector('select[name="cmh_combined_account"]').value;
+        let amount = account.querySelector('.cmh-amount-input').value;
+        
+        if (!clientManagedHoldingsEnabled) {
+            amount = '$0';
+        }
+
+        formData.append(`cmh_combined_account`, accountType);
+        formData.append(`cmh_amount`, amount);
+    });
+
+    const versionNumber = document.getElementById('version-number').value;
+    formData.append('version_number', versionNumber);
+    
+    const commentsSection = document.getElementById('comments-section');
+    const commentsBox = document.getElementById('comments-box');
+    if (commentsSection.style.display === 'none') {
+        commentsBox.value = '';
+    }
+    formData.append('comments', commentsBox.value);
+    
+    formData.append('desired_rate', document.getElementById('desired-rate').value);
+    formData.append('cms_fee', clientManagedHoldingsEnabled ? document.getElementById('cms_fee').value : '0');
+    formData.append('attach_fact_sheets', document.querySelector('input[name="attach_fact_sheets"]:checked')?.value || 'No');
+    formData.append('client_managed_holdings_enabled', clientManagedHoldingsEnabled);
+
+    fetch("{% url 'save_choose_myself_data' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    }).then(data => {
+        if (data.status === 'success') {
+            console.log('Data saved successfully');
+        } else {
+            console.error('Error:', data.message);
+        }
+    }).catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function handleCmsFeeBlur() {
+    const cmsFeeInput = document.getElementById('cms_fee');
+    const cmsFeeRangeText = document.getElementById('cms-fee-range-text');
+    const totalCmsAssetsText = document.getElementById('total-cms-assets-text');
+    const overallTotalAssetsText = document.getElementById('overall-total-assets-text');
+
+    const cmsFee = parseFloat(cmsFeeInput.value);
+    const totalCmsAssets = calculateTotalCmsAssets();
+    const overallTotalAssets = calculateOverallTotalAssets();
+
+    totalCmsAssetsText.textContent = `Total CMS Assets: $${totalCmsAssets.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    overallTotalAssetsText.textContent = `Overall Total Assets: $${overallTotalAssets.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+    let standardRate = 0, lowestRate = 0;
+
+    cmsFeeData.forEach(range => {
+        if (overallTotalAssets >= range.lower && overallTotalAssets <= range.upper) {
+            standardRate = range.standardRate;
+            lowestRate = range.lowestRate;
+        }
+    });
+
+    cmsFeeRangeText.textContent = `The standard fee for this proposal is ${standardRate.toFixed(2)}% and the lowest acceptable fee is ${lowestRate.toFixed(2)}%.`;
+    cmsFeeRangeText.style.display = 'block';
+
+    if (!isNaN(cmsFee) && cmsFeeInput.value.trim() !== '' && cmsFee >= lowestRate && cmsFee <= standardRate) {
+        cmsFeeInput.setCustomValidity("");
+        showFactSheetsAndCreateIps();
+    } else {
+        cmsFeeInput.setCustomValidity("Please enter a CMS fee within the specified range.");
+        hideCreateIpsButton();
+    }
+    saveChooseMyselfData();
+}
+
+function handleCmsFeeInput() {
+    const cmsFeeInput = document.getElementById('cms_fee');
+    const cmsFeeRangeText = document.getElementById('cms-fee-range-text');
+    const totalCmsAssets = calculateTotalCmsAssets();
+    const overallTotalAssets = calculateOverallTotalAssets();
+
+    let standardRate = 0, lowestRate = 0;
+
+    cmsFeeData.forEach(range => {
+        if (overallTotalAssets >= range.lower && overallTotalAssets <= range.upper) {
+            standardRate = range.standardRate;
+            lowestRate = range.lowestRate;
+        }
+    });
+
+    if (totalCmsAssets > 0) {
+        cmsFeeRangeText.textContent = `The standard fee for this proposal is ${standardRate.toFixed(2)}% and the lowest acceptable fee is ${lowestRate.toFixed(2)}%.`;
+        cmsFeeRangeText.style.display = 'block';
+        
+        // Add immediate validation and show/hide of fact sheets
+        const cmsFee = parseFloat(cmsFeeInput.value);
+        if (!isNaN(cmsFee) && cmsFeeInput.value.trim() !== '' && cmsFee >= lowestRate && cmsFee <= standardRate && isDesiredRateValid()) {
+            cmsFeeInput.setCustomValidity("");
+            showFactSheetsAndCreateIps();
+        } else {
+            cmsFeeInput.setCustomValidity("Please enter a CMS fee within the specified range.");
+            hideCreateIpsButton();
+        }
+    } else {
+        cmsFeeRangeText.style.display = 'none';
+    }
+    saveChooseMyselfData();
+}
+
+function showCreateIpsButton() {
+  document.getElementById('create-ips-button').style.display = 'block';
+  document.getElementById('fact-sheets-section').style.display = 'block';
+}
+
+function hideCreateIpsButton() {
+  document.getElementById('create-ips-button').style.display = 'none';
+  document.getElementById('fact-sheets-section').style.display = 'none';
+}
+
+function showFactSheetsAndCreateIps() {
+    if (isDesiredRateValid() && isCmsFeeValid()) {
+        document.getElementById('fact-sheets-section').style.display = 'block';
+        document.getElementById('create-ips-button').style.display = 'block';
+    }
+}
+
+function hideCreateIpsButton() {
+    document.getElementById('create-ips-button').style.display = 'none';
+    document.getElementById('fact-sheets-section').style.display = 'none';
+}
+
+function isCmsFeeValid() {
+    const cmsFeeInput = document.getElementById('cms_fee');
+    const cmsFee = parseFloat(cmsFeeInput.value);
+    const overallTotalAssets = calculateOverallTotalAssets();
+
+    let standardRate = 0, lowestRate = 0;
+
+    cmsFeeData.forEach(range => {
+        if (overallTotalAssets >= range.lower && overallTotalAssets <= range.upper) {
+            standardRate = range.standardRate;
+            lowestRate = range.lowestRate;
+        }
+    });
+
+    return !isNaN(cmsFee) && cmsFeeInput.value.trim() !== '' && cmsFee >= lowestRate && cmsFee <= standardRate;
+}
+
+function clearClientManagedHoldings() {
+  const cmhAmountInputs = document.querySelectorAll('.cmh-amount-input');
+  cmhAmountInputs.forEach(input => {
+    input.value = '$0';
+  });
+  updateCmsTotals();
+}
+
+document.getElementById('cms_fee').addEventListener('blur', function() {
+    if (!isDesiredRateValid()) {
+        hideCreateIpsButton();
+        alert("Please ensure the desired rate in the previous section is within the valid range.");
+    } else {
+        handleCmsFeeBlur();
+        if (this.validity.customError) {
+            alert(this.validationMessage);
+        }
+    }
+});
+
+document.getElementById('cms_fee').addEventListener('input', handleCmsFeeInput);
+
+function updateIpsTypeVisibility() {
+    const desiredRateInput = document.getElementById('desired-rate');
+    const ipsTypeSection = document.getElementById('ips-type-section');
+    const desiredRate = parseFloat(desiredRateInput.value);
+    const feeRangeText = document.getElementById('fee-range-text').textContent;
+    const min_fee = parseFloat(feeRangeText.match(/(\d+(\.\d+)?)%/)[1]);
+    const max_fee = parseFloat(feeRangeText.match(/to (\d+(\.\d+)?)%/)[1]);
+    
+    if (!isNaN(desiredRate) && desiredRate >= min_fee && desiredRate <= max_fee) {
+        ipsTypeSection.style.display = 'block';
+    } else {
+        ipsTypeSection.style.display = 'none';
+        document.getElementById('ips-changes-section').style.display = 'none';
+        document.querySelectorAll('input[name="ips_type"]').forEach(radio => radio.checked = false);
+    }
+}
+
+document.getElementById('desired-rate').addEventListener('blur', function() {
+    updateIpsTypeVisibility();
+    saveChooseMyselfData();
+});
+
+document.querySelectorAll('input[name="ips_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const ipsChangesSection = document.getElementById('ips-changes-section');
+        const clientManagedHoldingsSection = document.getElementById('client-managed-holdings-section');
+        
+        if (this.value === 'Existing') {
+            ipsChangesSection.style.display = 'block';
+            clientManagedHoldingsSection.style.display = 'none'; // Hide CMS section until changes are explained
+        } else {
+            ipsChangesSection.style.display = 'none';
+            document.getElementById('ips-changes-box').value = '';
+            if (canProceed()) {
+                clientManagedHoldingsSection.style.display = 'block';
+            }
+        }
+        saveChooseMyselfData();
+    });
+});
+
+</script>
+{% endblock %}

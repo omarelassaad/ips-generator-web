@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+        }
+        #corner-logo {
+            position: fixed;
+            bottom: 10px;
+            right: 10px; /* Changed from left to right */
+            width: 100px; /* Adjusted size */
+            height: auto;
+            z-index: 1000; /* Ensures the logo appears on top of other elements */
+        }
+    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMP Investment Policy Statement Generator</title>
+    {% load static %}
+    <script src="https://unpkg.com/htmx.org@1.7.0"></script>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Custom Managed Portfolios: Investment Policy Statement</h1>
+        <nav>
+            <ul>
+                <li><a href="{% url 'questionnaire' %}"> | New Questionnaire | </a></li>
+                <li><a href="{% url 'generate_ips_questionnaire_responses' %}" target="_blank" id="questionnaire-summary-link">| Last Completed Questionnaire Summary |</a></li>
+                <li><a href="{% url 'register' %}">| Register |</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'logout' %}">| Logout |</a></li>
+                {% else %}
+                    <li><a href="{% url 'login' %}">| Login |</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+    <footer>
+        <p>&copy; Powered by PeekingLlama</p>
+    </footer>
+    <img src="{% static 'images/pl.png' %}" alt="Logo" id="corner-logo">
+    <script>
+        document.getElementById('questionnaire-summary-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            window.open(this.href, '_blank');
+        });
+    </script>
+</body>
+</html>

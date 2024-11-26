@@ -1,0 +1,530 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    fieldset.unanswered {
+        border: 2px solid red;
+        animation: flash 1s 3;
+    }
+
+    @keyframes flash {
+        0% { background-color: transparent; }
+        50% { background-color: #ffcccc; }
+        100% { background-color: transparent; }
+    }
+    
+    #result table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #result table th,
+    #result table td {
+        width: 50%;
+        padding: 8px;
+        text-align: left;
+        border: 1px solid #ddd;
+    }
+
+    #result table th {
+        background-color: #f2f2f2;
+    }
+</style>
+
+<h2 style="text-align: center;">Private Client Investment Questionnaire</h2>
+<form id="questionnaire-form" method="POST" action="{% url 'questionnaire' %}">
+    {% csrf_token %}
+    <div>
+        <label for="advisor_name">Investment Advisor Name:</label>
+        <input type="text" name="advisor_name" id="advisor_name" required>
+        <div id="error-advisor_name" class="error-message"></div>
+    </div>
+    <div>
+        <label for="client_identifier">Client Household Name:</label>
+        <input type="text" name="client_identifier" id="client_identifier" required>
+        <div id="error-client_identifier" class="error-message"></div>
+    </div>
+
+    <fieldset>
+        <legend>Investment Goals</legend>
+        <div>
+            <label>Primary Investment Goals (Check all that apply):</label>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Retirement" id="goal_retirement">
+                <label for="goal_retirement">Retirement</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Wealth accumulation" id="goal_wealth">
+                <label for="goal_wealth">Wealth accumulation</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Legacy planning" id="goal_legacy">
+                <label for="goal_legacy">Legacy planning</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Philanthropy" id="goal_philanthropy">
+                <label for="goal_philanthropy">Philanthropy</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Major asset purchase" id="goal_asset">
+                <label for="goal_asset">Major asset purchase</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Education" id="goal_education">
+                <label for="goal_education">Education</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Health care" id="goal_health">
+                <label for="goal_health">Health care</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Travel" id="goal_travel">
+                <label for="goal_travel">Travel</label>
+            </div>
+            <div class="radio-option">
+                <input type="checkbox" name="investment_goals" value="Other" id="goal_other">
+                <label for="goal_other">Other</label>
+            </div>
+            <div id="error-investment_goals" class="error-message"></div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Ability to Tolerate Risk</legend>
+        <div>
+            <label>What is your current annual income from all sources?</label>
+            <div class="radio-option">
+                <input type="radio" name="annual_income" value="1" id="income_less_50">
+                <label for="income_less_50">Less than $50,000</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="annual_income" value="2" id="income_50_100">
+                <label for="income_50_100">$50,000 - $100,000</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="annual_income" value="3" id="income_100_200">
+                <label for="income_100_200">$100,000 - $200,000</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="annual_income" value="4" id="income_200_500">
+                <label for="income_200_500">$200,000 - $500,000</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="annual_income" value="5" id="income_more_500">
+                <label for="income_more_500">More than $500,000</label>
+            </div>
+            <div id="error-annual_income" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>What percentage of your income do you currently save or invest?</label>
+            <div class="radio-option">
+                <input type="radio" name="income_savings" value="1" id="savings_less_5">
+                <label for="savings_less_5">Less than 5%</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="income_savings" value="2" id="savings_5_10">
+                <label for="savings_5_10">5% - 10%</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="income_savings" value="3" id="savings_10_20">
+                <label for="savings_10_20">10% - 20%</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="income_savings" value="4" id="savings_20_30">
+                <label for="savings_20_30">20% - 30%</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="income_savings" value="5" id="savings_more_30">
+                <label for="savings_more_30">More than 30%</label>
+            </div>
+            <div id="error-income_savings" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>What are your monthly spending needs (including fixed and variable expenses)?</label>
+            <div class="radio-option">
+                <input type="radio" name="spending_needs" value="1" id="spending_more_90">
+                <label for="spending_more_90">More than 90% of your income</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="spending_needs" value="2" id="spending_75_90">
+                <label for="spending_75_90">75% - 90% of your income</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="spending_needs" value="3" id="spending_50_75">
+                <label for="spending_50_75">50% - 75% of your income</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="spending_needs" value="4" id="spending_25_50">
+                <label for="spending_25_50">25% - 50% of your income</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="spending_needs" value="5" id="spending_less_25">
+                <label for="spending_less_25">Less than 25% of your income</label>
+            </div>
+            <div id="error-spending_needs" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>How many months of living expenses do you have saved in an emergency fund?</label>
+            <div class="radio-option">
+                <input type="radio" name="emergency_fund" value="1" id="emergency_less_1">
+                <label for="emergency_less_1">Less than 1 month</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="emergency_fund" value="2" id="emergency_1_3">
+                <label for="emergency_1_3">1-3 months</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="emergency_fund" value="3" id="emergency_3_6">
+                <label for="emergency_3_6">3-6 months</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="emergency_fund" value="4" id="emergency_6_12">
+                <label for="emergency_6_12">6-12 months</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="emergency_fund" value="5" id="emergency_more_12">
+                <label for="emergency_more_12">More than 12 months</label>
+            </div>
+            <div id="error-emergency_fund" class="error-message"></div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Willingness to Tolerate Risk</legend>
+        <div>
+            <label>How would you describe your risk tolerance for your overall investment portfolio?</label>
+            <div class="radio-option">
+                <input type="radio" name="risk_tolerance" value="1" id="risk_conservative">
+                <label for="risk_conservative">Conservative: Prefer minimal risk willing to accept lower returns to avoid potential losses.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="risk_tolerance" value="2" id="risk_moderate">
+                <label for="risk_moderate">Moderate: Willing to take some risk for potential moderate returns. Comfortable with occasional fluctuations.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="risk_tolerance" value="3" id="risk_aggressive">
+                <label for="risk_aggressive">Aggressive: Comfortable with high risk and significant fluctuations for the chance of higher returns.</label>
+            </div>
+            <div id="error-risk_tolerance" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>What level of investment loss in a year would make you uncomfortable?</label>
+            <div class="radio-option">
+                <input type="radio" name="investment_loss" value="1" id="loss_5">
+                <label for="loss_5">5% loss</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="investment_loss" value="2" id="loss_10">
+                <label for="loss_10">10% loss</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="investment_loss" value="3" id="loss_15">
+                <label for="loss_15">15% loss</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="investment_loss" value="4" id="loss_20">
+                <label for="loss_20">20% loss</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="investment_loss" value="5" id="loss_more_20">
+                <label for="loss_more_20">More than 20% loss</label>
+            </div>
+            <div id="error-investment_loss" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>How long are you willing to wait for your investments to recover after a market downturn?</label>
+            <div class="radio-option">
+                <input type="radio" name="recovery_period" value="1" id="recovery_less_1">
+                <label for="recovery_less_1">Less than 1 year</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="recovery_period" value="2" id="recovery_1_2">
+                <label for="recovery_1_2">1-2 years</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="recovery_period" value="3" id="recovery_3_5">
+                <label for="recovery_3_5">3-5 years</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="recovery_period" value="4" id="recovery_more_5">
+                <label for="recovery_more_5">More than 5 years</label>
+            </div>
+            <div id="error-recovery_period" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>How would you react to a significant drop in your portfolio value?</label>
+            <div class="radio-option">
+                <input type="radio" name="reaction_to_drop" value="1" id="reaction_sell">
+                <label for="reaction_sell">Sell: Prefer to cut losses and avoid further declines.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="reaction_to_drop" value="3" id="reaction_hold">
+                <label for="reaction_hold">Hold: Prefer to wait and expect recovery over time.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="reaction_to_drop" value="5" id="reaction_buy_more">
+                <label for="reaction_buy_more">Buy More: See it as an opportunity to invest more at lower prices.</label>
+            </div>
+            <div id="error-reaction_to_drop" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>How comfortable are you with investing in high-risk/high-reward opportunities such as speculative stocks or startups?</label>
+            <div class="radio-option">
+                <input type="radio" name="high_risk_opportunities" value="1" id="high_risk_very_uncomfortable">
+                <label for="high_risk_very_uncomfortable">Very uncomfortable: Avoid high-risk investments and prefer stable low-risk options.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="high_risk_opportunities" value="2" id="high_risk_somewhat_uncomfortable">
+                <label for="high_risk_somewhat_uncomfortable">Somewhat uncomfortable: Accept slight risk but mainly prefer safer investments.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="high_risk_opportunities" value="3" id="high_risk_neutral">
+                <label for="high_risk_neutral">Neutral: Open to a balanced mix of risk and reward opportunities.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="high_risk_opportunities" value="4" id="high_risk_somewhat_comfortable">
+                <label for="high_risk_somewhat_comfortable">Somewhat comfortable: Willing to take on higher risk for the chance of higher returns including speculative investments.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="high_risk_opportunities" value="5" id="high_risk_very_comfortable">
+                <label for="high_risk_very_comfortable">Very comfortable: Seek high-risk investments with the potential for substantial rewards such as speculative stocks or startups.</label>
+            </div>
+            <div id="error-high_risk_opportunities" class="error-message"></div>
+        </div>
+
+        <div>
+            <label>How do you feel about the volatility in your investment returns considering scenarios like market downturns or sudden gains?</label>
+            <div class="radio-option">
+                <input type="radio" name="volatility" value="1" id="volatility_very_uncomfortable">
+                <label for="volatility_very_uncomfortable">Very uncomfortable: Prefer stable and consistent returns avoiding significant fluctuations.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="volatility" value="2" id="volatility_uncomfortable">
+                <label for="volatility_uncomfortable">Uncomfortable: Tolerate minor fluctuations but generally prefer stable returns.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="volatility" value="3" id="volatility_neutral">
+                <label for="volatility_neutral">Neutral: Accept volatility as a part of investing and can handle moderate fluctuations.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="volatility" value="4" id="volatility_comfortable">
+                <label for="volatility_comfortable">Comfortable: Willing to endure significant fluctuations for the possibility of higher returns.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="volatility" value="5" id="volatility_very_comfortable">
+                <label for="volatility_very_comfortable">Very comfortable: Expect and accept high volatility in pursuit of the highest possible returns.</label>
+            </div>
+            <div id="error-volatility" class="error-message"></div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Investment Knowledge</legend>
+        <div>
+            <label>How would you rate your knowledge of investments?</label>
+            <div class="radio-option">
+                <input type="radio" name="investment_knowledge" value="1" id="knowledge_none">
+                <label for="knowledge_none">None: You have no experience with investments and rely entirely on professional advice.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="investment_knowledge" value="2" id="knowledge_basic">
+                <label for="knowledge_basic">Basic: You have a basic understanding of stocks, bonds, and mutual funds but limited experience in making investment decisions.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="investment_knowledge" value="3" id="knowledge_intermediate">
+                <label for="knowledge_intermediate">Intermediate: You have a good understanding of various investment products (stocks, bonds, mutual funds, ETFs) and have made several investment decisions on your own.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="investment_knowledge" value="4" id="knowledge_advanced">
+                <label for="knowledge_advanced">Advanced: You have extensive knowledge of investments including complex instruments (options, futures, derivatives) and frequently make your own investment decisions.</label>
+            </div>
+            <div id="error-investment_knowledge" class="error-message"></div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Time Horizon</legend>
+        <div>
+            <label>For your primary investment goal, indicate the approximate time frame:</label>
+            <div class="radio-option">
+                <input type="radio" name="time_horizon" value="1" id="horizon_less_1">
+                <label for="horizon_less_1">Less than 1 year</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="time_horizon" value="2" id="horizon_1_3">
+                <label for="horizon_1_3">1-3 years</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="time_horizon" value="3" id="horizon_3_5">
+                <label for="horizon_3_5">3-5 years</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="time_horizon" value="4" id="horizon_5_10">
+                <label for="horizon_5_10">5-10 years</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="time_horizon" value="5" id="horizon_more_10">
+                <label for="horizon_more_10">More than 10 years</label>
+            </div>
+            <div id="error-time_horizon" class="error-message"></div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Liquidity Needs</legend>
+        <div>
+            <label>Importance of having access to cash for your investments:</label>
+            <div class="radio-option">
+                <input type="radio" name="liquidity_needs" value="1" id="liquidity_very_important">
+                <label for="liquidity_very_important">Very important: Need to access cash quickly for emergencies or opportunities.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="liquidity_needs" value="2" id="liquidity_somewhat_important">
+                <label for="liquidity_somewhat_important">Somewhat important: Need some access to cash but can afford to wait for a short period.</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="liquidity_needs" value="3" id="liquidity_not_important">
+                <label for="liquidity_not_important">Not important: Comfortable with long-term investments without needing quick access to cash.</label>
+            </div>
+            <div id="error-liquidity_needs" class="error-message"></div>
+        </div>
+        <div>
+            <label for="annual_withdrawal">Considering your financial needs, how much do you plan to withdraw from your portfolio annually in the coming years? (Leave blank if no withdrawals are expected):</label>
+            <input type="text" name="annual_withdrawal" id="annual_withdrawal" placeholder="$" onblur="formatCurrency(this)">
+            <div id="error-annual_withdrawal" class="error-message"></div>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>Responsible Investing Preference</legend>
+        <div>
+            <div class="radio-option">
+                <input type="radio" name="responsible_investing" value="RI" id="ri_all">
+                <label for="ri_all">An all responsible investing portfolio, if possible</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="responsible_investing" value="Neutral" id="ri_neutral">
+                <label for="ri_neutral">Neutral, no bias</label>
+            </div>
+            <div id="error-responsible_investing" class="error-message"></div>
+        </div>
+    </fieldset>
+
+    <button type="submit">Submit</button>
+
+    <div id="result"></div>
+</form>
+
+<script>
+function formatCurrency(input) {
+    let value = input.value.replace(/[^\d]/g, '');
+    let numberValue = parseFloat(value);
+    if (!isNaN(numberValue)) {
+        input.value = '$' + new Intl.NumberFormat('en-US').format(Math.floor(numberValue));
+    }
+}
+
+document.getElementById('questionnaire-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const input = document.getElementById('annual_withdrawal');
+    const originalValue = input.value;
+    input.value = input.value.replace(/[^\d]/g, '');
+
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        input.value = originalValue;
+
+        // Clear all existing error messages
+        document.querySelectorAll('.error-message').forEach(el => el.innerHTML = '');
+
+        if (data.errors) {
+            let firstError = null;
+            Object.keys(data.errors).forEach((key) => {
+                const errorDiv = document.getElementById(`error-${key}`);
+                if (errorDiv) {
+                    errorDiv.innerHTML = data.errors[key][0].message;
+                    if (!firstError) {
+                        firstError = errorDiv;
+                    }
+                }
+            });
+            if (firstError) {
+                firstError.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+        } else {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+    <h3>Results</h3>
+    <table>
+        <tr>
+            <th>Category</th>
+            <th>Results</th>
+        </tr>
+        <tr>
+            <td><strong>Risk Rating:</strong></td>
+            <td>${data.risk_rating}</td>
+        </tr>
+        <tr>
+            <td><strong>Portfolio Recommendation:</strong></td>
+            <td>${data.portfolio_recommendation}</td>
+        </tr>
+        <tr>
+            <td colspan="2">${data.portfolio_definition}</td>
+        </tr>
+    </table>
+    <h3>${data.portfolio_recommendation} Target Asset Mix</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Asset Class</th>
+                <th>Allocation</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${Object.entries(data.asset_mix).map(([asset_class, allocation]) => `
+                <tr>
+                    <td>${asset_class}</td>
+                    <td>${allocation}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+    <div class="button-container">
+        <div class="button-wrapper">
+            <button type="button" class="button" onclick="location.href='{% url 'choose_myself' %}'">Proceed to Choose Myself</button>
+        </div>
+        <div class="button-wrapper">
+            <button type="button" class="button" onclick="location.href='{% url 'let_pm_choose' %}'">Proceed to Let the PM Choose</button>
+        </div>
+    </div>
+`;
+            
+            resultDiv.scrollIntoView({behavior: 'smooth'});
+        }
+    })
+    .catch(error => {
+        input.value = originalValue;
+        console.error('Error:', error);
+    });
+});
+</script>
+{% endblock %}

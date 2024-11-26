@@ -1,0 +1,793 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Investment policy statement</title>
+    <style>
+    /* Base page setup */
+    @page {
+        size: 8.5in 11in;
+        margin: 18mm; /* Set consistent margins for all sides */
+        @top-right {
+            content: element(logo);
+            margin-top: 0;
+            margin-right: 0;
+        }
+        @bottom-left {
+            content: "v.{{ version_number }} {{ creation_date }}";
+            font-family: Arial, sans-serif;
+            color: #000000;
+            margin-bottom: 7mm;
+        }
+        @bottom-right {
+            content: counter(page);
+            color: #000000;
+            font-family: Arial, sans-serif;
+            margin-bottom: 7mm;
+        }
+        background-color: #ffffff;
+    }
+
+    /* Global styles */
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+        color: #000000;
+        font-size: 16px;
+    }
+
+    .container {
+        max-width: calc(100% - 36mm); /* Subtracting twice the margin */
+        margin: 0 auto;
+        padding: 0;
+        background-color: #ffffff;
+    }
+
+    /* Header styles */
+    .header {
+        background-color: #ffffff;
+        text-align: left;
+        position: relative;
+        padding-top: 20px;
+    }
+
+    .header h1 {
+        color: #112055;
+        margin-bottom: 40px;
+    }
+
+    .logo {
+        display: block;
+        position: fixed;
+        top: -10mm; /* Align with top margin */
+        right: -5mm; /* Align with right margin */
+        width: 60px;
+        height: auto;
+        z-index: 1000;
+    }
+
+    /* Client info styles */
+    .client-info {
+        margin-top: 40px;
+    }
+
+    .client-household-name {
+        color: #000000;
+    }
+
+    .investment-advisor-name,
+    .header p,
+    .spacing {
+        margin-top: 30px;
+    }
+
+    /* Content styles */
+    .content {
+        background-color: #ffffff;
+    }
+
+    .content table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .content table, .content th, .content td {
+        border: none;
+    }
+
+    .content th, .content td {
+        padding: 8px;
+        text-align: center;
+    }
+
+    .content th {
+        background-color: transparent;
+        font-weight: bold;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .content td {
+        border-bottom: 1px solid #ddd;
+    }
+
+    .content td:first-child {
+        text-align: left;
+    }
+
+    .content .total-row {
+        font-weight: bold;
+    }
+
+    /* Page break styles */
+    .page {
+        page-break-after: always;
+        position: relative;
+        background-color: #ffffff;
+    }
+
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    /* Table of contents styles */
+    .table-of-contents {
+        margin-top: 25%;
+        padding-left: 0px;
+        background-color: #ffffff;
+    }
+
+    .table-of-contents h2 {
+        color: #112055;
+        margin-bottom: 20px;
+    }
+
+    .table-of-contents table {
+        width: 100%;
+        background-color: #ffffff;
+    }
+
+    .table-of-contents td {
+        border: none;
+        background-color: #ffffff;
+    }
+
+    /* Section styles */
+    .section-title {
+        color: #01344B;
+        font-size: 18px;
+        margin-top: 20px;
+        margin-bottom: 30px;
+    }
+
+    .sub-heading {
+        color: #112055;
+        font-size: 14px;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    /* Asset allocation styles */
+    .asset-allocation {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        background-color: #ffffff;
+    }
+
+    .asset-allocation .allocation-details {
+        width: 40%;
+        font-size: 14px;
+        background-color: #ffffff;
+        padding-left: 20px;
+    }
+
+    .asset-allocation .chart {
+        width: 60%;
+        background-color: #ffffff;
+        text-align: left;
+        max-width: 300px;
+    }
+
+    .asset-allocation .chart img {
+        width: 100%;
+        height: auto;
+        max-width: 300px;
+    }
+
+    /* Account details styles */
+    .account-details {
+        margin-top: 20px;
+        background-color: #ffffff;
+    }
+
+    /* Asset class styles */
+    .bold-asset-class {
+        color: #112055;
+        font-weight: bold;
+    }
+
+    .asset-category {
+        color: #01344B;
+    }
+
+    .percentage {
+        color: #112055;
+    }
+
+    /* Performance table styles */
+    .performance-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-top: 20px;
+        background-color: #ffffff;
+    }
+
+    .performance-table th, .performance-table td {
+        border: none;
+        padding: 8px;
+        text-align: center;
+        background-color: #ffffff;
+    }
+
+    .performance-table th {
+        background-color: transparent;
+        color: #000000;
+        font-weight: bold;
+        border-top: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .performance-table td {
+        border-bottom: 1px solid #ddd;
+    }
+
+    .performance-table .strategy-column {
+        text-align: left;
+    }
+
+    .performance-table .portfolio-row {
+        font-weight: bold;
+    }
+
+    .performance-table .benchmark-row {
+        font-style: italic;
+    }
+
+    /* Deviation rationale styles */
+    .deviation-rationale {
+        margin-top: 20px;
+    }
+
+    .deviation-rationale h3 {
+        color: #000000;
+        margin-bottom: 10px;
+    }
+
+    /* Client managed table styles */
+    .client-managed-table th:first-child {
+        text-align: left;
+    }
+
+    .client-managed-table th, .client-managed-table td {
+        border: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .client-managed-table th {
+        background-color: transparent;
+        font-weight: bold;
+        border-top: none;
+    }
+
+    /* Signature styles */
+    .signature-date {
+        margin-bottom: 40px;
+    }
+
+    .signature-space {
+        height: 20px;
+    }
+
+    .signatures {
+        margin-top: 15px;
+    }
+
+    .signature-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+    }
+
+    .signature-line {
+        width: 45%;
+    }
+
+    .signature-line hr {
+        width: 100%;
+        margin: 0;
+        border: none;
+        border-top: 1px solid black;
+    }
+
+    .signature-line p {
+        margin: 5px 0;
+    }
+
+    /* Heading styles */
+    h3, .sub-heading {
+        color: black;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    h2, .section-title {
+        color: #112055;
+        font-size: 18px;
+        font-weight: normal;
+    }
+
+    /* Alignment styles */
+    .left-align, 
+    .left-align-header {
+        text-align: left !important;
+    }
+
+    table th.left-align-header {
+        text-align: left !important;
+    }
+
+    /* Print-specific styles */
+    @media print {
+        h3, .sub-heading {
+            font-size: 13pt;
+        }
+
+        h2, .section-title {
+            font-size: 18pt;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Investment policy statement</h1>
+            <img src="{{ logo_url }}" alt="Logo" class="logo" id="logo">
+            <div class="client-info" style="margin-top: 20%;">
+                <p>Prepared for:</p>
+                <p class="client-household-name"><strong>{{ client_household_name }}</strong></p>
+                <div class="spacing"></div>
+                <p>On behalf of:</p>
+                <p class="investment-advisor-name">{{ investment_advisor_name }}</p>
+            </div>
+        </div>
+        <div class="table-of-contents">
+            <h2>Table of contents</h2>
+            <table>
+                <tr><td>Investment policy statement</td><td>1</td></tr>
+                <tr><td>Investment policy statement purpose</td><td>2</td></tr>
+                <tr><td>Investment process</td><td>2</td></tr>
+                <tr><td>Risk profile and recommended asset mix</td><td>3</td></tr>
+                <tr><td>Investment objectives, constraints, and preferences</td><td>3</td></tr>
+                <tr><td>Strategy and asset allocation</td><td>5</td></tr>
+                <tr><td>Historical performance of proposed portfolio</td><td>6</td></tr>
+                
+                {% with page_counter=7 %}
+    {% if client_managed_holdings|length > 0 and total_client_managed > 0 %}
+        <tr><td>Client-directed holdings</td><td>{{ page_counter }}</td></tr>
+        {% with page_counter=page_counter|add:1 %}
+            <tr><td>Fee transparency</td><td>{{ page_counter }}</td></tr>
+            {% with page_counter=page_counter|add:1 %}
+                {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies %}
+                    <tr><td>Alternative investment disclosure</td><td>{{ page_counter }}</td></tr>
+                    <tr><td>Investment policy statement agreement</td><td>{{ page_counter|add:1 }}</td></tr>
+                {% else %}
+                    <tr><td>Investment policy statement agreement</td><td>{{ page_counter }}</td></tr>
+                {% endif %}
+            {% endwith %}
+        {% endwith %}
+    {% else %}
+        <tr><td>Fee transparency</td><td>{{ page_counter }}</td></tr>
+        {% with page_counter=page_counter|add:1 %}
+            {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies %}
+                <tr><td>Alternative investment disclosure</td><td>{{ page_counter }}</td></tr>
+                <tr><td>Investment policy statement agreement</td><td>{{ page_counter|add:1 }}</td></tr>
+            {% else %}
+                <tr><td>Investment policy statement agreement</td><td>{{ page_counter }}</td></tr>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+{% endwith %}
+            </table>
+        </div>
+        <div class="page"></div>
+        <div class="content page">
+            <h2 class="section-title">Investment policy statement purpose</h2>
+            <p>This Investment Policy Statement (IPS) provides the framework for managing your investment assets. It reflects your investment goals and objectives and will be used to guide the strategy and administration of your Custom Managed Portfolios.</p>
+            <p>The recommendations outlined in this IPS are a result of careful examination of your current financial position, future investment goals, liquidity requirements, need for current income, long-term portfolio expectations, and ability to withstand market fluctuations.</p>
+            <p>This assessment helps define the appropriate allocation of your investments across various asset classes. Once a suitable asset allocation is determined, an appropriate investment strategy is then developed for your optimal portfolio.</p>
+            <p>Although great care has been taken to ensure the accuracy of this report, keep in mind that projections, by their very nature, are based on a variety of assumptions and as such it is likely that the actual results achieved will be somewhat different than illustrated. For this reason, it is very important that you and your team of investment professionals review your investment needs and objectives on a regular basis to ensure they are current and relevant to your changing financial position.</p>
+            
+            <h2 class="section-title">Investment process</h2>
+            
+            <h3 class="sub-heading">Set investment needs and objectives</h3>
+            <p>The process of identifying your personal risk profile and your investment time horizon.</p>
+            
+            <h3 class="sub-heading">Determine optimal investment mix</h3>
+            <p>Given your risk profile and time horizon, an optimal asset mix is recommended.</p>
+            
+            <h3 class="sub-heading">Create a customized investment policy</h3>
+            <p>Your objectives and recommendations are documented to ensure long-term adherence to your plan.</p>
+            
+            <h3 class="sub-heading">Implement plan</h3>
+            <p>Your team of investment professionals will select investment managers and strategies who will take into consideration your unique goals and objectives.</p>
+            
+            <h3 class="sub-heading">Monitor progress and reassess goals</h3>
+            <p>By reviewing your investment plan and incorporating any life stage updates, your team of investment professionals will help ensure your plan continues to reflect your goals and needs.</p>
+
+        </div>
+        <div class="content page">
+            <h2 class="section-title">Risk profile and recommended asset mix</h2>
+            <h3 class="sub-heading">Risk rating: {{ risk_rating }}</h3>
+            <p>{{ risk_rating_paragraph }}</p>
+            <h3 class="sub-heading">Recommended asset mix: {{ asset_mix_title }}</h3>
+            <p>{{ recommended_asset_mix_paragraph }}</p>
+        
+            <h2 class="section-title">Investment objectives, constraints, and preferences</h2>
+            <h3 class="sub-heading">Investment goals and objectives</h3>
+            <p>The following outlines your investment objectives, which have been identified to guide the management of your portfolio:</p>
+            {% for goal, goal_paragraph in investment_goals_paragraphs %}
+                <p><strong>{{ goal }}:</strong> {{ goal_paragraph }}</p>
+            {% endfor %}
+            
+            <h3 class="sub-heading">Constraints</h3>
+            <p><strong>Investment time horizon:</strong> {{ time_horizon_title }}</p>
+            <p>{{ time_horizon_paragraph }}</p>
+            <p><strong>Liquidity needs:</strong> {{ liquidity_needs_title }}</p>
+            <p>{{ liquidity_needs_paragraph }}</p>
+            <p><strong>Income needs</strong></p>
+            <p>{{ income_needs_paragraph }}</p>
+
+            <h3 class="sub-heading">Preferences</h3>
+            <p><strong>Responsible investing preference: </strong>{{ responsible_investing_title }}</p>
+            <p>{{ responsible_investing_paragraph }}</p>
+        </div>
+        <div class="content page">
+            <h2 class="section-title">Strategy and asset allocation</h2>
+            <p>Your recommended asset allocation considers your investment needs and objectives, investment time horizon, and risk profile. These constraints are then translated into an asset allocation strategy that optimizes the risk/reward relationship.<br><br> Your proposed strategic asset allocation is:</p><br>
+            
+            <div class="ion">
+              
+                <div class="allocation-details">
+                    <!-- 
+                    {% if proposed_weights.Cash > 0 %}
+                        <p><span class="asset-category">Cash:</span> <span class="percentage bold-asset-class">{{ proposed_weights.Cash }}%</span></p>
+                    {% endif %}
+                    {% if proposed_weights.Fixed_Income > 0 %}
+                        <p><span class="asset-category">Fixed income:</span> <span class="percentage bold-asset-class">{{ proposed_weights.Fixed_Income }}%</span></p>
+                    {% endif %}
+                    {% if proposed_weights.Canadian_Equity > 0 %}
+                        <p><span class="asset-category">Canadian equities:</span> <span class="percentage bold-asset-class">{{ proposed_weights.Canadian_Equity }}%</span></p>
+                    {% endif %}
+                    {% if proposed_weights.US_Equity > 0 %}
+                        <p><span class="asset-category">US equities:</span> <span class="percentage bold-asset-class">{{ proposed_weights.US_Equity }}%</span></p>
+                    {% endif %}
+                    {% if proposed_weights.International_Equity > 0 %}
+                        <p><span class="asset-category">International equities:</span> <span class="percentage bold-asset-class">{{ proposed_weights.International_Equity }}%</span></p>
+                    {% endif %}
+                    {% if proposed_weights.Alternatives > 0 %}
+                        <p><span class="asset-category">Alternative assets:</span> <span class="percentage bold-asset-class">{{ proposed_weights.Alternatives }}%</span></p>
+                    {% endif %}
+                    <p><span class="asset-category">Total:</span> <span class="percentage bold-asset-class">100%</span></p>
+                </div>
+                -->
+                
+                <div class="chart">
+                    <img src="{{ pie_chart_url }}" alt="Pie Chart" style="width: 600px; height: auto;">
+                </div>
+            </div>
+        </div>
+        <p>Your investments will be allocated between Investment Managers and accounts as follows:</p>
+<div class="account-details">
+    <table>
+        <thead>
+            <tr>
+                <th class="left-align-header">Account owner</th>
+                <th>Account type</th>
+                <th class="left-align-header">Investment strategy</th>
+                <th>Amount ($)</th>
+                <th>Weight</th>
+            </tr>
+        </thead>
+        <tbody>
+    {% for detail in account_details %}
+    <tr>
+        <td class="left-align">{{ detail.account_owner }}</td>
+        <td>{{ detail.account_type }}</td>
+        <td class="left-align">{{ detail.strategy }}</td>
+        <td>{{ detail.amount|floatformat:0|intcomma }}</td>
+        <td>{{ detail.weight|floatformat:1 }}%</td>
+    </tr>
+    {% endfor %}
+    <tr class="total-row">
+        <td colspan="3">Total</td>
+        <td>${{ total_amount|floatformat:0|intcomma }}</td>
+        <td>100%</td>
+    </tr>
+</tbody>
+    </table>
+</div>
+        {% if deviation_comments %}
+        <div class="deviation-rationale">
+            <h3 class="sub-heading">Rationale for asset mix deviation from suitability questionnaire:</h3>
+            <p>{{ deviation_comments }}</p>
+        </div>
+        {% endif %}
+
+        {% if ips_changes %}
+        <div class="deviation-rationale">
+            <h3 class="sub-heading">Changes and updates from the previously submited IPS:</h3>
+            <p>{{ ips_changes }}</p>
+        </div>
+        {% endif %}
+    </div>
+    <section class="performance-section">
+        <h2 class="section-title">Historical performance of proposed portfolio</h2>
+        
+        <h3 class="sub-heading">Rolling returns</h3>
+<table class="performance-table">
+    <thead>
+        <tr>
+            <th class="strategy-column">Strategy</th>
+            <th class="weight-column">Weight</th>                    
+            <th class="return-column">3M</th>
+            <th class="return-column">YTD</th>                   
+            <th class="return-column">1YR</th>
+            <th class="return-column">3YR</th>
+            <th class="return-column">5YR</th>
+            <th class="return-column">10YR</th>                    
+            <th class="return-column">SI</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in performance_summary %}
+            <tr {% if row.Strategy == "Portfolio" %}class="portfolio-row"{% elif row.Strategy == "Benchmark" %}class="benchmark-row"{% endif %}>
+                <td class="strategy-column">{{ row.Strategy }}</td>
+                <td class="weight-column">{{ row.Weight }}</td>
+                <td class="return-column">{{ row.3M }}</td>
+                <td class="return-column">{{ row.YTD }}</td>
+                <td class="return-column">{{ row.1YR }}</td>                  
+                <td class="return-column">{{ row.3YR }}</td>
+                <td class="return-column">{{ row.5YR }}</td>
+                <td class="return-column">{{ row.10YR }}</td>
+                <td class="return-column">{{ row.SI }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+        <h3 class="sub-heading">Calendar year returns</h3>
+        <table class="performance-table">
+    <thead>
+        <tr>
+            <th class="strategy-column">Strategy</th>
+            <th class="weight-column">Weight</th>
+            <th class="return-column">2023</th>
+            <th class="return-column">2022</th>
+            <th class="return-column">2021</th>
+            <th class="return-column">2020</th>
+            <th class="return-column">2019</th>
+            <th class="return-column">2018</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in calendar_year_summary %}
+            <tr {% if row.Strategy == "Portfolio" %}class="portfolio-row"{% elif row.Strategy == "Benchmark" %}class="benchmark-row"{% endif %}>
+                <td class="strategy-column">{{ row.Strategy }}</td>
+                <td class="weight-column">{{ row.Weight }}</td>
+                <td class="return-column">{{ row.2023 }}</td>
+                <td class="return-column">{{ row.2022 }}</td>
+                <td class="return-column">{{ row.2021 }}</td>
+                <td class="return-column">{{ row.2020 }}</td>
+                <td class="return-column">{{ row.2019 }}</td>
+                <td class="return-column">{{ row.2018 }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+    <div id="disclaimers" style="margin-top: 20px; font-size: 12px;">
+        <p>The return data is as of September 30, 2024. Indicated rates of return are historical annual compounded total returns including reinvestment of all distributions for the period ended, and do not take into account management expenses, account sales, redemption, distribution or optional charges or income taxes payable by any security holder that would have reduced returns.</p>
+        {% for line in disclaimer_lines %}
+            <p>{{ line }}</p>
+        {% endfor %}
+    </div>
+    </section>
+    {% if client_managed_holdings|length > 0 and total_client_managed > 0 %}
+    <div class="content page page-break-before">
+        <h2 class="section-title">Client-directed holdings</h2>
+        
+        <p>In addition to the securities purchased in your managed accounts according to the recommended investment models, the following account(s) will include non-model holdings based on your direction. These non-model holdings are non-discretionary positions integrated into your managed accounts. They will be held in a separate sleeve carved out within the account ("Client-directed sleeve") and will not affect the management and performance of the intended investment strategies.</p>
+
+        <p>No trading will occur in the Client-directed sleeves without your explicit direction. All trading instructions will be communicated to the Managed Assets Program trading team by your investment advisor and executed with the same diligence and standards as model assets.</p>
+        
+        <p>Assets in the Client-directed sleeves will not be considered in the suitability assessment of the recommended portfolio mix above. Your investment advisor will collaborate with you to ensure these non-model holdings align with your financial goals.</p>
+        
+        <p>Below is a summary of your accounts that include designated Client-directed sleeves for your personal trading activities:</p>
+
+
+
+        <div class="account-details">
+    <table class="client-managed-table">
+        <thead>
+            <tr>
+                <th>Account owner</th>
+                <th>Account type</th>
+                <th>Amount ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for holding in filtered_client_managed_holdings %}
+            <tr>
+                <td>{{ holding.account_owner }}</td>
+                <td>{{ holding.account_type }}</td>
+                <td>{{ holding.amount|floatformat:0|intcomma }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="2">Total</td>
+                <td>${{ total_client_managed|floatformat:0|intcomma }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+    </div>
+    {% endif %}
+</div>
+<div class="content page page-break-before">
+    <h2 class="section-title">Fee transparency</h2>
+    
+    <p>Your Custom Managed Portfolios will not incur fees or commissions based on the volume or value of transactions within the account. Additionally, we do not collect fees directly tied to the performance or profits of your account(s). Instead, a flat management fee is charged monthly, calculated based on the average daily value of your portfolio assets, and deducted from each respective account. For more information, please refer to the Managed Account Agreement.</p>
+    
+    <p>Each strategy has a specific management fee rate associated with its asset class. Below, you will find the applicable management fee rates for each individual strategy, as well as a calculated blended management fee for your total portfolio.</p>
+
+    <div class="account-details">
+    <table>
+        <thead>
+            <tr>
+                <th class="left-align-header">Account owner</th>
+                <th>Account type</th>
+                <th class="left-align-header">Investment strategy</th>
+                <th>Amount ($)</th>
+                <th>Weight</th>
+                <th>Fee</th>
+            </tr>
+        </thead>
+        <tbody>
+    {% for item in fee_transparency_data %}
+    <tr>
+        <td class="left-align">{{ item.account_owner }}</td>
+        <td>{{ item.account_type }}</td>
+        <td class="left-align">{{ item.strategy }}</td>
+        <td>{{ item.amount|floatformat:0|intcomma }}</td>
+        <td>{{ item.weight|floatformat:1 }}%</td>
+        <td>{{ item.fee }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total-row">
+        <td colspan="3">Total</td>
+        <td>${{ total_fee_transparency_amount|floatformat:0|intcomma }}</td>
+        <td>100%</td>
+        <td>{{ total_overall_fee }}</td>
+    </tr>
+</tbody>
+    </table>
+</div>
+    <div class="fee-explanation" style="margin-top: 20px; font-size: 16px;">
+        <p>
+            Based on the above portfolio mix, your calculated blended management fee rate is <strong>{{ total_overall_fee }}</strong>. 
+            This rate will be specified in your <em>Managed Account Agreement</em> as part of the account opening/update process.
+        </p>
+        <p>
+            Please note that this calculated blended fee rate is derived from the above individual strategy specific management fee rate(s) 
+            and will vary as individual strategy market values fluctuate. We would be happy to provide you with an up-to-date calculated 
+            blended fee rate upon request.
+        </p>
+    </div>
+
+    <!-- Add this just before the signature page section -->
+    {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies %}
+<div class="content page page-break-before">
+    <h2 class="section-title">Alternative investment disclosure</h2>
+    
+    {% if 'Brookfield Private Real Assets Fund' in selected_strategies %}
+    <h3 class="sub-heading">Brookfield Private Real Assets Fund</h3>
+    <p>Brookfield Private Real Assets Fund L.P. Canada ("BPRAF") offers a comprehensive solution for accessing Brookfield's premier private real estate and infrastructure expertise, focusing on value creation strategies. BPRAF's investments in private real assets aim to provide investors with:</p>
+    <ol>
+        <li>Attractive total returns</li>
+        <li>Low volatility</li>
+        <li>Inflation protection</li>
+    </ol>
+    
+    <p>BPRAF is designed to deliver the benefits of private real assets without the operational complexities typically associated with traditional private funds. Key features of BPRAF include operational ease, quarterly liquidity, and a diversified portfolio.</p>
+    
+    <p>BPRAF is continuously offered with quarterly liquidity, subject to a 90-day notice period. However, there is no secondary market for BPRAF, and none is expected to develop. Therefore, this investment is suitable for investors who do not require immediate or short-term liquidity. Liquidity refers to how quickly and easily an asset can be sold and converted into cash. During volatile markets, such as periods of sudden interest rate changes, certain securities may become less liquid, meaning they cannot be sold quickly or easily. Some securities may be illiquid due to legal restrictions, the nature of the investment, specific features (such as guarantees), or a lack of interested buyers. Difficulty in selling securities may lead to higher volatility and potential losses or reduced returns.</p>
+    
+    <p>Redemptions are subject to a 5% fund-level gate and may be placed in a redemption queue. A fund-level gate limits redemptions temporarily to prevent a run on the fund during market stress, allowing redemptions to occur at a pace that minimizes impact on BPRAF's value, liquidity, and concentration.</p>
+    
+    <p>Redemptions are processed in two stages: 80% of the redemption amount is paid approximately 30 days after the redemption date, with the remaining balance paid once the net asset value (NAV) is finalized. For additional details, please refer to the latest Brookfield Private Real Asset Fund Capital Activity Dates.</p>
+    {% endif %}
+
+    {% if 'Hamilton Lane Global Private Assets Fund' in selected_strategies %}
+    <h3 class="sub-heading">Hamilton Lane Global Private Assets Fund</h3>
+    <p>Hamilton Lane Global Private Assets Fund ("HLGPAF") provides investors with streamlined access to Hamilton Lane's global expertise in private assets, focusing on diverse strategies such as buyouts, venture capital, and private debt. HLGPAF seeks to generate attractive long-term capital appreciation by investing in a wide range of private assets globally, while maintaining liquidity for periodic redemptions.</p>
+
+    <ol>
+        <li>Global diversification across various private market strategies</li>
+        <li>Professional management by experienced private markets investors</li>
+        <li>Potential for enhanced returns compared to traditional public market investments</li>
+    </ol>
+
+    <p>HLGPAF's portfolio emphasizes diversification, liquidity, and risk management, avoiding the complexities of traditional private fund structures. The key benefits to investors include attractive capital appreciation potential and limited liquidity options through periodic redemption windows. HLGPAF is suitable for investors seeking medium- to long-term investments in private assets and is not appropriate for those requiring immediate or frequent liquidity.</p>
+
+    <p>Liquidity in HLGPAF is limited and subject to certain restrictions. While HLGPAF offers monthly liquidity, redemptions may be subject to gates, suspensions, or delays under certain circumstances. Investors should be prepared to hold their investment for an extended period. The value of private market investments may be difficult to determine and may fluctuate more widely than publicly traded securities.</p>
+
+    <p>For more detailed information on HLGPAF's structure, risks, and terms, please refer to the official Fund documents and consult with your investment advisor.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+
+    <div class="page-break-before"></div>
+    <h2 class="section-title">Investment policy statement agreement</h2>
+
+<p>The purpose of this Investment Policy Statement (IPS) is to guide your team of Investment Professionals in effectively implementing and overseeing a strategy for managing your investment assets. This document establishes your expectations and objectives, outlining the asset allocation and investment strategies to be employed in the execution of your IPS.</p>
+<p>This IPS serves as an effective tool for confirming communications between you and your team of Investment Professionals, ensuring that important issues and concerns are clearly addressed. You will receive monthly statements if transactions have occurred within your account, and quarterly statements detailing the performance of each Investment Manager Strategy within your portfolio.</p>
+<p>Since this IPS is based on your responses to the initial questionnaire, any changes in your needs or circumstances may necessitate a different asset and manager allocation. We recommend discussing your investment needs and circumstances with your Investment Professional at least once a year.</p>
+<p>By agreeing to this document, the potential for conflicts and misunderstandings is significantly reduced. Please sign this Agreement to confirm your agreement with its contents. Note that this Investment Policy Statement is not a contract; it is intended to summarize the agreed-upon investment strategy for your portfolio.</p>
+
+    <!--<p class="signature-date">Signed this ____________ day of ____________ 20____________</p>-->
+
+    <div class="signature-space"></div>
+
+    <div class="signatures">
+        <div class="signature-row">
+        {% for owner in unique_account_owners %}
+            <div class="signature-line">
+                <div class="signature-space"></div>
+                <hr>
+                <p>{{ owner }}</p>
+            </div>
+            {% if forloop.counter|divisibleby:2 and not forloop.last %}
+                </div><div class="signature-row">
+            {% endif %}
+        {% endfor %}
+        </div>
+        
+        <div class="signature-row">
+            <div class="signature-line">
+                <div class="signature-space"></div>
+                <hr>
+                <p>{{ investment_advisor_name }}</p>
+            </div>
+        </div>
+    </div>
+    <!-- 
+        {% if desired_rate is not None %}
+        <p>Desired rate: {{ desired_rate }}%</p>
+    {% endif %}
+    {% if cms_fee is not None %}
+        <p>CMS fee: {{ cms_fee }}%</p>
+    {% endif %}
+    </div>-->
+    </div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Investment Policy Statement - Questionnaire Summary</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header, .content { padding: 20px; }
+        .header { background-color: #f5f5f5; }
+        .content { background-color: #ffffff; }
+        .content table { width: 100%; border-collapse: collapse; }
+        .content table, .content th, .content td { border: 1px solid #ddd; }
+        .content th, .content td { padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Investment Policy Statement - Questionnaire Summary</h1>
+            <p>Generated for: {{ user.first_name }} {{ user.last_name }}</p>
+            <p>Investment Advisor: {{ advisor_name }}</p> <!-- Add this line -->
+        </div>
+        <div class="content">
+            <h2>Client Information</h2>
+            <table>
+                <tr>
+                    <th>Question</th>
+                    <th>Answer</th>
+                </tr>
+                {% for response in responses %}
+                <tr>
+                    <td>{{ response.question }}</td>
+                    <td>{{ response.answer }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <h2>Scores</h2>
+            <p>Total Score: {{ total_score }}</p>
+            <p>Risk Rating: {{ risk_rating }}</p>
+            <p>Portfolio Recommendation: {{ portfolio_recommendation }}</p>
+            <p>{{ portfolio_definition }}</p>
+
+            <h2>{{ portfolio_recommendation }} Target Asset Mix</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Asset Class</th>
+                        <th>Allocation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset_class, allocation in asset_mix.items %}
+                    <tr>
+                        <td>{{ asset_class }}</td>
+                        <td>{{ allocation }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
