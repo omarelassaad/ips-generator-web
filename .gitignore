@@ -4,7 +4,10 @@
 __pycache__/
 
 # Virtual environments
+venv/
 weasyprint-env/
+env/
+.env/
 
 # Django
 db.sqlite3
