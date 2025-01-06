@@ -176,49 +176,75 @@ strategy_fee_category = {
 @csrf_exempt
 @require_POST
 def calculate_fees(request):
-    data = json.loads(request.body)
-    strategies = data.get('strategies', [])
-    amounts = data.get('amounts', [])
+    try:
+        data = json.loads(request.body)
+        strategies = data.get('strategies', [])
+        amounts = data.get('amounts', [])
 
-    fee_categories = {}
-    for strategy, amount in zip(strategies, amounts):
-        category = strategy_fee_category.get(strategy, "Equity & Balanced")
-        if category not in fee_categories:
-            fee_categories[category] = 0
-        fee_categories[category] += amount
+        if not strategies or not amounts or len(strategies) != len(amounts):
+            return JsonResponse({
+                'error': 'Invalid input: strategies and amounts must be non-empty and of equal length'
+            }, status=400)
 
-    total_assets = sum(amounts)
-    overall_min_fee = 0
-    overall_min_trailer = 0
-    overall_max_fee = 0
-    overall_max_trailer = 0
-    overall_admin_fee = 0
+        fee_categories = {}
+        for strategy, amount in zip(strategies, amounts):
+            if not isinstance(amount, (int, float)) or amount < 0:
+                return JsonResponse({
+                    'error': 'Invalid amount: amounts must be non-negative numbers'
+                }, status=400)
+            
+            category = strategy_fee_category.get(strategy, "Equity & Balanced")
+            if category not in fee_categories:
+                fee_categories[category] = 0
+            fee_categories[category] += amount
 
-    for category, category_assets in fee_categories.items():
-        fee_ranges = fee_data.get(category, [])
-        for range_data in fee_ranges:
-            if range_data["lower"] <= category_assets <= range_data["upper"]:
-                overall_min_fee += range_data["minFee"] * category_assets
-                overall_min_trailer += range_data["minTrailer"] * category_assets
-                overall_max_fee += range_data["maxFee"] * category_assets
-                overall_max_trailer += range_data["maxTrailer"] * category_assets
-                overall_admin_fee += range_data["adminFee"] * category_assets
-                break
+        total_assets = sum(amounts)
+        if total_assets <= 0:
+            return JsonResponse({
+                'error': 'Total assets must be greater than 0'
+            }, status=400)
 
-    if total_assets > 0:
+        overall_min_fee = 0
+        overall_min_trailer = 0
+        overall_max_fee = 0
+        overall_max_trailer = 0
+        overall_admin_fee = 0
+
+        for category, category_assets in fee_categories.items():
+            fee_ranges = fee_data.get(category, [])
+            fee_range_found = False
+            for range_data in fee_ranges:
+                if range_data["lower"] <= category_assets <= range_data["upper"]:
+                    overall_min_fee += range_data["minFee"] * category_assets
+                    overall_min_trailer += range_data["minTrailer"] * category_assets
+                    overall_max_fee += range_data["maxFee"] * category_assets
+                    overall_max_trailer += range_data["maxTrailer"] * category_assets
+                    overall_admin_fee += range_data["adminFee"] * category_assets
+                    fee_range_found = True
+                    break
+            
+            if not fee_range_found:
+                return JsonResponse({
+                    'error': f'No valid fee range found for category {category} with assets {category_assets}'
+                }, status=400)
+
         overall_min_fee /= total_assets
         overall_min_trailer /= total_assets
         overall_max_fee /= total_assets
         overall_max_trailer /= total_assets
         overall_admin_fee /= total_assets
 
-    return JsonResponse({
-        'min_fee': round(overall_min_fee, 2),
-        'min_trailer': round(overall_min_trailer, 2),
-        'max_fee': round(overall_max_fee, 2),
-        'max_trailer': round(overall_max_trailer, 2),
-        'admin_fee': round(overall_admin_fee, 2),
-    })
+        return JsonResponse({
+            'min_fee': round(overall_min_fee, 2),
+            'min_trailer': round(overall_min_trailer, 2),
+            'max_fee': round(overall_max_fee, 2),
+            'max_trailer': round(overall_max_trailer, 2),
+            'admin_fee': round(overall_admin_fee, 2),
+        })
+    except Exception as e:
+        return JsonResponse({
+            'error': f'An error occurred while calculating fees: {str(e)}'
+        }, status=500)
 
 def calculate_fees_for_ips(strategies, amounts):
     fee_categories = {}

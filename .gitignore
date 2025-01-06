@@ -31,5 +31,15 @@ db.sqlite3
 .DS_Store
 Thumbs.db
 
+# Excel temporary files
+~$*.xlsx
+*.xlk
+*.~*
+
+# Generated files
+media/pie_chart.png
+*.png
+*.pdf
+
 # Other
 *.swp

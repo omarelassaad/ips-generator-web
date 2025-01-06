@@ -670,12 +670,12 @@ function checkWeightDifferences() {
 }
 
 function updateFeeRangeAndTrailer() {
-  const desiredRateInput = document.getElementById('desired-rate');
   const trailerText = document.getElementById('trailer-text');
   const feeRangeText = document.getElementById('fee-range-text');
   const feesSection = document.getElementById('fees-section');
   const proceedButton = document.getElementById('proceed-button');
   const clientManagedHoldingsSection = document.getElementById('client-managed-holdings-section');
+  const desiredRateInput = document.getElementById('desired-rate');
 
   const tableBody = document.querySelector('#account-strategy-table tbody');
   const rows = Array.from(tableBody.rows);
@@ -699,8 +699,25 @@ function updateFeeRangeAndTrailer() {
       },
       body: JSON.stringify({strategies, amounts})
     })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'An error occurred while calculating fees');
+        });
+      }
+      return response.json();
+    })
     .then(data => {
+      if (data.error) {
+        feeRangeText.textContent = data.error;
+        feesSection.style.display = 'block';
+        trailerText.style.display = 'none';
+        proceedButton.style.display = 'none';
+        clientManagedHoldingsSection.style.display = 'none';
+        hideCreateIpsButton();
+        return;
+      }
+
       const {min_fee, min_trailer, max_fee, max_trailer, admin_fee} = data;
 
       feeRangeText.textContent = `The management fee range for this proposal is ${min_fee}% (includes a ${min_trailer}% trailer) to ${max_fee}% (includes a ${max_trailer}% trailer).`;
@@ -730,7 +747,12 @@ function updateFeeRangeAndTrailer() {
     })
     .catch(error => {
       console.error('Error:', error);
-      feeRangeText.textContent = "An error occurred while calculating fees.";
+      feeRangeText.textContent = error.message || "An error occurred while calculating fees.";
+      feesSection.style.display = 'block';
+      trailerText.style.display = 'none';
+      proceedButton.style.display = 'none';
+      clientManagedHoldingsSection.style.display = 'none';
+      hideCreateIpsButton();
     });
   } else {
     feeRangeText.textContent = "Please complete all amount and strategy fields to see the management fee range.";
