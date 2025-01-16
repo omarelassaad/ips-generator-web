@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .table-container {
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  .table th, .table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+  
+  .table th {
+    background-color: #205098;
+    color: white;
+  }
+  
+  .table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .table tr:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .portfolio-row {
+    font-weight: bold;
+    background-color: #e6e6e6;
+  }
+  
+  .benchmark-row {
+    font-weight: bold;
+    background-color: #f0f0f0;
+  }
+  
+  .section-title {
+    margin: 30px 0 15px 0;
+    color: #205098;
+    font-size: 1.5em;
+  }
+  
+  .disclaimer {
+    margin-top: 30px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #205098;
+  }
+</style>
+
+<h2>Portfolio Risk Analytics</h2>
+
+<div class="table-container">
+  <h3 class="section-title">Risk Metrics</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Strategy</th>
+        <th>Weight</th>
+        <th>Sharpe Ratio</th>
+        <th>Sortino Ratio</th>
+        <th>Max Drawdown</th>
+        <th>Standard Deviation</th>
+        <th>Beta</th>
+        <th>Alpha</th>
+        <th>R-Squared</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in risk_metrics %}
+      <tr {% if row.Strategy == 'Portfolio' %}class="portfolio-row"{% elif row.Strategy == 'Benchmark' %}class="benchmark-row"{% endif %}>
+        <td>{{ row.Strategy }}</td>
+        <td>{{ row.Weight }}</td>
+        <td>{{ row.Sharpe }}</td>
+        <td>{{ row.Sortino }}</td>
+        <td>{{ row.MaxDrawdown }}</td>
+        <td>{{ row.StdDev }}</td>
+        <td>{{ row.Beta }}</td>
+        <td>{{ row.Alpha }}</td>
+        <td>{{ row.RSquared }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="table-container">
+  <h3 class="section-title">Value at Risk (VaR) Analysis</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Strategy</th>
+        <th>Weight</th>
+        <th>Historical VaR (95%)</th>
+        <th>Historical VaR (99%)</th>
+        <th>Parametric VaR (95%)</th>
+        <th>Parametric VaR (99%)</th>
+        <th>Conditional VaR (95%)</th>
+        <th>Conditional VaR (99%)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in var_analysis %}
+      <tr {% if row.Strategy == 'Portfolio' %}class="portfolio-row"{% elif row.Strategy == 'Benchmark' %}class="benchmark-row"{% endif %}>
+        <td>{{ row.Strategy }}</td>
+        <td>{{ row.Weight }}</td>
+        <td>{{ row.HistoricalVaR95 }}</td>
+        <td>{{ row.HistoricalVaR99 }}</td>
+        <td>{{ row.ParametricVaR95 }}</td>
+        <td>{{ row.ParametricVaR99 }}</td>
+        <td>{{ row.ConditionalVaR95 }}</td>
+        <td>{{ row.ConditionalVaR99 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="table-container">
+  <h3 class="section-title">Correlation Analysis</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Asset Class</th>
+        {% for class in correlation_headers %}
+        <th>{{ class }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in correlation_matrix %}
+      <tr>
+        <td>{{ row.AssetClass }}</td>
+        {% for value in row.Values %}
+        <td>{{ value }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="disclaimer">
+  <h4>Risk Analytics Disclaimers:</h4>
+  <ul>
+    {% for line in disclaimer_lines %}
+    <li>{{ line }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %} 

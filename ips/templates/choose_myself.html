@@ -110,6 +110,7 @@
       <button type="button" id="add-row-button" class="button">Add an account/strategy</button>
       <button type="button" id="remove-row-button" class="button">Remove last row</button>
       <button type="button" id="see-performance-button" class="button">See Performance</button>
+      <button type="button" id="see-risk-analytics-button" class="button">See Risk Analytics</button>
     </div>
   </div>
 
@@ -431,6 +432,14 @@ document.getElementById('see-performance-button').addEventListener('click', func
   const form = document.getElementById('strategy-selection-form');
   form.target = "_blank";
   form.submit();
+});
+
+document.getElementById('see-risk-analytics-button').addEventListener('click', function() {
+  const form = document.getElementById('strategy-selection-form');
+  form.action = "{% url 'choose_myself_risk_analytics' %}";
+  form.target = "_blank";
+  form.submit();
+  form.action = "{% url 'choose_myself_performance' %}";  // Reset the form action
 });
 
 function removeRow(button) {

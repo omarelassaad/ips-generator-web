@@ -1478,3 +1478,123 @@ def generate_ips_details_for_pm(request):
     except Exception as e:
         logger.error(f"Error generating IPS Details for PM PDF: {e}", exc_info=True)
         return HttpResponse("An error occurred while generating the PDF. Please try again or contact support.", status=500)
+
+@login_required
+def choose_myself_risk_analytics(request):
+    if request.method == 'POST':
+        # Get the strategies and amounts from the form
+        strategies = request.POST.getlist('strategy')
+        amounts = request.POST.getlist('amount')
+
+        # Clean the amount strings and convert to floats
+        cleaned_amounts = []
+        for amount in amounts:
+            cleaned_amount = amount.replace('$', '').replace(',', '')
+            try:
+                cleaned_amounts.append(float(cleaned_amount))
+            except ValueError:
+                cleaned_amounts.append(0.0)
+
+        total_amount = sum(cleaned_amounts)
+        weights = [amount / total_amount if total_amount != 0 else 0 for amount in cleaned_amounts]
+
+        # Aggregate weights for each strategy
+        strategy_weights = {}
+        for strategy, weight in zip(strategies, weights):
+            if strategy in strategy_weights:
+                strategy_weights[strategy] += weight
+            else:
+                strategy_weights[strategy] = weight
+
+        # Convert weights to percentages
+        strategy_weights = {strategy: weight * 100 for strategy, weight in strategy_weights.items()}
+
+        # TODO: Once you provide the risk analytics data, we'll populate these with real data
+        # For now, using placeholder data
+        risk_metrics = []
+        var_analysis = []
+        correlation_matrix = []
+        correlation_headers = []
+        disclaimer_lines = []
+
+        for strategy, weight in strategy_weights.items():
+            # Add placeholder risk metrics for each strategy
+            risk_metrics.append({
+                'Strategy': strategy,
+                'Weight': f"{weight:.1f}%",
+                'Sharpe': 'TBD',
+                'Sortino': 'TBD',
+                'MaxDrawdown': 'TBD',
+                'StdDev': 'TBD',
+                'Beta': 'TBD',
+                'Alpha': 'TBD',
+                'RSquared': 'TBD'
+            })
+
+            # Add placeholder VaR analysis for each strategy
+            var_analysis.append({
+                'Strategy': strategy,
+                'Weight': f"{weight:.1f}%",
+                'HistoricalVaR95': 'TBD',
+                'HistoricalVaR99': 'TBD',
+                'ParametricVaR95': 'TBD',
+                'ParametricVaR99': 'TBD',
+                'ConditionalVaR95': 'TBD',
+                'ConditionalVaR99': 'TBD'
+            })
+
+        # Add Portfolio and Benchmark rows
+        risk_metrics.append({
+            'Strategy': 'Portfolio',
+            'Weight': '100.0%',
+            'Sharpe': 'TBD',
+            'Sortino': 'TBD',
+            'MaxDrawdown': 'TBD',
+            'StdDev': 'TBD',
+            'Beta': 'TBD',
+            'Alpha': 'TBD',
+            'RSquared': 'TBD'
+        })
+
+        var_analysis.append({
+            'Strategy': 'Portfolio',
+            'Weight': '100.0%',
+            'HistoricalVaR95': 'TBD',
+            'HistoricalVaR99': 'TBD',
+            'ParametricVaR95': 'TBD',
+            'ParametricVaR99': 'TBD',
+            'ConditionalVaR95': 'TBD',
+            'ConditionalVaR99': 'TBD'
+        })
+
+        # Placeholder correlation matrix data
+        asset_classes = ['Cash', 'Fixed Income', 'Canadian Equity', 'U.S. Equity', 'International Equity', 'Alternatives']
+        correlation_headers = asset_classes
+        
+        # Create a placeholder correlation matrix
+        for asset_class in asset_classes:
+            row_values = ['TBD' for _ in asset_classes]
+            correlation_matrix.append({
+                'AssetClass': asset_class,
+                'Values': row_values
+            })
+
+        # Add placeholder disclaimer lines
+        disclaimer_lines = [
+            "Past performance is not indicative of future results.",
+            "Risk metrics are calculated using historical data and may not reflect future risk.",
+            "Value at Risk (VaR) calculations are based on historical data and specific confidence intervals.",
+            "Correlation analysis is based on historical relationships which may change over time."
+        ]
+
+        context = {
+            'risk_metrics': risk_metrics,
+            'var_analysis': var_analysis,
+            'correlation_matrix': correlation_matrix,
+            'correlation_headers': correlation_headers,
+            'disclaimer_lines': disclaimer_lines
+        }
+
+        return render(request, 'choose_myself_risk_analytics.html', context)
+
+    return render(request, 'choose_myself.html')
