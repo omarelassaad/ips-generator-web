@@ -392,7 +392,7 @@ def generate_ips(request):
     try:
         # Retrieve account details from the database
         account_details = list(ChooseMyselfData.objects.filter(user=request.user).exclude(
-            account_owner__in=['Client Directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes']  # Added 'IPS Changes'
+            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes']  # Added 'IPS Changes'
         ).values(
             'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
         ))
@@ -422,7 +422,7 @@ def generate_ips(request):
 
         client_managed_holdings = list(ChooseMyselfData.objects.filter(
             user=request.user,
-            account_owner='Client Directed Holdings '
+            account_owner='Client-directed Holdings '
         ).values('account_type', 'amount'))
 
         filtered_client_managed_holdings = []
@@ -449,7 +449,7 @@ def generate_ips(request):
         total_client_managed = sum(holding['amount'] for holding in filtered_client_managed_holdings)
         grand_total = total_amount + total_client_managed
         
-        # Calculate weights for account details and Client Directed Holdings 
+        # Calculate weights for account details and Client-directed Holdings 
         for detail in account_details:
             detail['weight'] = (float(detail['amount']) / grand_total * 100) if grand_total else 0
         for holding in filtered_client_managed_holdings:
@@ -466,19 +466,19 @@ def generate_ips(request):
                 'weight': (float(detail['amount']) / grand_total * 100) if grand_total else 0,
             })
         
-        # Add Client Directed Holdings  to fee_transparency_data
+        # Add Client-directed Holdings  to fee_transparency_data
         for holding in filtered_client_managed_holdings:
             fee_transparency_data.append({
                 'account_owner': holding['account_owner'],
                 'account_type': holding['account_type'],
-                'strategy': 'Client Directed Holdings ',
+                'strategy': 'Client-directed Holdings ',
                 'amount': float(holding['amount']),
                 'weight': (float(holding['amount']) / grand_total * 100) if grand_total else 0,
             })
         
         # Step 2: Calculate fees for each item in fee_transparency_data
         for item in fee_transparency_data:
-            if item['strategy'] == 'Client Directed Holdings ':
+            if item['strategy'] == 'Client-directed Holdings ':
                 item['fee'] = f"{float(cms_fee.amount):.2f}%" if cms_fee else "N/A"
             else:
                 category = strategy_fee_category.get(item['strategy'], "Equity & Balanced")
@@ -1255,7 +1255,7 @@ def save_choose_myself_data(request):
 
             ChooseMyselfData.objects.create(
                 user=request.user,
-                account_owner='Client Directed Holdings ',
+                account_owner='Client-directed Holdings ',
                 account_type=cmh_account_types[i],
                 amount=cmh_amount,
                 strategy='Client Managed',
@@ -1340,11 +1340,11 @@ def save_let_pm_choose_data(request):
             amount=float(data.get('desired_trailer_rate', 0))
         )
 
-        # Save Client Directed Holdings  data
+        # Save Client-directed Holdings  data
         client_managed_holdings = data.get('client_managed_holdings', 'No')
         LetPmChooseData.objects.create(
             user=user,
-            account_owner='Client Directed Holdings ',
+            account_owner='Client-directed Holdings ',
             account_type=client_managed_holdings,
             amount=0
         )
@@ -1436,10 +1436,10 @@ def generate_ips_details_for_pm(request):
 
         # Fetch the Let PM Choose data
         let_pm_choose_data = LetPmChooseData.objects.filter(user=request.user).exclude(
-            account_owner__in=['Desired Trailer Rate', 'Client Directed Holdings ', 'CMS Fee', 'Client Managed Account', 'Version Number', 'Attach Fact Sheets', 'PM Comments']
+            account_owner__in=['Desired Trailer Rate', 'Client-directed Holdings ', 'CMS Fee', 'Client Managed Account', 'Version Number', 'Attach Fact Sheets', 'PM Comments']
         )
         desired_trailer_rate = LetPmChooseData.objects.filter(user=request.user, account_owner='Desired Trailer Rate').first()
-        client_managed_holdings = LetPmChooseData.objects.filter(user=request.user, account_owner='Client Directed Holdings ').first()
+        client_managed_holdings = LetPmChooseData.objects.filter(user=request.user, account_owner='Client-directed Holdings ').first()
         cms_fee = LetPmChooseData.objects.filter(user=request.user, account_owner='CMS Fee').first()
 
         # Fetch client managed accounts
