@@ -143,6 +143,9 @@
         <div class="header">
             <img src="{{ logo_url }}" alt="Logo" class="logo" id="logo">
             <h1>Account Selection Summary</h1>
+            {% if version_number %}
+            <p style="color: #666666; margin-top: -30px; margin-bottom: 30px;">Version {{ version_number }}</p>
+            {% endif %}
         </div>
 
         <div class="content">

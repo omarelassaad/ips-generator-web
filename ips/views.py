@@ -1627,6 +1627,19 @@ def generate_account_summary(request):
         # Get deviation comments if they exist
         deviation_comments = data.get('deviation_comments', '')
 
+        # Get client household name from questionnaire responses
+        client_household_name = QuestionnaireResponse.objects.filter(
+            user=request.user,
+            question='client_identifier'
+        ).first()
+        
+        # Get version number from ChooseMyselfData
+        version_number = ChooseMyselfData.objects.filter(
+            user=request.user
+        ).exclude(
+            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes']
+        ).first()
+
         # Prepare context for template
         context = {
             'accounts': accounts,
@@ -1636,9 +1649,10 @@ def generate_account_summary(request):
             'fee_range_text': fee_range_text,
             'deviation_comments': deviation_comments,
             'creation_date': datetime.now().strftime('%Y-%m-%d'),
-            'logo_url': static('images/logo.png')
+            'logo_url': static('images/logo.png'),
+            'version_number': version_number.version_number if version_number else "1"
         }
-
+        
         # Render HTML
         html_string = render_to_string('account_summary.html', context)
         
@@ -1649,7 +1663,16 @@ def generate_account_summary(request):
         
         # Create response
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="account_summary.pdf"'
+        
+        # Get current date and create custom filename
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        client_name = client_household_name.answer if client_household_name else "Unknown"
+        version = version_number.version_number if version_number else "1"
+        custom_filename = f"{current_date} Proposal for {client_name} Version {version}.pdf"
+        # Ensure the filename is URL-safe
+        custom_filename = custom_filename.replace(" ", "_")
+        
+        response['Content-Disposition'] = f'attachment; filename="{custom_filename}"'
         
         return response
     except Exception as e:
