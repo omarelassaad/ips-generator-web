@@ -1,0 +1,223 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Selection Summary</title>
+    <style>
+        /* Base page setup */
+        @page {
+            size: 8.5in 11in;
+            margin: 18mm;
+            @top-right {
+                content: element(logo);
+                margin-top: 0;
+                margin-right: 0;
+            }
+            @bottom-left {
+                content: "{{ creation_date }}";
+                font-family: Arial, sans-serif;
+                color: #000000;
+                margin-bottom: 7mm;
+            }
+            background-color: #ffffff;
+        }
+
+        /* Global styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: calc(100% - 36mm);
+            margin: 0 auto;
+            padding: 0;
+            background-color: #ffffff;
+        }
+
+        /* Header styles */
+        .header {
+            background-color: #ffffff;
+            text-align: left;
+            position: relative;
+            padding-top: 20px;
+        }
+
+        .header h1 {
+            color: #112055;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            position: running(logo);
+            display: block;
+            width: 60px;
+            height: auto;
+        }
+
+        /* Content styles */
+        .content {
+            background-color: #ffffff;
+        }
+
+        .content table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .content table, .content th, .content td {
+            border: none;
+        }
+
+        .content th, .content td {
+            padding: 8px;
+            text-align: center;
+        }
+
+        .content th {
+            background-color: transparent;
+            font-weight: bold;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .content td {
+            border-bottom: 1px solid #ddd;
+        }
+
+        .content td:first-child {
+            text-align: left;
+        }
+
+        .content .total-row {
+            font-weight: bold;
+        }
+
+        .section-title {
+            color: #01344B;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        .fee-range {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .deviation-box {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .asset-allocation {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="{{ logo_url }}" alt="Logo" class="logo" id="logo">
+            <h1>Account Selection Summary</h1>
+        </div>
+
+        <div class="content">
+            <div class="section-title">Account Details</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Account Owner</th>
+                        <th>Account Type</th>
+                        <th>Amount</th>
+                        <th>Strategy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in accounts %}
+                    <tr>
+                        <td>{{ account.owner }}</td>
+                        <td>{{ account.type }}</td>
+                        <td>${{ account.amount|floatformat:2|intcomma }}</td>
+                        <td>{{ account.strategy }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td colspan="2">Total</td>
+                        <td>${{ total_amount|floatformat:2|intcomma }}</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="section-title">Asset Allocation</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Asset Class</th>
+                        <th>Target Weight (%)</th>
+                        <th>Proposed Weight (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Cash</td>
+                        <td>{{ target_weights.Cash|floatformat:2 }}%</td>
+                        <td>{{ proposed_weights.Cash|floatformat:2 }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Fixed Income</td>
+                        <td>{{ target_weights.Fixed_Income|floatformat:2 }}%</td>
+                        <td>{{ proposed_weights.Fixed_Income|floatformat:2 }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Canadian Equity</td>
+                        <td>{{ target_weights.Canadian_Equity|floatformat:2 }}%</td>
+                        <td>{{ proposed_weights.Canadian_Equity|floatformat:2 }}%</td>
+                    </tr>
+                    <tr>
+                        <td>U.S. Equity</td>
+                        <td>{{ target_weights.US_Equity|floatformat:2 }}%</td>
+                        <td>{{ proposed_weights.US_Equity|floatformat:2 }}%</td>
+                    </tr>
+                    <tr>
+                        <td>International Equity</td>
+                        <td>{{ target_weights.International_Equity|floatformat:2 }}%</td>
+                        <td>{{ proposed_weights.International_Equity|floatformat:2 }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Alternatives</td>
+                        <td>{{ target_weights.Alternatives|floatformat:2 }}%</td>
+                        <td>{{ proposed_weights.Alternatives|floatformat:2 }}%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="fee-range">
+                <div class="section-title">Fee Range</div>
+                <p style="margin: 10px 0; font-size: 14px;">{{ fee_range_text }}</p>
+            </div>
+
+            {% if deviation_comments %}
+            <div class="deviation-box">
+                <div class="section-title">Asset Mix Deviation Comments</div>
+                <p>{{ deviation_comments }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html> 

@@ -1598,3 +1598,59 @@ def choose_myself_risk_analytics(request):
         return render(request, 'choose_myself_risk_analytics.html', context)
 
     return render(request, 'choose_myself.html')
+
+@csrf_exempt
+@require_POST
+def generate_account_summary(request):
+    try:
+        data = json.loads(request.body)
+        accounts = []
+        total_amount = 0
+        
+        # Process accounts data
+        for account in data.get('accounts', []):
+            accounts.append({
+                'owner': account.get('owner', ''),
+                'type': account.get('type', ''),
+                'amount': float(account.get('amount', 0)),
+                'strategy': account.get('strategy', '')
+            })
+            total_amount += float(account.get('amount', 0))
+
+        # Get target and proposed weights
+        target_weights = data.get('target_weights', {})
+        proposed_weights = data.get('proposed_weights', {})
+        
+        # Get fee range text directly from the request data
+        fee_range_text = data.get('fee_range_text', '')
+        
+        # Get deviation comments if they exist
+        deviation_comments = data.get('deviation_comments', '')
+
+        # Prepare context for template
+        context = {
+            'accounts': accounts,
+            'total_amount': total_amount,
+            'target_weights': target_weights,
+            'proposed_weights': proposed_weights,
+            'fee_range_text': fee_range_text,
+            'deviation_comments': deviation_comments,
+            'creation_date': datetime.now().strftime('%Y-%m-%d'),
+            'logo_url': static('images/logo.png')
+        }
+
+        # Render HTML
+        html_string = render_to_string('account_summary.html', context)
+        
+        # Convert to PDF
+        base_url = request.build_absolute_uri('/static/')
+        html = HTML(string=html_string, base_url=base_url)
+        pdf_file = html.write_pdf()
+        
+        # Create response
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="account_summary.pdf"'
+        
+        return response
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

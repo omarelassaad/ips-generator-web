@@ -110,7 +110,7 @@
       <button type="button" id="add-row-button" class="button">Add an account/strategy</button>
       <button type="button" id="remove-row-button" class="button">Remove last row</button>
       <button type="button" id="see-performance-button" class="button">See Performance</button>
-      <button type="button" id="see-risk-analytics-button" class="button">See Risk Analytics</button>
+      <button type="button" id="generate-summary-button" class="button">Generate Summary PDF</button>
     </div>
   </div>
 
@@ -432,14 +432,6 @@ document.getElementById('see-performance-button').addEventListener('click', func
   const form = document.getElementById('strategy-selection-form');
   form.target = "_blank";
   form.submit();
-});
-
-document.getElementById('see-risk-analytics-button').addEventListener('click', function() {
-  const form = document.getElementById('strategy-selection-form');
-  form.action = "{% url 'choose_myself_risk_analytics' %}";
-  form.target = "_blank";
-  form.submit();
-  form.action = "{% url 'choose_myself_performance' %}";  // Reset the form action
 });
 
 function removeRow(button) {
@@ -1260,6 +1252,84 @@ document.querySelectorAll('input[name="ips_type"]').forEach(radio => {
             }
         }
         saveChooseMyselfData();
+    });
+});
+
+document.getElementById('generate-summary-button').addEventListener('click', function() {
+    // Collect account data
+    const accounts = [];
+    const rows = document.querySelectorAll('#account-strategy-body tr:not(.total-row)');
+    rows.forEach(row => {
+        const owner = row.querySelector('input[name="account_owner"]').value;
+        const type = row.querySelector('select[name="account_type"]').value;
+        const amount = parseFloat(row.querySelector('input[name="amount"]').value.replace(/[^0-9.-]+/g, ''));
+        const strategy = row.querySelector('select[name="strategy"]').value;
+        
+        if (owner && type && amount && strategy) {
+            accounts.push({ owner, type, amount, strategy });
+        }
+    });
+
+    // Get target and proposed weights
+    const targetWeights = {
+        Cash: parseFloat(document.querySelector('.target-weight-cash').textContent),
+        Fixed_Income: parseFloat(document.querySelector('.target-weight-fixed-income').textContent),
+        Canadian_Equity: parseFloat(document.querySelector('.target-weight-canadian-equity').textContent),
+        US_Equity: parseFloat(document.querySelector('.target-weight-us-equity').textContent),
+        International_Equity: parseFloat(document.querySelector('.target-weight-international-equity').textContent),
+        Alternatives: parseFloat(document.querySelector('.target-weight-alternatives').textContent)
+    };
+
+    const proposedWeights = {
+        Cash: parseFloat(document.querySelector('.proposed-weight-cash').textContent),
+        Fixed_Income: parseFloat(document.querySelector('.proposed-weight-fixed-income').textContent),
+        Canadian_Equity: parseFloat(document.querySelector('.proposed-weight-canadian-equity').textContent),
+        US_Equity: parseFloat(document.querySelector('.proposed-weight-us-equity').textContent),
+        International_Equity: parseFloat(document.querySelector('.proposed-weight-international-equity').textContent),
+        Alternatives: parseFloat(document.querySelector('.proposed-weight-alternatives').textContent)
+    };
+
+    // Get fee range from the text
+    const feeRangeText = document.getElementById('fee-range-text').textContent.trim();
+    
+    // Prepare data for submission
+    const data = {
+        accounts: accounts,
+        target_weights: targetWeights,
+        proposed_weights: proposedWeights,
+        fee_range_text: feeRangeText,
+        deviation_comments: document.getElementById('comments-box').value
+    };
+
+    // Send request to generate PDF
+    fetch('{% url "generate_account_summary" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Create a link to download the PDF
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'account_summary.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating PDF summary. Please try again.');
     });
 });
 

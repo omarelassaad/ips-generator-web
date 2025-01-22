@@ -14,7 +14,7 @@ from .views import (
     calculate_fees,
     save_let_pm_choose_data,
     generate_ips_details_for_pm,
-    choose_myself_risk_analytics,
+    generate_account_summary,
 )
 
 urlpatterns = [
@@ -27,9 +27,9 @@ urlpatterns = [
     path('choose_myself_result/', choose_myself_result, name='choose_myself_result'),
     path('let_pm_choose_result/', let_pm_choose_result, name='let_pm_choose_result'),
     path('choose_myself_performance/', choose_myself_performance, name='choose_myself_performance'),
-    path('choose_myself_risk_analytics/', choose_myself_risk_analytics, name='choose_myself_risk_analytics'),
     path('save_choose_myself_data/', save_choose_myself_data, name='save_choose_myself_data'),
     path('calculate_fees/', calculate_fees, name='calculate_fees'),
     path('save_let_pm_choose_data/', save_let_pm_choose_data, name='save_let_pm_choose_data'),
     path('generate_ips_details_for_pm/', generate_ips_details_for_pm, name='generate_ips_details_for_pm'),
+    path('generate_account_summary/', generate_account_summary, name='generate_account_summary'),
 ]
