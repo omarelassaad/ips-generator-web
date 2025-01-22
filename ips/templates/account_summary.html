@@ -94,10 +94,17 @@
             border-bottom: 1px solid #ddd;
         }
 
-        .content td:first-child,
-        .content td:last-child,
-        .content th:first-child,
-        .content th:last-child {
+        /* Account Details table alignment */
+        .content table:first-of-type td:first-child,
+        .content table:first-of-type td:last-child,
+        .content table:first-of-type th:first-child,
+        .content table:first-of-type th:last-child {
+            text-align: left;
+        }
+
+        /* Asset Allocation table alignment */
+        .content table:last-of-type td:first-child,
+        .content table:last-of-type th:first-child {
             text-align: left;
         }
 
