@@ -111,7 +111,6 @@
       <button type="button" id="remove-row-button" class="button">Remove last row</button>
       <button type="button" id="see-performance-button" class="button">See Performance</button>
       <button type="button" id="generate-summary-button" class="button">Generate Summary PDF</button>
-      <button type="button" id="email-summary-button" class="button">Email Summary PDF</button>
     </div>
   </div>
 
@@ -1341,74 +1340,6 @@ document.getElementById('generate-summary-button').addEventListener('click', fun
         console.error('Error:', error);
         alert('Error generating PDF summary. Please try again.');
     });
-});
-
-document.getElementById('email-summary-button').addEventListener('click', function() {
-    // Create email body synchronously
-    let emailBody = 'Account Selection Summary\n\n';
-    
-    // Account Details
-    emailBody += 'Account Details:\n';
-    emailBody += '----------------\n';
-    const rows = document.querySelectorAll('#account-strategy-body tr:not(.total-row)');
-    let totalAmount = 0;
-    
-    rows.forEach(row => {
-        const owner = row.querySelector('input[name="account_owner"]').value;
-        const type = row.querySelector('select[name="account_type"]').value;
-        const amountStr = row.querySelector('input[name="amount"]').value;
-        const amount = parseFloat(amountStr.replace(/[^0-9.-]+/g, '')) || 0;
-        const strategy = row.querySelector('select[name="strategy"]').value;
-        
-        if (owner && type && amount && strategy) {
-            emailBody += `Owner: ${owner}\n`;
-            emailBody += `Account Type: ${type}\n`;
-            emailBody += `Amount: ${amountStr}\n`;
-            emailBody += `Strategy: ${strategy}\n\n`;
-            totalAmount += amount;
-        }
-    });
-    
-    emailBody += `Total Amount: $${totalAmount.toLocaleString()}\n\n`;
-    
-    // Asset Allocation
-    emailBody += 'Asset Allocation:\n';
-    emailBody += '----------------\n';
-    const assetClasses = {
-        'Cash': '.proposed-weight-cash',
-        'Fixed Income': '.proposed-weight-fixed-income',
-        'Canadian Equity': '.proposed-weight-canadian-equity',
-        'U.S. Equity': '.proposed-weight-us-equity',
-        'International Equity': '.proposed-weight-international-equity',
-        'Alternatives': '.proposed-weight-alternatives'
-    };
-    
-    for (const [name, selector] of Object.entries(assetClasses)) {
-        const weight = document.querySelector(selector).textContent;
-        emailBody += `${name}: ${weight}\n`;
-    }
-    emailBody += '\n';
-    
-    // Fee Information
-    const feeRangeText = document.getElementById('fee-range-text').textContent.trim();
-    if (feeRangeText) {
-        emailBody += 'Fee Information:\n';
-        emailBody += '---------------\n';
-        emailBody += `${feeRangeText}\n\n`;
-    }
-    
-    // Deviation Comments
-    const deviationComments = document.getElementById('comments-box').value.trim();
-    if (deviationComments) {
-        emailBody += 'Asset Mix Deviation Comments:\n';
-        emailBody += '-------------------------\n';
-        emailBody += `${deviationComments}\n`;
-    }
-    
-    // Open email client immediately
-    const subject = 'Account Selection Summary';
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-    window.open(mailtoUrl, '_blank');
 });
 
 </script>
