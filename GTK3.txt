@@ -1,0 +1,21 @@
+Analysis Steps:
+WeasyPrint dependency issue
+Missing GTK3 runtime requirements
+Windows-specific solution needed
+Solution Steps:
+Install GTK3 Runtime
+Update PATH
+Retry migration
+Instructions:
+Download GTK3
+Download GTK3 installer from: https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+Get latest version (gtk3-runtime-x.x.x-x-x.exe)
+Install GTK3
+Run installer as administrator
+Select "Add to PATH" during installation
+Complete installation
+Restart VS Code/Terminal
+Close VS Code completely
+Reopen VS Code
+Open new terminal
+Run Migration
