@@ -1,0 +1,10 @@
+# Testing
+pytest==8.0.2
+pytest-django==4.8.0
+
+# Code Quality
+flake8==7.0.0
+black==24.2.0
+
+# Main requirements
+-r requirements.txt 

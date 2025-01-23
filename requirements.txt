@@ -34,11 +34,3 @@ tzdata==2024.1
 # Performance
 Brotli==1.1.0
 zopfli==0.2.3.post1
-
-# Testing
-pytest==8.0.2
-pytest-django==4.8.0
-
-# Code Quality
-flake8==7.0.0
-black==24.2.0
