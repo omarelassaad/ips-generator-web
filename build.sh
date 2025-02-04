@@ -3,8 +3,11 @@
 set -o errexit
 
 # Create required directories
+echo "Creating required directories..."
+mkdir -p staticfiles
 mkdir -p staticfiles/media
 mkdir -p staticfiles/images
+mkdir -p static/images
 
 # Install Python dependencies
 echo "Installing Python dependencies..."
@@ -25,12 +28,10 @@ plt.rcParams.update({
 
 # Clear and collect static files
 echo "Collecting static files..."
-python manage.py collectstatic --no-input
-
-# Copy logo to staticfiles
-cp -f static/images/logo.png staticfiles/images/
+python manage.py collectstatic --no-input --clear
 
 # Set proper permissions
+echo "Setting permissions..."
 chmod -R 755 staticfiles
 find staticfiles -type f -exec chmod 644 {} \;
 
