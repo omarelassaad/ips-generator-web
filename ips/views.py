@@ -1689,45 +1689,23 @@ def generate_account_summary(request):
 
 def generate_pie_chart(data, request):
     try:
-        # Force matplotlib to use Agg backend for this request
-        matplotlib.use('Agg', force=True)
+        # Create and save pie chart
+        plt.figure(figsize=(10, 8))
+        plt.pie(data['sizes'], labels=data['labels'], autopct='%1.1f%%')
+        plt.axis('equal')
         
-        # Clear any existing plots
-        plt.close('all')
+        # Save to staticfiles/images directory
+        pie_chart_path = os.path.join(settings.STATIC_ROOT, 'images', 'pie_chart.png')
+        plt.savefig(pie_chart_path, bbox_inches='tight', dpi=300)
+        plt.close()
         
-        # Create figure in a with block for automatic cleanup
-        with plt.figure(figsize=(10, 8)) as fig:
-            plt.pie(data['sizes'], labels=data['labels'], autopct='%1.1f%%')
-            plt.axis('equal')
-            
-            # Ensure media directory exists in both dev and prod
-            media_dir = os.path.join(settings.STATIC_ROOT, 'media')
-            os.makedirs(media_dir, exist_ok=True)
-            
-            # Use a unique filename with process ID for complete uniqueness
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            pid = os.getpid()
-            pie_chart_filename = f'pie_chart_{timestamp}_{pid}.png'
-            pie_chart_path = os.path.join(media_dir, pie_chart_filename)
-            
-            # Save with cleanup and optimized settings
-            plt.savefig(pie_chart_path, bbox_inches='tight', pad_inches=0.3, dpi=300, optimize=True)
-            
-            # Ensure file permissions are correct for production
-            os.chmod(pie_chart_path, 0o644)
-        
-        # Clean up old pie charts to prevent disk space issues
-        cleanup_old_pie_charts(media_dir)
-        
-        # Use static URL with proper handling for both dev and prod
-        pie_chart_url = settings.STATIC_URL + 'media/' + pie_chart_filename
-        return pie_chart_url
+        # Return static URL
+        return settings.STATIC_URL + 'images/pie_chart.png'
         
     except Exception as e:
         logger.error(f"Pie chart generation error: {str(e)}")
         raise
     finally:
-        # Ensure cleanup
         plt.close('all')
 
 def cleanup_old_pie_charts(media_dir, max_files=5):

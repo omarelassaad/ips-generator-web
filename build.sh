@@ -3,85 +3,41 @@
 set -o errexit
 
 # Create required directories
-FONT_DIR="/opt/render/.fonts"
-mkdir -p "$FONT_DIR"
-mkdir -p ~/.cache/matplotlib
 mkdir -p staticfiles/media
+mkdir -p staticfiles/images
 
-# Install system fonts
-apt-get update && apt-get install -y fonts-liberation ttf-mscorefonts-installer fontconfig
-
-# Download Arial fonts to FONT_DIR
-wget -O "$FONT_DIR/arial.ttf" https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial.ttf
-wget -O "$FONT_DIR/arialbd.ttf" https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial_Bold.ttf
-
-# Update font cache
-fc-cache -f -v
-
-# Install Python dependencies first
+# Install Python dependencies
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
-# Now configure matplotlib after dependencies are installed
+# Simple matplotlib configuration
 python -c "
 import matplotlib
-import os
-matplotlib.use('Agg')  # Use Agg backend for better memory management
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 
-# Clear and rebuild the font cache
-import shutil
-cache_dir = matplotlib.get_cachedir()
-if os.path.exists(cache_dir):
-    shutil.rmtree(cache_dir)
-os.makedirs(cache_dir)
-
-# Force matplotlib to find fonts
-fm.findSystemFonts(fontpaths=['$FONT_DIR'])
-
-# Configure matplotlib settings
+# Basic configuration
 plt.rcParams.update({
-    'font.family': 'Arial',
-    'font.sans-serif': ['Arial', 'Liberation Sans', 'DejaVu Sans'],
+    'font.family': 'sans-serif',
     'font.size': 10,
-    'axes.unicode_minus': False,
-    'agg.path.chunksize': 10000
 })
-
-# Verify font availability
-print('Available fonts:', [f.name for f in fm.fontManager.ttflist])
 "
 
-# Clear static files directory first
-rm -rf staticfiles/*
-
+# Clear and collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --no-input
 
-# Ensure media directory exists with proper permissions
-mkdir -p staticfiles/media
-chmod -R 755 staticfiles
-
-# Copy any existing media files to staticfiles/media
-if [ -d "media" ]; then
-    echo "Copying media files..."
-    cp -rfv media/* staticfiles/media/ || true
-fi
+# Copy logo to staticfiles
+cp -f static/images/logo.png staticfiles/images/
 
 # Set proper permissions
+chmod -R 755 staticfiles
 find staticfiles -type f -exec chmod 644 {} \;
-find staticfiles -type d -exec chmod 755 {} \;
 
 # Verify static files
 echo "Verifying static files structure:"
 ls -la staticfiles/
-
-# Print the tree structure of both directories for comparison
-echo "Current static files source structure:"
-find static -type f
-echo "Current staticfiles (collected) structure:"
-find staticfiles -type f
+ls -la staticfiles/images/
 
 echo "Running migrations..."
 python manage.py migrate 
