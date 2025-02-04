@@ -15,7 +15,10 @@ wget -O ~/.fonts/arialbd.ttf https://github.com/matomo-org/travis-scripts/raw/ma
 # Update font cache
 fc-cache -f -v ~/.fonts
 
-# Configure matplotlib to use Arial and optimize memory usage
+echo "Installing Python dependencies..."
+pip install -r requirements.txt
+
+# Now configure matplotlib after dependencies are installed
 python -c "
 import matplotlib
 matplotlib.use('Agg')  # Use Agg backend for better memory management
@@ -36,9 +39,6 @@ plt.rcParams['font.size'] = 10
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['agg.path.chunksize'] = 10000  # Optimize memory usage
 "
-
-echo "Installing Python dependencies..."
-pip install -r requirements.txt
 
 echo "Collecting static files..."
 python manage.py collectstatic --no-input --clear
