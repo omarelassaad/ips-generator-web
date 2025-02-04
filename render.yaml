@@ -3,7 +3,7 @@ services:
     name: ips-generator
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn ips_generator.wsgi:application"
+    startCommand: "gunicorn ips_generator.wsgi:application --timeout 120 --workers 2 --threads 2 --worker-class gthread"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -12,7 +12,12 @@ services:
       - key: DJANGO_DEBUG
         value: false
       - key: WEB_CONCURRENCY
-        value: 4
+        value: 2
+      - key: PYTHONUNBUFFERED
+        value: "true"
+      - key: MALLOC_TRIM_THRESHOLD_
+        value: "65536"
+    plan: starter # Using starter plan for more memory
     dependencies:
       - type: postgresql
         name: ips-db

@@ -1677,3 +1677,20 @@ def generate_account_summary(request):
         return response
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+def generate_pie_chart(data, request):
+    # Create pie chart
+    plt.figure(figsize=(10, 8))
+    plt.pie(data['sizes'], labels=data['labels'], autopct='%1.1f%%')
+    plt.axis('equal')
+    
+    # Save in staticfiles/media directory
+    os.makedirs(os.path.join(settings.STATIC_ROOT, 'media'), exist_ok=True)
+    pie_chart_filename = 'pie_chart.png'
+    pie_chart_path = os.path.join(settings.STATIC_ROOT, 'media', pie_chart_filename)
+    plt.savefig(pie_chart_path, bbox_inches='tight', pad_inches=0.3, dpi=300)
+    plt.close()  # Close the figure to free memory
+    
+    # Use static URL for the pie chart
+    pie_chart_url = settings.STATIC_URL + 'media/' + pie_chart_filename
+    return pie_chart_url
