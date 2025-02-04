@@ -2,12 +2,14 @@
 # exit on error
 set -o errexit
 
-# Install system dependencies
-apt-get update
-apt-get install -y fonts-liberation ttf-mscorefonts-installer fontconfig
+# Create font directory
+mkdir -p ~/.fonts
 
-# Update font cache
-fc-cache -f
+# Download and install Liberation fonts (Arial alternative)
+wget https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz
+tar xvf liberation-fonts-ttf-2.1.5.tar.gz
+cp liberation-fonts-ttf-2.1.5/*.ttf ~/.fonts/
+fc-cache -f ~/.fonts
 
 echo "Installing Python dependencies..."
 pip install -r requirements.txt

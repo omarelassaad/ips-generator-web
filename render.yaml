@@ -2,7 +2,7 @@ services:
   - type: web
     name: ips-generator
     env: python
-    buildCommand: "sudo ./build.sh"
+    buildCommand: "./build.sh"
     startCommand: "gunicorn ips_generator.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
@@ -13,8 +13,6 @@ services:
         value: false
       - key: WEB_CONCURRENCY
         value: 4
-      - key: DEBIAN_FRONTEND
-        value: noninteractive
     dependencies:
       - type: postgresql
         name: ips-db
