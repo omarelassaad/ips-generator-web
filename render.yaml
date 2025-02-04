@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ips-generator
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn ips_generator.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        value: postgresql://postgres:postgres@localhost:5432/mysite
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: false
+      - key: WEB_CONCURRENCY
+        value: 4 

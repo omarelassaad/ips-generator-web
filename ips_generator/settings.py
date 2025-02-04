@@ -1,14 +1,14 @@
 from pathlib import Path
 import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Static files settings
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-
-# If using collectstatic in production
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files settings
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -24,7 +24,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-!ycct3=ds7t)02*j+!u
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
 # Update ALLOWED_HOSTS to include localhost for development
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+ALLOWED_HOSTS = ['*']  # Configure this based on your Render URL
 
 # Application definition
 INSTALLED_APPS = [
@@ -36,10 +36,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ips',
     'django.contrib.humanize',
+    'whitenoise.runserver_nostatic',
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -70,10 +72,10 @@ WSGI_APPLICATION = "ips_generator.wsgi.application"
 
 # Database configuration
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
+        conn_max_age=600
+    )
 }
 
 # Password validation
