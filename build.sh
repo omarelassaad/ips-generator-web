@@ -25,8 +25,8 @@ matplotlib.use('Agg')  # Use Agg backend for better memory management
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
-# Clear existing font cache
-fm.fontManager.clear()
+# Rebuild the font cache
+fm._load_fontmanager(try_read_cache=False)
 
 # Add Arial fonts explicitly
 fm.fontManager.addfont('~/.fonts/arial.ttf')
