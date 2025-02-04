@@ -43,18 +43,36 @@ pip install -r requirements.txt
 echo "Collecting static files..."
 python manage.py collectstatic --no-input --clear
 
-# Ensure static directories exist
+# Ensure static and media directories exist with proper permissions
 mkdir -p staticfiles/images
 mkdir -p staticfiles/media
+chmod -R 755 staticfiles
 
-# Copy logo and ensure proper permissions
-if [ -f "static/images/logo.png" ]; then
-    cp -f static/images/logo.png staticfiles/images/
-    chmod 644 staticfiles/images/logo.png
+# Copy static files to their proper locations
+if [ -d "static/images" ]; then
+    cp -rf static/images/* staticfiles/images/
 fi
 
-# Create media directory in staticfiles and set permissions
-chmod -R 755 staticfiles/media
+if [ -d "static/returns" ]; then
+    cp -rf static/returns staticfiles/
+fi
+
+if [ -d "static/strategies" ]; then
+    cp -rf static/strategies staticfiles/
+fi
+
+if [ -d "static/intro" ]; then
+    cp -rf static/intro staticfiles/
+fi
+
+# Copy any existing media files to staticfiles/media
+if [ -d "media" ]; then
+    cp -rf media/* staticfiles/media/
+fi
+
+# Set proper permissions
+chmod -R 644 staticfiles/images/* || true
+chmod -R 644 staticfiles/media/* || true
 
 echo "Running migrations..."
 python manage.py migrate 

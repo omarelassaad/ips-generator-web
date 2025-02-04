@@ -19,14 +19,27 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files settings
-MEDIA_ROOT = os.path.join(BASE_DIR, 'staticfiles', 'media')
-MEDIA_URL = '/static/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
-# Ensure media directory exists
+# Ensure directories exist
 os.makedirs(MEDIA_ROOT, exist_ok=True)
+os.makedirs(STATIC_ROOT, exist_ok=True)
+
+# WhiteNoise configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_ALLOW_ALL_ORIGINS = True
+
+# Production settings
+if not DEBUG:
+    # In production, media files will be served from staticfiles/media
+    MEDIA_ROOT = os.path.join(STATIC_ROOT, 'media')
+    # This ensures media files are served through WhiteNoise in production
+    WHITENOISE_ROOT = STATIC_ROOT
 
 # Application definition
 INSTALLED_APPS = [
@@ -51,12 +64,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
-# Media and static file configuration for production
-if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'staticfiles', 'media')
-    MEDIA_URL = '/static/media/'
 
 ROOT_URLCONF = "ips_generator.urls"
 
