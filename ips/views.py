@@ -21,6 +21,7 @@ from decimal import Decimal
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 import matplotlib.pyplot as plt  # Import plt after setting backend
+import matplotlib.font_manager as fm
 import json
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
@@ -30,6 +31,25 @@ import glob
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Set up matplotlib to use system fonts in order of preference
+FONT_PREFERENCES = ['Liberation Sans', 'Arial', 'Helvetica', 'DejaVu Sans', 'sans-serif']
+
+# Find the first available font from our preferences
+available_font = 'sans-serif'  # Default fallback
+for font in FONT_PREFERENCES:
+    if any(font in f.name for f in fm.fontManager.ttflist):
+        available_font = font
+        logger.info(f"Using font: {font}")
+        break
+
+# Configure matplotlib with the chosen font
+plt.rcParams.update({
+    'font.family': available_font,
+    'font.size': 10,
+    'pdf.fonttype': 42,  # Ensures text is editable in PDFs
+    'ps.fonttype': 42,   # Ensures text is editable in PostScript
+})
 
 def register_view(request):
     if request.method == 'POST':
@@ -1689,22 +1709,49 @@ def generate_account_summary(request):
 
 def generate_pie_chart(data, request):
     try:
-        # Create and save pie chart
+        # Create and save pie chart using the globally configured font
         plt.figure(figsize=(10, 8))
-        plt.pie(data['sizes'], labels=data['labels'], autopct='%1.1f%%')
+        plt.pie(data['sizes'], 
+                labels=data['labels'], 
+                autopct='%1.1f%%')  # Uses global font settings
         plt.axis('equal')
         
-        # Save to staticfiles/images directory
-        pie_chart_path = os.path.join(settings.STATIC_ROOT, 'images', 'pie_chart.png')
-        plt.savefig(pie_chart_path, bbox_inches='tight', dpi=300, format='png', optimize=True)
-        plt.close()
+        # Determine the correct directory based on environment
+        if settings.DEBUG:
+            # In development, use MEDIA_ROOT
+            target_dir = os.path.join(settings.MEDIA_ROOT)
+        else:
+            # In production, use STATIC_ROOT/media
+            target_dir = os.path.join(settings.STATIC_ROOT, 'media')
         
-        # Ensure file permissions are correct
-        os.chmod(pie_chart_path, 0o644)
-        
-        # Return static URL with timestamp to prevent caching
-        timestamp = int(datetime.now().timestamp())
-        return f"{settings.STATIC_URL}images/pie_chart.png?v={timestamp}"
+        try:
+            # Ensure directory exists
+            os.makedirs(target_dir, exist_ok=True)
+            
+            # Generate timestamp for unique filename
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            pie_chart_filename = f'pie_chart_{timestamp}.png'
+            pie_chart_path = os.path.join(target_dir, pie_chart_filename)
+            
+            # Save the pie chart with high quality settings
+            plt.savefig(pie_chart_path, 
+                       bbox_inches='tight', 
+                       dpi=300, 
+                       format='png', 
+                       optimize=True)
+            
+            # Clean up old files
+            cleanup_old_pie_charts(target_dir)
+            
+            # Return media URL with timestamp to prevent caching
+            return f"{settings.MEDIA_URL}{pie_chart_filename}?v={timestamp}"
+            
+        except PermissionError as pe:
+            logger.error(f"Permission error saving pie chart: {str(pe)}")
+            raise Exception("Unable to save pie chart due to permission error")
+        except OSError as oe:
+            logger.error(f"OS error saving pie chart: {str(oe)}")
+            raise Exception("Unable to save pie chart due to system error")
         
     except Exception as e:
         logger.error(f"Pie chart generation error: {str(e)}")

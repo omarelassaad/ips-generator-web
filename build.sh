@@ -6,7 +6,6 @@ set -o errexit
 echo "Creating required directories..."
 mkdir -p staticfiles
 mkdir -p staticfiles/media
-mkdir -p staticfiles/images
 mkdir -p static/images
 
 # Install required system packages
@@ -38,15 +37,15 @@ print('Available fonts:', [f.name for f in fm.fontManager.ttflist if 'Sans' in f
 echo "Collecting static files..."
 python manage.py collectstatic --no-input --clear
 
-# Set proper permissions
+# Set proper permissions for both static and media
 echo "Setting permissions..."
 chmod -R 755 staticfiles
 find staticfiles -type f -exec chmod 644 {} \;
 
-# Verify static files
-echo "Verifying static files structure:"
+# Verify directories
+echo "Verifying directory structure:"
 ls -la staticfiles/
-ls -la staticfiles/images/
+ls -la staticfiles/media/
 
 echo "Running migrations..."
 python manage.py migrate 
