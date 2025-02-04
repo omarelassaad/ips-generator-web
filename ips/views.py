@@ -13,7 +13,7 @@ from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Pr
 from .forms import QuestionnaireForm, ChooseMyselfForm, LetPmChooseForm, RegisterForm
 from django.template.loader import render_to_string
 from django.templatetags.static import static
-from weasyprint import HTML
+from weasyprint import HTML, CSS
 from PyPDF2 import PdfMerger, PdfReader
 import logging
 import io
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 # Set up matplotlib to use system fonts in order of preference
 FONT_PREFERENCES = ['Liberation Sans', 'Arial', 'Helvetica', 'DejaVu Sans', 'sans-serif']
 
-# Find the first available font from our preferences
+# Find the first available font and use it consistently
 available_font = 'sans-serif'  # Default fallback
 for font in FONT_PREFERENCES:
     if any(font in f.name for f in fm.fontManager.ttflist):
@@ -43,12 +43,12 @@ for font in FONT_PREFERENCES:
         logger.info(f"Using font: {font}")
         break
 
-# Configure matplotlib with the chosen font
+# Configure matplotlib with the chosen font - this is the ONLY place we set the font
 plt.rcParams.update({
     'font.family': available_font,
     'font.size': 10,
     'pdf.fonttype': 42,  # Ensures text is editable in PDFs
-    'ps.fonttype': 42,   # Ensures text is editable in PostScript
+    'ps.fonttype': 42    # Ensures text is editable in PostScript
 })
 
 def register_view(request):
@@ -1688,10 +1688,24 @@ def generate_account_summary(request):
         custom_filename = custom_filename.replace(" ", "_")
         response['Content-Disposition'] = f'attachment; filename="{custom_filename}"'
 
-        # Generate PDF with minimal memory usage
-        base_url = request.build_absolute_uri('/static/')
+        # Get the absolute path to the static directory
+        static_dir = settings.STATIC_ROOT if not settings.DEBUG else settings.STATICFILES_DIRS[0]
+        
+        # Create CSS to handle static files properly
+        css = CSS(string='''
+            @font-face {
+                font-family: 'Liberation Sans';
+                src: local('Liberation Sans');
+            }
+            body {
+                font-family: 'Liberation Sans', sans-serif;
+            }
+        ''')
+
+        # Generate PDF with proper static file handling
+        base_url = os.path.join('file://', static_dir)
         html = HTML(string=html_string, base_url=base_url)
-        result = html.write_pdf()
+        result = html.write_pdf(stylesheets=[css])
         response.write(result)
         
         return response
@@ -1709,50 +1723,45 @@ def generate_account_summary(request):
 
 def generate_pie_chart(data, request):
     try:
-        # Create and save pie chart using the globally configured font
-        plt.figure(figsize=(10, 8))
+        # Create figure with explicit DPI setting
+        plt.figure(figsize=(10, 8), dpi=300)
+        
+        # Create pie chart with explicit font settings
         plt.pie(data['sizes'], 
-                labels=data['labels'], 
-                autopct='%1.1f%%')  # Uses global font settings
+                labels=data['labels'],
+                autopct='%1.1f%%')
         plt.axis('equal')
         
-        # Determine the correct directory based on environment
+        # Use a consistent directory for all environments
+        target_dir = os.path.join(settings.STATIC_ROOT, 'media') if not settings.DEBUG else os.path.join(settings.MEDIA_ROOT)
+        
+        # Ensure directory exists
+        os.makedirs(target_dir, exist_ok=True)
+        
+        # Generate timestamp for unique filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        pie_chart_filename = f'pie_chart_{timestamp}.png'
+        pie_chart_path = os.path.join(target_dir, pie_chart_filename)
+        
+        # Save with explicit settings
+        plt.savefig(pie_chart_path,
+                   bbox_inches='tight',
+                   dpi=300,
+                   format='png',
+                   optimize=True,
+                   transparent=False,  # White background for consistency
+                   facecolor='white',
+                   edgecolor='none')
+        
+        # Clean up old files
+        cleanup_old_pie_charts(target_dir)
+        
+        # Return the correct URL based on environment
         if settings.DEBUG:
-            # In development, use MEDIA_ROOT
-            target_dir = os.path.join(settings.MEDIA_ROOT)
-        else:
-            # In production, use STATIC_ROOT/media
-            target_dir = os.path.join(settings.STATIC_ROOT, 'media')
-        
-        try:
-            # Ensure directory exists
-            os.makedirs(target_dir, exist_ok=True)
-            
-            # Generate timestamp for unique filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            pie_chart_filename = f'pie_chart_{timestamp}.png'
-            pie_chart_path = os.path.join(target_dir, pie_chart_filename)
-            
-            # Save the pie chart with high quality settings
-            plt.savefig(pie_chart_path, 
-                       bbox_inches='tight', 
-                       dpi=300, 
-                       format='png', 
-                       optimize=True)
-            
-            # Clean up old files
-            cleanup_old_pie_charts(target_dir)
-            
-            # Return media URL with timestamp to prevent caching
             return f"{settings.MEDIA_URL}{pie_chart_filename}?v={timestamp}"
+        else:
+            return f"/static/media/{pie_chart_filename}?v={timestamp}"
             
-        except PermissionError as pe:
-            logger.error(f"Permission error saving pie chart: {str(pe)}")
-            raise Exception("Unable to save pie chart due to permission error")
-        except OSError as oe:
-            logger.error(f"OS error saving pie chart: {str(oe)}")
-            raise Exception("Unable to save pie chart due to system error")
-        
     except Exception as e:
         logger.error(f"Pie chart generation error: {str(e)}")
         raise
