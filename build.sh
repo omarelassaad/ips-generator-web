@@ -2,11 +2,18 @@
 # exit on error
 set -o errexit
 
-# Install Python dependencies
+# Install system dependencies
+apt-get update
+apt-get install -y fonts-liberation ttf-mscorefonts-installer fontconfig
+
+# Update font cache
+fc-cache -f
+
+echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
-# Collect static files
+echo "Collecting static files..."
 python manage.py collectstatic --no-input
 
-# Run migrations
+echo "Running migrations..."
 python manage.py migrate 
