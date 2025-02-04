@@ -11,18 +11,12 @@ mkdir -p staticfiles/media
 # Install system fonts
 apt-get update && apt-get install -y fonts-liberation ttf-mscorefonts-installer fontconfig
 
-# Download and install Arial font
+# Download Arial fonts to FONT_DIR
 wget -O "$FONT_DIR/arial.ttf" https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial.ttf
 wget -O "$FONT_DIR/arialbd.ttf" https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial_Bold.ttf
 
-# Copy fonts to system font directory
-cp "$FONT_DIR"/*.ttf /usr/local/share/fonts/
-
 # Update font cache
 fc-cache -f -v
-
-echo "Installing Python dependencies..."
-pip install -r requirements.txt
 
 # Now configure matplotlib after dependencies are installed
 python -c "
@@ -40,7 +34,7 @@ if os.path.exists(cache_dir):
 os.makedirs(cache_dir)
 
 # Force matplotlib to find fonts
-fm.findSystemFonts(fontpaths=['/usr/local/share/fonts', '/opt/render/.fonts'])
+fm.findSystemFonts(fontpaths=['$FONT_DIR'])
 
 # Configure matplotlib settings
 plt.rcParams.update({
