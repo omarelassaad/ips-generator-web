@@ -3,17 +3,18 @@
 set -o errexit
 
 # Create required directories
-mkdir -p ~/.fonts
+FONT_DIR="/opt/render/.fonts"
+mkdir -p "$FONT_DIR"
 mkdir -p ~/.cache/matplotlib
 mkdir -p staticfiles/media
 mkdir -p staticfiles/images
 
 # Download and install Arial font
-wget -O ~/.fonts/arial.ttf https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial.ttf
-wget -O ~/.fonts/arialbd.ttf https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial_Bold.ttf
+wget -O "$FONT_DIR/arial.ttf" https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial.ttf
+wget -O "$FONT_DIR/arialbd.ttf" https://github.com/matomo-org/travis-scripts/raw/master/fonts/Arial_Bold.ttf
 
 # Update font cache
-fc-cache -f -v ~/.fonts
+fc-cache -f -v "$FONT_DIR"
 
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
@@ -21,6 +22,7 @@ pip install -r requirements.txt
 # Now configure matplotlib after dependencies are installed
 python -c "
 import matplotlib
+import os
 matplotlib.use('Agg')  # Use Agg backend for better memory management
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
@@ -28,9 +30,10 @@ import matplotlib.font_manager as fm
 # Rebuild the font cache
 fm._load_fontmanager(try_read_cache=False)
 
-# Add Arial fonts explicitly
-fm.fontManager.addfont('~/.fonts/arial.ttf')
-fm.fontManager.addfont('~/.fonts/arialbd.ttf')
+# Add Arial fonts explicitly using absolute paths
+font_dir = '/opt/render/.fonts'
+fm.fontManager.addfont(os.path.join(font_dir, 'arial.ttf'))
+fm.fontManager.addfont(os.path.join(font_dir, 'arialbd.ttf'))
 
 # Configure matplotlib with memory-optimized settings
 plt.rcParams['font.family'] = ['Arial']
