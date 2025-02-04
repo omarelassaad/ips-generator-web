@@ -29,17 +29,34 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 os.makedirs(STATIC_ROOT, exist_ok=True)
 
 # WhiteNoise configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
+# WhiteNoise settings
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
+WHITENOISE_MAX_AGE = 31536000  # 1 year in seconds
+
+# WeasyPrint settings
+WEASYPRINT_TIMEOUT = 60  # Increase timeout to 60 seconds
 
 # Production settings
 if not DEBUG:
+    # Force HTTPS for static files in production
+    if os.getenv('RENDER'):
+        STATIC_URL = 'https://' + os.getenv('RENDER_EXTERNAL_HOSTNAME', '') + '/static/'
+        MEDIA_URL = 'https://' + os.getenv('RENDER_EXTERNAL_HOSTNAME', '') + '/media/'
+    
     # In production, media files will be served from staticfiles/media
     MEDIA_ROOT = os.path.join(STATIC_ROOT, 'media')
     # This ensures media files are served through WhiteNoise in production
     WHITENOISE_ROOT = STATIC_ROOT
+    # Increase timeout for static file serving
+    WHITENOISE_TIMEOUT = 30  # 30 seconds timeout for static files
 
 # Application definition
 INSTALLED_APPS = [
