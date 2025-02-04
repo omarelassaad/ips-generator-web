@@ -1696,11 +1696,15 @@ def generate_pie_chart(data, request):
         
         # Save to staticfiles/images directory
         pie_chart_path = os.path.join(settings.STATIC_ROOT, 'images', 'pie_chart.png')
-        plt.savefig(pie_chart_path, bbox_inches='tight', dpi=300)
+        plt.savefig(pie_chart_path, bbox_inches='tight', dpi=300, format='png', optimize=True)
         plt.close()
         
-        # Return static URL
-        return settings.STATIC_URL + 'images/pie_chart.png'
+        # Ensure file permissions are correct
+        os.chmod(pie_chart_path, 0o644)
+        
+        # Return static URL with timestamp to prevent caching
+        timestamp = int(datetime.now().timestamp())
+        return f"{settings.STATIC_URL}images/pie_chart.png?v={timestamp}"
         
     except Exception as e:
         logger.error(f"Pie chart generation error: {str(e)}")

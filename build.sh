@@ -9,6 +9,10 @@ mkdir -p staticfiles/media
 mkdir -p staticfiles/images
 mkdir -p static/images
 
+# Install required system packages
+echo "Installing system packages..."
+apt-get update && apt-get install -y fonts-liberation
+
 # Install Python dependencies
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
@@ -18,12 +22,16 @@ python -c "
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
-# Basic configuration
+# Basic configuration with explicit Liberation Sans
 plt.rcParams.update({
-    'font.family': 'sans-serif',
+    'font.family': ['Liberation Sans'],
     'font.size': 10,
 })
+
+# Verify fonts
+print('Available fonts:', [f.name for f in fm.fontManager.ttflist if 'Sans' in f.name])
 "
 
 # Clear and collect static files
