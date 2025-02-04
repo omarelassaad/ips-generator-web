@@ -18,6 +18,10 @@ wget -O "$FONT_DIR/arialbd.ttf" https://github.com/matomo-org/travis-scripts/raw
 # Update font cache
 fc-cache -f -v
 
+# Install Python dependencies first
+echo "Installing Python dependencies..."
+pip install -r requirements.txt
+
 # Now configure matplotlib after dependencies are installed
 python -c "
 import matplotlib
