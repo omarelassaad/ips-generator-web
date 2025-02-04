@@ -1,5 +1,6 @@
+# Configure matplotlib first
 import matplotlib
-matplotlib.use('Agg')  # Use a non-GUI backend
+matplotlib.use('Agg', force=True)  # Force Agg backend for production
 
 import os
 import pandas as pd
@@ -19,13 +20,15 @@ import io
 from decimal import Decimal
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # Import plt after setting backend
 import json
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from datetime import datetime
+import glob
 
+# Configure logging
 logger = logging.getLogger(__name__)
 
 def register_view(request):
@@ -1603,6 +1606,9 @@ def choose_myself_risk_analytics(request):
 @require_POST
 def generate_account_summary(request):
     try:
+        # Force matplotlib to use Agg backend for this request
+        matplotlib.use('Agg', force=True)
+        
         data = json.loads(request.body)
         accounts = []
         total_amount = 0
@@ -1620,27 +1626,22 @@ def generate_account_summary(request):
         # Get target and proposed weights
         target_weights = data.get('target_weights', {})
         proposed_weights = data.get('proposed_weights', {})
-        
-        # Get fee range text directly from the request data
         fee_range_text = data.get('fee_range_text', '')
-        
-        # Get deviation comments if they exist
         deviation_comments = data.get('deviation_comments', '')
 
-        # Get client household name from questionnaire responses
+        # Get client info
         client_household_name = QuestionnaireResponse.objects.filter(
             user=request.user,
             question='client_identifier'
         ).first()
         
-        # Get version number from ChooseMyselfData
         version_number = ChooseMyselfData.objects.filter(
             user=request.user
         ).exclude(
             account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes']
         ).first()
 
-        # Prepare context for template
+        # Prepare context
         context = {
             'accounts': accounts,
             'total_amount': total_amount,
@@ -1656,41 +1657,91 @@ def generate_account_summary(request):
         # Render HTML
         html_string = render_to_string('account_summary.html', context)
         
-        # Convert to PDF
-        base_url = request.build_absolute_uri('/static/')
-        html = HTML(string=html_string, base_url=base_url)
-        pdf_file = html.write_pdf()
-        
         # Create response
-        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response = HttpResponse(content_type='application/pdf')
         
-        # Get current date and create custom filename
+        # Set filename
         current_date = datetime.now().strftime("%Y-%m-%d")
         client_name = client_household_name.answer if client_household_name else "Unknown"
         version = version_number.version_number if version_number else "1"
         custom_filename = f"{current_date} Proposal for {client_name} Version {version}.pdf"
-        # Ensure the filename is URL-safe
         custom_filename = custom_filename.replace(" ", "_")
-        
         response['Content-Disposition'] = f'attachment; filename="{custom_filename}"'
+
+        # Generate PDF with minimal memory usage
+        base_url = request.build_absolute_uri('/static/')
+        html = HTML(string=html_string, base_url=base_url)
+        result = html.write_pdf()
+        response.write(result)
         
         return response
+        
     except Exception as e:
+        logger.error(f"Account summary generation error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+    finally:
+        # Clean up resources
+        plt.close('all')
+        if 'html' in locals():
+            del html
+        if 'result' in locals():
+            del result
 
 def generate_pie_chart(data, request):
-    # Create pie chart
-    plt.figure(figsize=(10, 8))
-    plt.pie(data['sizes'], labels=data['labels'], autopct='%1.1f%%')
-    plt.axis('equal')
-    
-    # Save in staticfiles/media directory
-    os.makedirs(os.path.join(settings.STATIC_ROOT, 'media'), exist_ok=True)
-    pie_chart_filename = 'pie_chart.png'
-    pie_chart_path = os.path.join(settings.STATIC_ROOT, 'media', pie_chart_filename)
-    plt.savefig(pie_chart_path, bbox_inches='tight', pad_inches=0.3, dpi=300)
-    plt.close()  # Close the figure to free memory
-    
-    # Use static URL for the pie chart
-    pie_chart_url = settings.STATIC_URL + 'media/' + pie_chart_filename
-    return pie_chart_url
+    try:
+        # Force matplotlib to use Agg backend for this request
+        matplotlib.use('Agg', force=True)
+        
+        # Clear any existing plots
+        plt.close('all')
+        
+        # Create figure in a with block for automatic cleanup
+        with plt.figure(figsize=(10, 8)) as fig:
+            plt.pie(data['sizes'], labels=data['labels'], autopct='%1.1f%%')
+            plt.axis('equal')
+            
+            # Ensure media directory exists in both dev and prod
+            media_dir = os.path.join(settings.STATIC_ROOT, 'media')
+            os.makedirs(media_dir, exist_ok=True)
+            
+            # Use a unique filename with process ID for complete uniqueness
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            pid = os.getpid()
+            pie_chart_filename = f'pie_chart_{timestamp}_{pid}.png'
+            pie_chart_path = os.path.join(media_dir, pie_chart_filename)
+            
+            # Save with cleanup and optimized settings
+            plt.savefig(pie_chart_path, bbox_inches='tight', pad_inches=0.3, dpi=300, optimize=True)
+            
+            # Ensure file permissions are correct for production
+            os.chmod(pie_chart_path, 0o644)
+        
+        # Clean up old pie charts to prevent disk space issues
+        cleanup_old_pie_charts(media_dir)
+        
+        # Use static URL with proper handling for both dev and prod
+        pie_chart_url = settings.STATIC_URL + 'media/' + pie_chart_filename
+        return pie_chart_url
+        
+    except Exception as e:
+        logger.error(f"Pie chart generation error: {str(e)}")
+        raise
+    finally:
+        # Ensure cleanup
+        plt.close('all')
+
+def cleanup_old_pie_charts(media_dir, max_files=5):
+    """Clean up old pie chart files to prevent disk space issues."""
+    try:
+        files = glob.glob(os.path.join(media_dir, 'pie_chart_*.png'))
+        if len(files) > max_files:
+            # Sort by modification time, oldest first
+            files.sort(key=os.path.getmtime)
+            # Remove oldest files, keeping only max_files
+            for f in files[:-max_files]:
+                try:
+                    os.remove(f)
+                except OSError as e:
+                    logger.warning(f"Failed to remove old pie chart {f}: {str(e)}")
+    except Exception as e:
+        logger.warning(f"Failed to cleanup old pie charts: {str(e)}")
