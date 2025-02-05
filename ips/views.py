@@ -1673,6 +1673,13 @@ def generate_account_summary(request):
             account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes']
         ).first()
 
+        # Prepare logo URL using absolute file path
+        if settings.DEBUG:
+            logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png')
+        else:
+            logo_path = os.path.join(settings.STATIC_ROOT, 'images', 'logo.png')
+        logo_url = "file://" + logo_path
+
         # Prepare context with absolute paths for static files
         context = {
             'accounts': accounts,
@@ -1682,7 +1689,7 @@ def generate_account_summary(request):
             'fee_range_text': fee_range_text,
             'deviation_comments': deviation_comments,
             'creation_date': datetime.now().strftime('%Y-%m-%d'),
-            'logo_url': '/static/images/logo.png',  # Use absolute path
+            'logo_url': logo_url,
             'version_number': version_number.version_number if version_number else "1"
         }
         
