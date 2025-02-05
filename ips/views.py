@@ -2,6 +2,11 @@
 import matplotlib
 matplotlib.use('Agg', force=True)  # Force Agg backend for production
 
+# Cache font manager to prevent repeated initialization
+import matplotlib.font_manager as fm
+# Clear and rebuild the font cache only once at startup
+fm.findfont('Liberation Sans', rebuild_if_missing=True)
+
 import os
 import pandas as pd
 from django.conf import settings
@@ -32,23 +37,24 @@ import glob
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Set up matplotlib to use system fonts in order of preference
-FONT_PREFERENCES = ['Liberation Sans', 'Arial', 'Helvetica', 'DejaVu Sans', 'sans-serif']
+# Set up matplotlib to use system fonts in order of preference - simplified for memory
+FONT_PREFERENCES = ['Liberation Sans', 'sans-serif']  # Reduced list to essential fonts
 
-# Find the first available font and use it consistently
+# Find the first available font and use it consistently - simplified check
 available_font = 'sans-serif'  # Default fallback
-for font in FONT_PREFERENCES:
-    if any(font in f.name for f in fm.fontManager.ttflist):
-        available_font = font
-        logger.info(f"Using font: {font}")
-        break
+try:
+    if fm.findfont('Liberation Sans') is not None:
+        available_font = 'Liberation Sans'
+        logger.info("Using Liberation Sans font")
+    else:
+        logger.info("Falling back to sans-serif font")
+except Exception as e:
+    logger.warning(f"Font detection error: {str(e)}, falling back to sans-serif")
 
-# Configure matplotlib with the chosen font - this is the ONLY place we set the font
+# Configure matplotlib with minimal font settings
 plt.rcParams.update({
     'font.family': available_font,
-    'font.size': 10,
-    'pdf.fonttype': 42,  # Ensures text is editable in PDFs
-    'ps.fonttype': 42    # Ensures text is editable in PostScript
+    'font.size': 10
 })
 
 def register_view(request):
