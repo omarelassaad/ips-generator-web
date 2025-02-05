@@ -103,12 +103,28 @@ TEMPLATES = [
 WSGI_APPLICATION = "ips_generator.wsgi.application"
 
 # Database configuration
-DATABASES = {
-    "default": dj_database_url.config(
-        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
-        conn_max_age=600
-    )
-}
+if DEBUG:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
+            conn_max_age=600
+        )
+    }
+else:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True
+        )
+    }
+
+# Add SSL configuration for Azure PostgreSQL
+if not DEBUG:
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': 'require'
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

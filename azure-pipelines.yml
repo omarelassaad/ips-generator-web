@@ -1,0 +1,140 @@
+trigger:
+  - main  # or your production branch
+
+variables:
+  # Azure Service Connection Name (you'll need to set this up in Azure DevOps)
+  azureServiceConnection: 'Your-Azure-Service-Connection'
+  
+  # Python version
+  pythonVersion: '3.11'
+  
+  # Web App Name (the name of your Azure App Service)
+  webAppName: 'your-app-name'
+  
+  # Agent VM Image Name
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build and Test Stage
+  jobs:
+  - job: BuildJob
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+        addToPath: true
+      displayName: 'Use Python $(pythonVersion)'
+
+    # Create required directories
+    - script: |
+        mkdir -p staticfiles
+        mkdir -p staticfiles/media
+        mkdir -p static/images
+      displayName: 'Create Required Directories'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: 'Install dependencies'
+
+    # Install system dependencies
+    - script: |
+        sudo apt-get update
+        # Accept EULA for MS fonts
+        echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+        sudo apt-get install -y --no-install-recommends \
+          libpango-1.0-0 \
+          libharfbuzz0b \
+          libpangoft2-1.0-0 \
+          libffi-dev \
+          shared-mime-info \
+          libcairo2 \
+          libpangocairo-1.0-0 \
+          libgdk-pixbuf2.0-0 \
+          ttf-mscorefonts-installer
+      displayName: 'Install System Dependencies'
+
+    # Configure matplotlib
+    - script: |
+        python -c "
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        import matplotlib.font_manager as fm
+        
+        plt.rcParams.update({
+            'font.family': ['Arial'],
+            'font.size': 10,
+        })
+        
+        print('Available fonts:', [f.name for f in fm.fontManager.ttflist if 'Arial' in f.name])
+        "
+      displayName: 'Configure Matplotlib'
+
+    # Run system checks and tests
+    - script: |
+        python manage.py check --deploy
+        python manage.py check --database default
+      displayName: 'Run Django System Check'
+      env:
+        DJANGO_SETTINGS_MODULE: 'ips_generator.settings'
+        DJANGO_DEBUG: 'False'
+        DJANGO_SECRET_KEY: 'dummy-key-for-testing'
+        MALLOC_TRIM_THRESHOLD_: '65536'
+        PYTHONUNBUFFERED: 'true'
+
+    # Collect static files
+    - script: |
+        python manage.py collectstatic --noinput --clear
+        chmod -R 755 staticfiles
+        find staticfiles -type f -exec chmod 644 {} \;
+      displayName: 'Collect Static Files'
+      env:
+        DJANGO_SETTINGS_MODULE: 'ips_generator.settings'
+        DJANGO_DEBUG: 'False'
+        DJANGO_SECRET_KEY: 'dummy-key-for-testing'
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        replaceExistingArchive: true
+      displayName: 'Archive Files'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: 'drop'
+        publishLocation: 'Container'
+      displayName: 'Publish Artifacts'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure App Service'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(azureServiceConnection)'
+              appName: '$(webAppName)'
+              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              startUpCommand: 'bash azure-deploy.sh'
+              appSettings: |
+                -MALLOC_TRIM_THRESHOLD_ "65536"
+                -PYTHONUNBUFFERED "true"
+                -WEB_CONCURRENCY "2"
+              deploymentMethod: 'auto'
+              healthCheckPath: '/admin/login/' 
