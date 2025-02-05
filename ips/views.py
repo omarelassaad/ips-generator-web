@@ -33,6 +33,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from datetime import datetime
 import glob
+from urllib.parse import urljoin
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -1667,7 +1668,7 @@ def generate_account_summary(request):
             account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes']
         ).first()
 
-        # Prepare context
+        # Prepare context with absolute paths for static files
         context = {
             'accounts': accounts,
             'total_amount': total_amount,
@@ -1676,7 +1677,7 @@ def generate_account_summary(request):
             'fee_range_text': fee_range_text,
             'deviation_comments': deviation_comments,
             'creation_date': datetime.now().strftime('%Y-%m-%d'),
-            'logo_url': static('images/logo.png'),
+            'logo_url': '/static/images/logo.png',  # Use absolute path
             'version_number': version_number.version_number if version_number else "1"
         }
         
@@ -1738,8 +1739,11 @@ def generate_pie_chart(data, request):
                 autopct='%1.1f%%')
         plt.axis('equal')
         
-        # Use a consistent directory for all environments
-        target_dir = os.path.join(settings.STATIC_ROOT, 'media') if not settings.DEBUG else os.path.join(settings.MEDIA_ROOT)
+        # Use media directory within static for production
+        if not settings.DEBUG:
+            target_dir = os.path.join(settings.STATIC_ROOT, 'images')  # Store in static/images instead of media
+        else:
+            target_dir = os.path.join(settings.MEDIA_ROOT)
         
         # Ensure directory exists
         os.makedirs(target_dir, exist_ok=True)
@@ -1755,18 +1759,18 @@ def generate_pie_chart(data, request):
                    dpi=300,
                    format='png',
                    optimize=True,
-                   transparent=False,  # White background for consistency
+                   transparent=False,
                    facecolor='white',
                    edgecolor='none')
         
         # Clean up old files
         cleanup_old_pie_charts(target_dir)
         
-        # Return the correct URL based on environment
+        # Return the correct URL - always use absolute paths
         if settings.DEBUG:
             return f"{settings.MEDIA_URL}{pie_chart_filename}?v={timestamp}"
         else:
-            return f"/static/media/{pie_chart_filename}?v={timestamp}"
+            return f"/static/images/{pie_chart_filename}?v={timestamp}"  # Use /static/images instead of /media
             
     except Exception as e:
         logger.error(f"Pie chart generation error: {str(e)}")
