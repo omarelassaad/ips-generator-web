@@ -107,6 +107,41 @@ A Django-based Investment Policy Statement (IPS) generator application that allo
    WEBSITES_PORT=8000
    ```
 
+### Deploying to Azure (Detailed Requirements)
+
+Before switching this application to Azure App Services, please ensure you have completed the following:
+
+- **Azure Account Setup**:
+  - Active Azure account and access to Azure DevOps.
+
+- **Database Provisioning**:
+  - Create an Azure PostgreSQL (or suitable) managed database.
+  - Update the `DATABASE_URL` environment variable with your connection string.
+
+- **App Service Configuration**:
+  - Create an Azure App Service instance using the Python 3.11 runtime in a resource plan that meets your needs.
+
+- **Environment Variables**:
+  - In the Azure App Service settings, configure the following variables:
+    - `DJANGO_DEBUG=false`
+    - `DJANGO_SECRET_KEY=<your secret key>`
+    - `DATABASE_URL=<your Azure database URL>`
+    - `WEBSITES_PORT=8000`
+
+- **Static and Media Files Handling**:
+  - Ensure that `STATIC_ROOT` and `MEDIA_ROOT` are correctly configured in `settings.py`.
+  - Use WhiteNoise (or an alternative) to serve static files.
+
+- **CI/CD Pipeline Setup**:
+  - Create an `azure-pipelines.yml` file to automate dependency installation, static file collection, migrations, and deployment using the `AzureWebApp` task.
+
+- **Production Settings and Testing**:
+  - Verify that production configurations in `settings.py` (e.g., allowed hosts, security settings) are correctly set.
+  - Test your application locally with `DJANGO_DEBUG=false` to simulate production conditions.
+
+- **Additional Considerations**:
+  - Document any differences in file path handling, especially if your Azure environment uses a different OS (Linux vs. Windows containers), and adjust deployment scripts accordingly.
+
 ## Local Development
 
 1. **Setup Virtual Environment**
