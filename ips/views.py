@@ -615,16 +615,16 @@ def generate_ips(request):
         
         plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
         
-        # Save the pie chart to a static file
+        # Save the pie chart to the media directory
         pie_chart_filename = 'pie_chart.png'
         pie_chart_path = os.path.join(settings.MEDIA_ROOT, pie_chart_filename)
         plt.savefig(pie_chart_path, bbox_inches='tight', pad_inches=0.3, dpi=300)  # Reduced pad_inches
         plt.close()
+        
+        # Construct an absolute file URL for the pie chart
+        pie_chart_url = "file://" + pie_chart_path
 
         
-        # Construct the URL to be used in the template
-        pie_chart_url = request.build_absolute_uri(settings.MEDIA_URL + pie_chart_filename)
-                
         # Collect data from the questionnaire responses
         questionnaire_responses = QuestionnaireResponse.objects.filter(user=request.user)
         
@@ -632,8 +632,12 @@ def generate_ips(request):
         client_household_name = next((resp.answer for resp in questionnaire_responses if resp.question == 'client_identifier'), 'N/A')
         investment_advisor_name = next((resp.answer for resp in questionnaire_responses if resp.question == 'advisor_name'), 'N/A')
 
-        # Get the static file URL for the logo
-        logo_url = static('images/logo.png')
+        # Construct an absolute file URL for the logo
+        if settings.DEBUG:
+            logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png')
+        else:
+            logo_path = os.path.join(settings.STATIC_ROOT, 'images', 'logo.png')
+        logo_url = "file://" + logo_path
 
         # Get portfolio recommendation and asset mix
         form_data = {response.question: response.answer for response in questionnaire_responses}
@@ -944,7 +948,8 @@ def generate_ips(request):
 
         # Render the main content to a PDF
         main_content_html = render_to_string('ips_document.html', context)
-        main_content_pdf_bytes = HTML(string=main_content_html, base_url=request.build_absolute_uri()).write_pdf()
+        base_url = 'file://' + str(settings.BASE_DIR)
+        main_content_pdf_bytes = HTML(string=main_content_html, base_url=base_url).write_pdf()
 
         # Use PyPDF2 to merge the PDFs
         merger = PdfMerger()
