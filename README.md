@@ -114,12 +114,42 @@ Before switching this application to Azure App Services, please ensure you have 
 - **Azure Account Setup**:
   - Active Azure account and access to Azure DevOps.
 
-- **Database Provisioning**:
-  - Create an Azure PostgreSQL (or suitable) managed database.
+- **Database Setup and Migration**:
+  - Choose and provision an appropriate database:
+    - Option 1: Azure Database for PostgreSQL
+      ```bash
+      az postgres flexible-server create \
+        --name ips-db \
+        --resource-group your-resource-group \
+        --location your-location \
+        --admin-user your-admin-user \
+        --admin-password your-password \
+        --sku-name Standard_B1ms
+      ```
+    - Option 2: Azure SQL Database (if preferring SQL Server)
+      ```bash
+      az sql server create \
+        --name ips-sql-server \
+        --resource-group your-resource-group \
+        --location your-location \
+        --admin-user your-admin-user \
+        --admin-password your-password
+      
+      az sql db create \
+        --name ips_db \
+        --server ips-sql-server \
+        --resource-group your-resource-group \
+        --service-objective Basic
+      ```
   - Update the `DATABASE_URL` environment variable with your connection string.
+  - Run database migrations after deployment:
+    ```bash
+    python manage.py migrate
+    ```
+  - If migrating from SQLite, create a data migration plan for transferring existing data.
 
 - **App Service Configuration**:
-  - Create an Azure App Service instance using the Python 3.11 runtime in a resource plan that meets your needs.
+  - Create an Azure App Service instance using the Python 3.11 runtime.
 
 - **Environment Variables**:
   - In the Azure App Service settings, configure the following variables:
