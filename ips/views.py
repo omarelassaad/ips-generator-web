@@ -34,6 +34,7 @@ from django.contrib import messages
 from datetime import datetime
 import glob
 from urllib.parse import urljoin
+from pathlib import Path
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -622,7 +623,7 @@ def generate_ips(request):
         plt.close()
         
         # Construct an absolute file URL for the pie chart
-        pie_chart_url = "file://" + pie_chart_path
+        pie_chart_url = Path(pie_chart_path).as_uri()
 
         
         # Collect data from the questionnaire responses
@@ -634,10 +635,10 @@ def generate_ips(request):
 
         # Construct an absolute file URL for the logo
         if settings.DEBUG:
-            logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png')
+            logo_path = Path(settings.BASE_DIR) / 'static' / 'images' / 'logo.png'
         else:
-            logo_path = os.path.join(settings.STATIC_ROOT, 'images', 'logo.png')
-        logo_url = "file://" + logo_path
+            logo_path = Path(settings.STATIC_ROOT) / 'images' / 'logo.png'
+        logo_url = logo_path.as_uri()
 
         # Get portfolio recommendation and asset mix
         form_data = {response.question: response.answer for response in questionnaire_responses}
@@ -1675,10 +1676,10 @@ def generate_account_summary(request):
 
         # Prepare logo URL using absolute file path
         if settings.DEBUG:
-            logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png')
+            logo_path = Path(settings.BASE_DIR) / 'static' / 'images' / 'logo.png'
         else:
-            logo_path = os.path.join(settings.STATIC_ROOT, 'images', 'logo.png')
-        logo_url = "file://" + logo_path
+            logo_path = Path(settings.STATIC_ROOT) / 'images' / 'logo.png'
+        logo_url = logo_path.as_uri()
 
         # Prepare context with absolute paths for static files
         context = {
