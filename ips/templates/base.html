@@ -41,6 +41,7 @@
         </nav>
     </header>
     <main>
+        {% csrf_token %}
         {% block content %}
         {% endblock %}
     </main>
@@ -53,6 +54,11 @@
             event.preventDefault();
             window.open(this.href, '_blank');
         });
+        
+        // Function to get CSRF token for AJAX requests
+        function getCSRFToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
     </script>
 </body>
 </html>

@@ -23,7 +23,6 @@ from PyPDF2 import PdfMerger, PdfReader
 import logging
 import io
 from decimal import Decimal
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 import matplotlib.pyplot as plt  # Import plt after setting backend
 import matplotlib.font_manager as fm
@@ -204,7 +203,6 @@ strategy_fee_category = {
     "Hamilton Lane Global Private Assets Fund": "Alternative"
   }
 
-@csrf_exempt
 @require_POST
 def calculate_fees(request):
     try:
@@ -1242,7 +1240,6 @@ def get_disclaimer(strategy_weights):
     relevant_disclaimers = [disclaimers[strategy] for strategy in strategy_weights.keys() if strategy in disclaimers]
     return "\n".join(relevant_disclaimers)
 
-@csrf_exempt
 @require_POST
 def save_choose_myself_data(request):
     try:
@@ -1344,7 +1341,6 @@ def save_choose_myself_data(request):
         return JsonResponse({'status': 'failed', 'message': str(e)}, status=400)
     
 @login_required
-@csrf_exempt
 @require_POST
 def save_let_pm_choose_data(request):
     try:
@@ -1635,7 +1631,6 @@ def choose_myself_risk_analytics(request):
 
     return render(request, 'choose_myself.html')
 
-@csrf_exempt
 @require_POST
 def generate_account_summary(request):
     try:
