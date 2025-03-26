@@ -365,7 +365,7 @@ class ChooseMyselfForm(forms.Form):
         ('Jarislowsky Fraser North American Equity', 'Jarislowsky Fraser North American Equity'),
         ('Lazard Global Equity', 'Lazard Global Equity'),
         ('Lazard International Equity', 'Lazard International Equity'),
-        ('Manning & Napier US Equity (RI)', 'Manning & Napier US Equity (RI)'),
+        ('Manning & Napier U.S. Equity (RI)', 'Manning & Napier U.S. Equity (RI)'),
         ('QV Dividend Income (RI)', 'QV Dividend Income (RI)'),
         ('QV Small Cap (RI)', 'QV Small Cap (RI)'),
         ('Scheer Rowlett Canadian Equity', 'Scheer Rowlett Canadian Equity'),
