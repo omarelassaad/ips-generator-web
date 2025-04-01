@@ -85,10 +85,12 @@
                 <option value="Jarislowsky Fraser North American Equity">Jarislowsky Fraser North American Equity</option>
                 <option value="Lazard Global Equity">Lazard Global Equity</option>
                 <option value="Lazard International Equity">Lazard International Equity</option>
+                <option value="Mawer EAFE Large Cap Fund">Mawer EAFE Large Cap Fund</option>
                 <option value="Manning & Napier US Equity (RI)">Manning & Napier US Equity (RI)</option>
                 <option value="QV Dividend Income (RI)">QV Dividend Income (RI)</option>
                 <option value="QV Small Cap (RI)">QV Small Cap (RI)</option>
                 <option value="Scheer Rowlett Canadian Equity">Scheer Rowlett Canadian Equity</option>
+                <option value="Sagard Private Credit Fund">Sagard Private Credit Fund</option>
                 <option value="Sionna Canadian Equity">Sionna Canadian Equity</option>
               </select>
             </td>
@@ -292,6 +294,7 @@ const strategyData = {
   "Jarislowsky Fraser North American Equity": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 45.00, "U.S. Equity": 45.00, "International Equity": 0.00, "Alternatives": 0.00},
   "Lazard Global Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
   "Lazard International Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 97.50, "Alternatives": 0.00},
+  "Mawer EAFE Large Cap Fund": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 97.50, "Alternatives": 0.00},
   "Manning & Napier US Equity (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 95.00, "International Equity": 0.00, "Alternatives": 0.00},
   "QV Dividend Income (RI)": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 90.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
   "QV Small Cap (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 95.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
@@ -300,7 +303,8 @@ const strategyData = {
   "Aviso 5-year Bond Ladder (Income)": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
   "Sionna Canadian Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
   "Brookfield Private Real Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
-  "Hamilton Lane Global Private Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00}
+  "Hamilton Lane Global Private Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
+  "Sagard Private Credit Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00}
 };
 
 const strategyMinimums = {
@@ -326,10 +330,12 @@ const strategyMinimums = {
   "Lazard Global Equity": 150000,
   "Lazard International Equity": 150000,
   "Manning & Napier US Equity (RI)": 150000,
+  "Mawer EAFE Large Cap Fund": 100000,
   "QV Dividend Income (RI)": 150000,
   "QV Small Cap (RI)": 150000,
   "Scheer Rowlett Canadian Equity": 150000,
-  "Sionna Canadian Equity": 150000
+  "Sionna Canadian Equity": 150000,
+  "Sagard Private Credit Fund": 100000
 };
 
 const cmsFeeData = [
@@ -663,6 +669,7 @@ function checkWeightDifferences() {
 
   if (canProceed()) {
     proceedButton.style.display = 'block';
+    clientManagedHoldingsSection.style.display = 'block';
   } else {
     proceedButton.style.display = 'none';
     clientManagedHoldingsSection.style.display = 'none';

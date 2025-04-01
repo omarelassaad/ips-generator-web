@@ -38,8 +38,6 @@ Thumbs.db
 
 # Generated files
 media/pie_chart.png
-*.png
-*.pdf
 
 # Other
 *.swp

@@ -386,7 +386,7 @@
         {% with page_counter=page_counter|add:1 %}
             <tr><td>Fee transparency</td><td>{{ page_counter }}</td></tr>
             {% with page_counter=page_counter|add:1 %}
-                {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies %}
+                {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies or 'Sagard Private Credit Fund' in selected_strategies %}
                     <tr><td>Alternative investment disclosure</td><td>{{ page_counter }}</td></tr>
                     <tr><td>Investment policy statement agreement</td><td>{{ page_counter|add:1 }}</td></tr>
                 {% else %}
@@ -397,7 +397,7 @@
     {% else %}
         <tr><td>Fee transparency</td><td>{{ page_counter }}</td></tr>
         {% with page_counter=page_counter|add:1 %}
-            {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies %}
+            {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies or 'Sagard Private Credit Fund' in selected_strategies %}
                 <tr><td>Alternative investment disclosure</td><td>{{ page_counter }}</td></tr>
                 <tr><td>Investment policy statement agreement</td><td>{{ page_counter|add:1 }}</td></tr>
             {% else %}
@@ -605,7 +605,7 @@
 </table>
 
     <div id="disclaimers" style="margin-top: 20px; font-size: 12px;">
-        <p>The return data is as of December 31, 2024. Indicated rates of return are historical annual compounded total returns including reinvestment of all distributions for the period ended, and do not take into account management expenses, account sales, redemption, distribution or optional charges or income taxes payable by any security holder that would have reduced returns.</p>
+        <p>The return data is as of February 28, 2025. Indicated rates of return are historical annual compounded total returns including reinvestment of all distributions for the period ended, and do not take into account management expenses, account sales, redemption, distribution or optional charges or income taxes payable by any security holder that would have reduced returns.</p>
         {% for line in disclaimer_lines %}
             <p>{{ line }}</p>
         {% endfor %}
@@ -704,7 +704,7 @@
     </div>
 
     <!-- Add this just before the signature page section -->
-    {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies %}
+    {% if 'Brookfield Private Real Assets Fund' in selected_strategies or 'Hamilton Lane Global Private Assets Fund' in selected_strategies or 'Sagard Private Credit Fund' in selected_strategies %}
 <div class="content page page-break-before">
     <h2 class="section-title">Alternative investment disclosure</h2>
     
@@ -741,6 +741,35 @@
     <p>Liquidity in HLGPAF is limited and subject to certain restrictions. While HLGPAF offers monthly liquidity, redemptions may be subject to gates, suspensions, or delays under certain circumstances. Investors should be prepared to hold their investment for an extended period. The value of private market investments may be difficult to determine and may fluctuate more widely than publicly traded securities.</p>
 
     <p>For more detailed information on HLGPAF's structure, risks, and terms, please refer to the official Fund documents and consult with your investment advisor.</p>
+    {% endif %}
+
+    {% if 'Sagard Private Credit Fund' in selected_strategies %}
+    <h3 class="sub-heading">Sagard Private Credit Fund</h3>
+    <p>Sagard Private Credit Fund ("SPCF") is a unit trust established under the laws of the Province of Ontario, investing substantially all of its assets in Sagard Private Credit LP ("Underlying Fund"). SPCF's primary investments are direct or indirect private credit investments, predominantly senior secured, first-lien loans originated by Sagard, supplemented by traded and asset-based loan opportunities.</p>
+
+    <p>Key Points:</p>
+    <ol>
+        <li>SPCF aims to provide unitholders with floating-rate distributions and preserve capital.</li>
+        <li>Distributions to unitholders are intended to be made monthly as of the last business day of each month.</li>
+        <li>SPCF invests in a broadly diversified portfolio designed to generate income through private credit investments, including senior secured loans, asset-based lending, and broadly syndicated loans (BSLs).</li>
+    </ol>
+
+    <p>SPCF offers quarterly liquidity with limitations:</p>
+    <ul>
+        <li>Unitholders must provide a redemption notice at least 75 calendar days before the redemption date (last business day of each calendar quarter).</li>
+        <li>Redemptions are capped at 5% of the aggregate NAV of the Underlying Fund (Master Fund) as of the day prior to the last business day of the applicable quarter. Redemption requests exceeding this cap will be fulfilled on a pro-rata basis.</li>
+    </ul>
+
+    <p>Redemption proceeds are generally paid within 45 calendar days after the redemption date, subject explicitly to acceptance and terms set by the Underlying Fund. The General Partner may suspend redemptions if it determines conditions exist that render asset valuation or liquidation impractical.</p>
+
+    <p>Redemption requests made within one year from the subscription date incur a 2% early redemption charge based on the NAV per unit, benefiting remaining unitholders.</p>
+
+    <p>Investors must acknowledge that private market investments may have limited liquidity, difficult valuation, and potential for significant fluctuations compared to publicly traded securities.</p>
+
+    <p>For further details on SPCF's structure, risks, and terms, please consult the official offering documents or your investment advisor.</p>
+    
+    <h4 class="sub-heading" style="margin-top: 20px;">Tax Documentation Acknowledgment</h4>
+    <p>I acknowledge that I will provide Aviso with the appropriate tax residency and withholding form (e.g., Form W-9, W-8BEN, W-8BEN-E, W-8IMY, or W-8EXP) as applicable to my tax status, or confirm that such documentation is already on file. I understand these forms are not required to be submitted with this Agreement but will be provided within 10 calendar days upon request.</p>
     {% endif %}
 </div>
 {% endif %}

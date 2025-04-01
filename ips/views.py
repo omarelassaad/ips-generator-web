@@ -12,7 +12,7 @@ import pandas as pd
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile
 from .forms import QuestionnaireForm, ChooseMyselfForm, LetPmChooseForm, RegisterForm
@@ -34,6 +34,19 @@ from datetime import datetime
 import glob
 from urllib.parse import urljoin
 from pathlib import Path
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from django.contrib import messages
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+from django.urls import reverse
+from django.views.decorators.cache import never_cache
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -121,10 +134,12 @@ strategyData = {
   "Jarislowsky Fraser North American Equity": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 45.00, "U.S. Equity": 45.00, "International Equity": 0.00, "Alternatives": 0.00},
   "Lazard Global Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
   "Lazard International Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 97.50, "Alternatives": 0.00},
+  "Mawer EAFE Large Cap Fund": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 97.50, "Alternatives": 0.00},
   "Manning & Napier US Equity (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 95.00, "International Equity": 0.00, "Alternatives": 0.00},
   "QV Dividend Income (RI)": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 90.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
   "QV Small Cap (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 95.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
   "Scheer Rowlett Canadian Equity": {"Cash": 3.00, "Fixed Income": 0.00, "Canadian Equity": 97.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "Sagard Private Credit Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
   "Sionna Canadian Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
 }
 
@@ -192,6 +207,7 @@ strategy_fee_category = {
     "Jarislowsky Fraser North American Equity": "Equity & Balanced",
     "Lazard Global Equity": "Equity & Balanced",
     "Lazard International Equity": "Equity & Balanced",
+    "Mawer EAFE Large Cap Fund": "Equity & Balanced",
     "Manning & Napier US Equity (RI)": "Equity & Balanced",
     "QV Dividend Income (RI)": "Equity & Balanced",
     "QV Small Cap (RI)": "Equity & Balanced",
@@ -200,7 +216,8 @@ strategy_fee_category = {
     "Aviso 5-year Bond Ladder (Income)": "Bond Ladder",
     "Sionna Canadian Equity": "Equity & Balanced",
     "Brookfield Private Real Assets Fund": "Alternative",
-    "Hamilton Lane Global Private Assets Fund": "Alternative"
+    "Hamilton Lane Global Private Assets Fund": "Alternative",
+    "Sagard Private Credit Fund": "Alternative"
   }
 
 @require_POST
@@ -689,11 +706,11 @@ def generate_ips(request):
             risk_rating_paragraph = RISK_PROFILES.get(risk_rating, "")
 
             asset_mix_descriptions = {
-                "Income": "The Income asset mix is designed to generate steady returns through investments primarily in bonds and fixed-income securities. This mix includes minimal equities to ensure stability and low volatility. It is suitable for investors looking for reliable income with minimal exposure to market fluctuations.",
+                "Income": "The Income asset mix is designed to generate steady returns through investments primarily in bonds and fixed-income securities, minimal equities.",
                 "Income & Growth": "The Income & Growth asset mix offers a combination of bonds and some equities, focusing on stable returns while providing the potential for growth. This mix is designed to generate income through fixed-income securities and achieve some capital appreciation through equities, making it suitable for those looking for a balanced approach with low medium risk.",
                 "Balanced": "The Balanced asset mix consists of an equal mix of equities and bonds, providing moderate exposure to both asset classes. This combination aims to achieve a balance between income generation and capital growth, offering a moderate risk-return profile. It is ideal for investors seeking a diversified approach to investing.",
                 "Growth & Income": "The Growth & Income asset mix emphasizes equities more than bonds, focusing on capital appreciation while maintaining some income generation. This mix is designed to provide higher returns through equity investments, supplemented by the stability of fixed-income securities. It is suitable for investors seeking growth with a medium high risk.",
-                "Growth": "The Growth asset mix is primarily composed of equities, offering higher volatility with a focus on capital appreciation. This mix aims to achieve substantial returns through investments in equities, accepting the added risk associated with market fluctuations. It is ideal for investors seeking higher growth opportunities.",
+                "Growth": "The Growth asset mix is primarily composed of equities, offering higher volatility with focus on capital appreciation. This mix aims to achieve substantial returns through investments in equities, accepting the added risk associated with market fluctuations. It is ideal for investors seeking higher growth opportunities.",
                 "Maximum Growth": "The Maximum Growth asset mix is almost entirely made up of equities or high-risk assets, providing maximum exposure to market fluctuations. This mix targets the highest possible returns through investments in high-growth equities and other volatile assets. It is suitable for investors looking for the highest growth potential and willing to accept very high risk."
             }
 
@@ -849,7 +866,7 @@ def generate_ips(request):
         # Calculate the portfolio and benchmark returns for calendar years
         calendar_year_portfolio_return = {year: 0 for year in years}
         calendar_year_benchmark_return = {year: 0 for year in years}
-
+        
         for year in years:
             calendar_year_portfolio_return[year] = sum(
                 (float(row[year].replace('%', '')) if isinstance(row[year], str) and row[year] != 'N/A' else 0) * 
@@ -947,6 +964,7 @@ def generate_ips(request):
 
         # Render the main content to a PDF
         main_content_html = render_to_string('ips_document.html', context)
+
         base_url = 'file://' + str(settings.BASE_DIR)
         main_content_pdf_bytes = HTML(string=main_content_html, base_url=base_url).write_pdf()
 
@@ -1025,6 +1043,7 @@ def get_risk_and_definition(portfolio_recommendation):
     return risk_and_definitions.get(base_recommendation, ("N/A", "N/A"))
 
 @login_required
+@csrf_protect
 def choose_myself_view(request):
     if request.method == 'POST':
         form = ChooseMyselfForm(request.POST)
@@ -1233,8 +1252,9 @@ def get_disclaimer(strategy_weights):
     disclaimers = {
         "Aviso 5-year Bond Ladder (Taxable)": "Aviso 5-year Bond Ladder (Taxable): An up-to-date yield to maturity proxy has been used for the historical returns of this bond laddered strategy for performance presentation purposes only. There are no historical returns available.",
         "Aviso 5-year Bond Ladder (Income)": "Aviso 5-year Bond Ladder (Income): An up-to-date yield to maturity proxy has been used for the historical returns of this bond laddered strategy for performance presentation purposes only. There are no historical returns available.",
-        "Brookfield Private Real Assets Fund": "Brookfield Private Real Assets Fund Return Source: An index proxy has been used to illustrate the return of the Brookfield Private Real Assets Fund for presentation purposes only as the return period of this fund is delayed due to its private nature. Prior to 2016, the return is comprised of 50% MSCI World Real Estate Index (CAD) and 50% MSCI World Infrastructure Index (CAD). Subsequent to 2016, the returns are represented by the S&P Real Asset TR index (CAD).",
-        "Hamilton Lane Global Private Assets Fund": "Hamilton Lane Global Private Assets Fund Return Source: An index proxy has been used to illustrate the return of the Hamilton Lane Global Private Assets Fund for presentation purposes only as the return period of this fund is delayed due to its private nature. The returns are represented by the MSCI World NR Index (CAD)."
+        "Brookfield Private Real Assets Fund": "The performance of the Brookfield Private Real Assets Fund is presented using a blended index approach for reference purposes only. Due to inherent delays associated with private fund reporting, the Fund's actual return calculations are typically available with a lag. Consequently, these indices serve as illustrative proxies to approximate the Fund's returns and to compensate for any data gaps when calculating portfolio returns in conjunction with other strategies. The Fund does not actively track these indices, nor does it seek to replicate or outperform them. Prior to 2016, a blended benchmark comprised of 50% MSCI World Real Estate Index (CAD) and 50% MSCI World Infrastructure Index (CAD) is used. Subsequent to 2016, the S&P Real Asset TR index (CAD) is used. These are widely recognized market benchmarks designed to reflect the general performance of real estate and infrastructure markets, consistent with the Fund's investment objectives and strategies. However, the indices do not account for fees, expenses, taxes, or other costs associated with investing in the Fund. It should be noted that the Fund's holdings, sector allocations, and risk profile may differ significantly from those of the indices, leading to substantial variances in performance across different time periods. Past performance is neither a guarantee nor a reliable indicator of future results. Investors are advised not to rely solely upon the benchmark indices to gauge the Fund's expected or potential returns, risk characteristics, or suitability for investment purposes.",
+        "Hamilton Lane Global Private Assets Fund": "The performance of the Hamilton Lane Global Private Assets Fund is presented against the MSCI World NR Index (CAD) for reference purposes only. Due to inherent delays associated with private fund reporting, the Fund's actual return calculations are typically available with a lag. Consequently, this Index serves as an illustrative proxy to approximate the Fund's returns and to compensate for any data gaps when calculating portfolio returns in conjunction with other strategies. The Fund does not actively track the Index, nor does it seek to replicate or outperform it. The MSCI World NR Index (CAD) is a widely recognized market benchmark designed to reflect the general performance of global equity markets, providing a broad reference point for the Fund's diversified private market investments. However, the Index does not account for fees, expenses, taxes, or other costs associated with investing in the Fund. It should be noted that the Fund's holdings, sector allocations, and risk profile may differ significantly from those of the Index, leading to substantial variances in performance across different time periods. Private market investments typically have different risk and return characteristics compared to public markets. Past performance is neither a guarantee nor a reliable indicator of future results. Investors are advised not to rely solely upon the benchmark Index to gauge the Fund's expected or potential returns, risk characteristics, or suitability for investment purposes.",
+        "Sagard Private Credit Fund": "The performance of the Sagard Private Credit Fund is presented against the Morningstar LSTA US Leveraged Loan Total Return (CAD hedged) Index for reference purposes only. Due to inherent delays associated with private fund reporting, the Fund's actual return calculations are typically available with a lag. Consequently, this Index serves as an illustrative proxy to approximate the Fund's returns and to compensate for any data gaps when calculating portfolio returns in conjunction with other strategies. The Fund does not actively track the Index, nor does it seek to replicate or outperform it. The Morningstar LSTA US Leveraged Loan Total Return (CAD hedged) Index is a widely recognized market benchmark designed to reflect the general performance of a broad segment of the leveraged loan asset class, consistent with the Fund's investment objectives and strategies. However, the Index does not account for fees, expenses, taxes, or other costs associated with investing in the Fund. It should be noted that the Fund's holdings, sector allocations, and risk profile may differ significantly from those of the Index, leading to substantial variances in performance across different time periods. Past performance is neither a guarantee nor a reliable indicator of future results. Investors are advised not to rely solely upon the benchmark Index to gauge the Fund's expected or potential returns, risk characteristics, or suitability for investment purposes."
     }
     
     relevant_disclaimers = [disclaimers[strategy] for strategy in strategy_weights.keys() if strategy in disclaimers]
@@ -1263,8 +1283,9 @@ def save_choose_myself_data(request):
         # Clean the amount strings and convert to floats
         cleaned_amounts = []
         for amount in amounts:
+            cleaned_amount = amount.replace('$', '').replace(',', '')
             try:
-                cleaned_amount = float(amount.replace('$', '').replace(',', ''))
+                cleaned_amount = float(cleaned_amount)
                 cleaned_amounts.append(cleaned_amount)
             except ValueError:
                 cleaned_amounts.append(0)
@@ -1490,7 +1511,7 @@ def generate_ips_details_for_pm(request):
             'asset_mix': asset_mix,
             'risk_rating': risk_rating,
             'portfolio_definition': portfolio_definition,
-            'advisor_name': form.cleaned_data.get('advisor_name', 'N/A'),
+            'advisor_name': form.cleaned_data.get('advisor_name', 'N/A'), 
             'annual_withdrawal': form.cleaned_data.get('annual_withdrawal', 'N/A'),
             'let_pm_choose_data': let_pm_choose_data,
             'desired_trailer_rate': desired_trailer_rate.amount if desired_trailer_rate else 'N/A',
@@ -1523,9 +1544,10 @@ def choose_myself_risk_analytics(request):
         for amount in amounts:
             cleaned_amount = amount.replace('$', '').replace(',', '')
             try:
-                cleaned_amounts.append(float(cleaned_amount))
+                cleaned_amount = float(cleaned_amount)
+                cleaned_amounts.append(cleaned_amount)
             except ValueError:
-                cleaned_amounts.append(0.0)
+                cleaned_amounts.append(0)
 
         total_amount = sum(cleaned_amounts)
         weights = [amount / total_amount if total_amount != 0 else 0 for amount in cleaned_amounts]
