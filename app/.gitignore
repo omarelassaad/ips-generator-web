@@ -1,0 +1,46 @@
+# Python
+*.pyc
+*.pyo
+__pycache__/
+
+# Virtual environments
+venv/
+weasyprint-env/
+env/
+.env/
+
+# Django
+db.sqlite3
+/media/
+*.log
+
+# Static files
+/staticfiles/
+*.css.map
+*.js.map
+
+# Environment variables
+.env
+.env.*
+
+# Editor and IDE
+.idea/
+.vscode/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Excel temporary files
+~$*.xlsx
+*.xlk
+*.~*
+
+# Generated files
+media/pie_chart.png
+
+# Other
+*.swp
+**/ips/__pycache__/
+**/ips/migrations/
+**/ips_generator/__pycache__/

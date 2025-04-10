@@ -1,0 +1,29 @@
+{
+    "environmentVariables": {
+        "required": {
+            "DJANGO_SECRET_KEY": "Your secure secret key",
+            "DJANGO_DEBUG": "False",
+            "DATABASE_URL": "postgres://<username>:<password>@<server-name>.postgres.database.azure.com:5432/<database-name>",
+            "ALLOWED_HOSTS": "your-app.azurewebsites.net",
+            "AZURE_STORAGE_CONNECTION_STRING": "Your Azure Storage connection string for media files",
+            "DJANGO_SUPERUSER_USERNAME": "admin",
+            "DJANGO_SUPERUSER_PASSWORD": "your-secure-password",
+            "DJANGO_SUPERUSER_EMAIL": "admin@example.com",
+            "WEB_CONCURRENCY": "2",
+            "PYTHONUNBUFFERED": "true",
+            "MALLOC_TRIM_THRESHOLD_": "65536"
+        },
+        "optional": {
+            "WEASYPRINT_TIMEOUT": "60",
+            "WHITENOISE_TIMEOUT": "30"
+        }
+    },
+    "deployment": {
+        "pythonVersion": "3.11",
+        "startupCommand": "gunicorn ips_generator.wsgi:application --timeout 120 --workers 2 --threads 2 --worker-class gthread --bind=0.0.0.0:8000",
+        "memory": {
+            "minimum": "1GB",
+            "recommended": "2GB"
+        }
+    }
+} 

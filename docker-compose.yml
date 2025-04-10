@@ -1,0 +1,11 @@
+
+services:
+  web:
+    build: ./app
+    command: /bin/sh -c "/usr/src/app/start.sh"
+    volumes:
+      - ./app/:/usr/src/app/
+    ports:
+      - 8000:8000
+    env_file:
+      - ./.env.dev
