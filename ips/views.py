@@ -1378,20 +1378,35 @@ def save_let_pm_choose_data(request):
         # Save account details
         index = 0
         while f'account_owner_{index}' in data:
+            amountToSave = 0.0
+            amountToSaveText = data.get(f'amount_{index}', '0').replace('$', '').replace(',', '')
+
+            try:
+                amountToSave = float(amountToSaveText)
+            except ValueError:
+                print("Error: amount to save cannot be converted to a float.")
+
             LetPmChooseData.objects.create(
                 user=user,
                 account_owner=data.get(f'account_owner_{index}'),
                 account_type=data.get(f'account_type_{index}'),
-                amount=float(data.get(f'amount_{index}', '0').replace('$', '').replace(',', ''))
+                amount=amountToSave
             )
             index += 1
 
         # Save desired trailer rate
+        desiredTrailerRate = 0.0
+
+        try:
+            desiredTrailerRate = float(data.get('desired_trailer_rate', 0))
+        except ValueError:
+            print("Error: desired_trailer_rate cannot be converted to a float.")
+
         LetPmChooseData.objects.create(
             user=user,
             account_owner='Desired Trailer Rate',
             account_type='Desired Trailer Rate',
-            amount=float(data.get('desired_trailer_rate', 0))
+            amount=desiredTrailerRate
         )
 
         # Save Client-directed Holdings  data
