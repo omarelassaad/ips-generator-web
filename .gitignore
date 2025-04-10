@@ -41,3 +41,6 @@ media/pie_chart.png
 
 # Other
 *.swp
+**/ips/__pycache__/
+**/ips/migrations/
+**/ips_generator/__pycache__/
