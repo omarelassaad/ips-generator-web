@@ -607,7 +607,7 @@
     <div id="disclaimers" style="margin-top: 20px; font-size: 12px;">
         <p>The return data is as of February 28, 2025. Indicated rates of return are historical annual compounded total returns including reinvestment of all distributions for the period ended, and do not take into account management expenses, account sales, redemption, distribution or optional charges or income taxes payable by any security holder that would have reduced returns.</p>
         {% for line in disclaimer_lines %}
-            <p>{{ line }}</p>
+            <p>{{ line|safe }}</p>
         {% endfor %}
     </div>
     </section>
@@ -769,7 +769,23 @@
     <p>For further details on SPCF's structure, risks, and terms, please consult the official offering documents or your investment advisor.</p>
     
     <h4 class="sub-heading" style="margin-top: 20px;">Tax Documentation Acknowledgment</h4>
-    <p>I acknowledge that I will provide Aviso with the appropriate tax residency and withholding form (e.g., Form W-9, W-8BEN, W-8BEN-E, W-8IMY, or W-8EXP) as applicable to my tax status, or confirm that such documentation is already on file. I understand these forms are not required to be submitted with this Agreement but will be provided within 10 calendar days upon request.</p>
+    <p>
+        I acknowledge that I will provide Aviso one or more of the following U.S. Internal Revenue Service withholding forms:<br><br>
+        1) Form W-8BEN;<br> 
+        2) Form W-8BEN-E;<br>
+        3) Form W-8IMY; or<br> 
+        4) Form W-8EXP as applicable to my tax status or confirm that such documentation is already on file.<br><br> 
+        I understand these forms are not required to be submitted with this Agreement but will be provided within 10 calendar days upon request.<br><br>
+        If I am a United States person for U.S. federal tax purposes, I will provide a Form W-9 (U.S. Person Certificate) in lieu of a Form W-8 at purchase.<br><br>
+        If I provide Form W-8 and subsequently determines that it is a United States person for U.S. federal tax purposes, I will provide a Form W-9 to the Fund within 10 calendar days of such determination.<br><br>
+        If my status as a non-United States person changes, the client or the Dealer must immediately notify the Fund, and the Manager may require the withdrawal of the Investor.
+    </p>
+
+    <h4 class="sub-heading" style="margin-top: 20px;">Privacy disclosure</h4>
+    <p>
+        By choosing to invest in the Sagard Private Credit Fund (the "Fund"), you acknowledge that your sensitive personal information will be shared, stored, and processed with iCapital Network Canada Ltd. (the "Manager"), and the Fund, of which both entities may be located outside of the province of Quebec and/or Canada. This disclosure is necessary to facilitate your investment and is subject to the privacy laws and regulations of the jurisdiction(s) in which the Fund and the Manager operates, which may differ from those in Quebec and/or Canada. Aviso Financial Inc. is not responsible for any breach of privacy or security that may occur at the Fund or the Manager.
+    </p>
+
     {% endif %}
 </div>
 {% endif %}
@@ -781,7 +797,10 @@
 <p>The purpose of this Investment Policy Statement (IPS) is to guide your team of Investment Professionals in effectively implementing and overseeing a strategy for managing your investment assets. This document establishes your expectations and objectives, outlining the asset allocation and investment strategies to be employed in the execution of your IPS.</p>
 <p>This IPS serves as an effective tool for confirming communications between you and your team of Investment Professionals, ensuring that important issues and concerns are clearly addressed. You will receive monthly statements if transactions have occurred within your account, and quarterly statements detailing the performance of each Investment Manager Strategy within your portfolio.</p>
 <p>Since this IPS is based on your responses to the initial questionnaire, any changes in your needs or circumstances may necessitate a different asset and manager allocation. We recommend discussing your investment needs and circumstances with your Investment Professional at least once a year.</p>
-<p>By agreeing to this document, the potential for conflicts and misunderstandings is significantly reduced. Please sign this Agreement to confirm your agreement with its contents. Note that this Investment Policy Statement is not a contract; it is intended to summarize the agreed-upon investment strategy for your portfolio.</p>
+<p>Please sign below to acknowledge this Investment Policy Statement and to confirm your agreement with its contents. Note that this
+Investment Policy Statement is not a contract; it is intended to summarize the agreed-upon
+investment strategy for your portfolio.  The operation of your managed account will be governed by the 
+<b>Managed Portfolios Account Agreement</b> which includes important about your relationship with Aviso Financial Inc.</p>
 
     <!--<p class="signature-date">Signed this ____________ day of ____________ 20____________</p>-->
 
