@@ -4,7 +4,7 @@ pytest-django==4.8.0
 
 # Code Quality
 flake8==7.0.0
-black==24.2.0
+black==24.3.0
 
 # Main requirements
 -r requirements.txt 
