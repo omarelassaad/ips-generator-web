@@ -1,6 +1,7 @@
 
 services:
   web:
+    container_name: web
     build: ./app
     command: /bin/sh -c "/usr/src/app/start.sh"
     volumes:
@@ -9,3 +10,28 @@ services:
       - 8000:8000
     env_file:
       - ./.env.dev
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    container_name: db
+    image: postgres
+    restart: always
+    environment:
+      - PGUSER=postgres
+      - POSTGRES_USER=postgres      
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ips
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    ports:
+      - 5432:5432
+    volumes: 
+      - db:/var/lib/postgresql/data
+      - ./db/create-schema.sql:/docker-entrypoint-initdb.d/create-schema.sql
+volumes:
+  db:
+    driver: local

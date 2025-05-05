@@ -10,6 +10,9 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-!ycct3=ds7t)02*j+!u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
+# Postgres Connection string
+DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/ips'
+
 # Update ALLOWED_HOSTS to include localhost for development
 ALLOWED_HOSTS = ['*']  # Configure this based on your Render URL
 
@@ -103,7 +106,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "ips_generator.wsgi.application"
 
 # Database configuration
-if DEBUG:
+""" if DEBUG:
     DATABASES = {
         "default": dj_database_url.config(
             default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
@@ -118,7 +121,18 @@ else:
             conn_health_checks=True,
             ssl_require=True
         )
+    } """
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'ips',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': 'db',
+        'PORT': '5432',
     }
+}
 
 # Add SSL configuration for Azure PostgreSQL
 if not DEBUG:
