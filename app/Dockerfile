@@ -20,5 +20,9 @@ RUN pip install --upgrade pip
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
+# Create a non-root user under which to run
+RUN useradd --user-group --system --create-home --no-log-init app
+USER app
+
 # copy project
 COPY . .
