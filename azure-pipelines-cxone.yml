@@ -45,6 +45,6 @@ stages:
       - task: Checkmarx AST@2
         displayName: CheckmarxOne Scan
         inputs:
-          CheckmarxService: 'Checkmarx One-Managed Assets Program - MAP'
+          CheckmarxService: 'Checkmarx One - Project - Asset Management'
           projectName: 'ips-application'
           branchName: '$(Build.SourceBranchName)'
