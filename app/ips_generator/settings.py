@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import dj_database_url
+import pyodbc
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -121,7 +122,7 @@ else:
             conn_health_checks=True,
             ssl_require=True
         )
-    } """
+    } 
 
 DATABASES = {
     'default': {
@@ -131,6 +132,19 @@ DATABASES = {
         'PASSWORD': 'postgres',
         'HOST': 'db',
         'PORT': '5432',
+    } """
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'mssql',
+        'NAME': 'ips',
+        'HOST': 'host.docker.internal',
+        'USER': 'ips_db_user',
+        'PASSWORD': 'ThisIsAStrongPassword_2025!',
+        'PORT': '1433',
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+        },
     }
 }
 
