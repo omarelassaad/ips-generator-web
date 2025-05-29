@@ -8,14 +8,7 @@
             align-items: center;
             padding: 10px;
         }
-        #corner-logo {
-            position: fixed;
-            bottom: 10px;
-            right: 10px; /* Changed from left to right */
-            width: 100px; /* Adjusted size */
-            height: auto;
-            z-index: 1000; /* Ensures the logo appears on top of other elements */
-        }
+
     </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,7 +41,7 @@
     <footer>
         <p>&copy; Powered by PeekingLlama</p>
     </footer>
-    <img src="{% static 'images/pl.png' %}" alt="Logo" id="corner-logo">
+    
     <script>
         document.getElementById('questionnaire-summary-link').addEventListener('click', function(event) {
             event.preventDefault();
