@@ -137,10 +137,10 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
-        'NAME': 'ips',
-        'HOST': 'host.docker.internal',
-        'USER': 'ips_db_user',
-        'PASSWORD': 'ThisIsAStrongPassword_2025!',
+        'NAME': 'sqldb-ips-generator-dev-cc-01',
+        'HOST': 'sql-nxgcae-dev-cc-01.database.windows.net',
+        'USER': 'uai_ips_generator_dev_cc_01_LOCAL',
+        'PASSWORD': 'zenith_Y34KuY2VTBw6zfh',
         'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
