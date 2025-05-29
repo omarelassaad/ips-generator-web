@@ -35,3 +35,8 @@ stages:
         command: 'push'
         tags: '$(tag)'
       displayName: 'Docker push to Azure Container Registry'
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: '/opt/cx scan create --scan-types container-security,sca,sast,iac-security,kics,api-security --sca-resolver /home/svc_aciadmin/.ScaResolver/ScaResolver --sca-resolver-params "--ignore-dev-dependencies -e */test/*" --sca-filter !**/test/** -s $(Build.SourcesDirectory) --debug --container-images acrnonprodpltcc01.azurecr.io/ips-generator/test/$(Build.DefinitionName):$(tag) --project-name $(Build.DefinitionName) --branch $(Build.SourceBranchName) --sast-filter "!**\node_modules"'
+      displayName: 'Security - start cxone manual'
