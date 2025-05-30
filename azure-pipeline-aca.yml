@@ -9,7 +9,7 @@ resources:
 - repo: self
 
 variables:
-  tag: '$(Build.BuildId)'
+  tag: '1.0.0-$(Build.BuildNumber)'
 
 stages:
 - stage: Build
@@ -18,12 +18,25 @@ stages:
   - job: Build
     displayName: Build
     pool:
-      vmImage: ubuntu-latest
+      name: LinuxJavaCIBuildAgents
     steps:
     - task: Docker@2
       displayName: Build an image
       inputs:
-        command: build
-        dockerfile: '**/Dockerfile'
-        tags: |
-          $(tag)
+        containerRegistry: 'SC ACR NONPRODPLTCC01-Project - Asset Management'
+        repository: 'ips-generator/test/$(Build.DefinitionName)'
+        command: 'build'
+        Dockerfile: '**/Dockerfile'
+        tags: '$(tag)'
+    - task: Docker@2
+      inputs:
+        containerRegistry: 'SC ACR NONPRODPLTCC01-Project - Asset Management'
+        repository: 'ips-generator/test/$(Build.DefinitionName)'
+        command: 'push'
+        tags: '$(tag)'
+      displayName: 'Docker push to Azure Container Registry'
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: '/opt/cx scan create --scan-types container-security,sca,sast,iac-security,kics,api-security --sca-resolver /home/svc_aciadmin/.ScaResolver/ScaResolver --sca-resolver-params "--ignore-dev-dependencies -e */test/*" --sca-filter !**/test/** -s $(Build.SourcesDirectory) --debug --container-images acrnonprodpltcc01.azurecr.io/ips-generator/test/$(Build.DefinitionName):$(tag) --project-name $(Build.DefinitionName) --branch $(Build.SourceBranchName) --sast-filter "!**\node_modules"'
+      displayName: 'Security - start cxone manual'
