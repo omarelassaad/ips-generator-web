@@ -1,0 +1,34 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - refs/heads/*
+  tags:
+    include:
+      - "TEST-*"
+      - "PCC-*"
+      - "release-*"
+      - "*"
+
+resources:
+  repositories:
+    - repository: Templates
+      type: git
+      name: 'TSP DevSecOps/ips-central'
+
+variables:
+- template: Library/vars.yaml@Templates
+
+stages:
+  - stage: Build_Docker
+    # condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), contains(variables['Build.Reason'], 'PullRequest'))
+    pool:
+      name: LinuxJavaCIBuildAgents
+    jobs:
+      - job: Builds
+        workspace:
+          clean: all
+        steps:
+        - checkout: self
+          fetchDepth: 0
+        - template: Master.yaml@Templates

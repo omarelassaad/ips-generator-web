@@ -14,7 +14,7 @@ ENV ACCEPT_EULA=Y
 RUN apt-get update -y && apt-get update \
   && apt-get install -y --no-install-recommends curl gcc g++ gnupg unixodbc-dev
 
-  # Add SQL Server ODBC Driver 17 for Ubuntu 18.04
+# Add SQL Server ODBC Driver 17 for Ubuntu 18.04
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
   && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list \
   && apt-get update \
@@ -28,7 +28,7 @@ RUN apt-get -qq -y install libgtk-3-0
 
 # install dependencies
 RUN pip install --upgrade pip
-COPY ./requirements.txt .
+COPY ./app/requirements.txt .
 RUN pip install -r requirements.txt
 
 # Create a non-root user under which to run
@@ -36,4 +36,8 @@ RUN useradd --user-group --system --create-home --no-log-init app
 USER app
 
 # copy project
-COPY . .
+COPY ./app .
+
+# Entrypoint: start.sh
+ENTRYPOINT ["/bin/sh"]
+CMD ["-c", "/usr/src/app/start.sh"]
