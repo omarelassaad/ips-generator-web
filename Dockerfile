@@ -40,5 +40,4 @@ COPY ./app .
 COPY .env /usr/src/app/ips_generator/.env
 
 # Entrypoint: start.sh
-ENTRYPOINT ["/bin/sh"]
-CMD ["-c", "/usr/src/app/start.sh"]
+ENTRYPOINT ["/bin/sh", "-c", "/usr/src/app/start.sh"]
