@@ -33,13 +33,15 @@ RUN pip install -r requirements.txt
 
 # Create a non-root user under which to run
 RUN useradd --user-group --system --create-home --no-log-init app
-USER app
 
 # copy project
 COPY ./app .
 COPY .env /usr/src/app/ips_generator/.env
 
 RUN chmod +x /usr/src/app/start.sh
+
+# Run as user
+USER app
 
 # Entrypoint: start.sh
 ENTRYPOINT ["/bin/sh", "-c", "/usr/src/app/start.sh"]
