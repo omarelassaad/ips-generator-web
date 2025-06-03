@@ -19,10 +19,6 @@ db.sqlite3
 *.css.map
 *.js.map
 
-# Environment variables
-.env
-.env.*
-
 # Editor and IDE
 .idea/
 .vscode/

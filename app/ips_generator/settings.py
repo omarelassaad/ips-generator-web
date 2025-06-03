@@ -1,18 +1,21 @@
 from pathlib import Path
+import environ
 import os
 import dj_database_url
 import pyodbc
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Construct the path to the .env file
+ENV_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/ips_generator"
+# Take environment variables from .env file
+env = environ.Env.read_env(os.path.join(ENV_PATH, '.env'))
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-!ycct3=ds7t)02*j+!u^0rqx65e69_&pklfad&zzmfpiq+qd!d")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
-
-# Postgres Connection string
-DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/ips'
 
 # Update ALLOWED_HOSTS to include localhost for development
 ALLOWED_HOSTS = ['*']  # Configure this based on your Render URL
@@ -107,40 +110,13 @@ TEMPLATES = [
 WSGI_APPLICATION = "ips_generator.wsgi.application"
 
 # Database configuration
-""" if DEBUG:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
-            conn_max_age=600
-        )
-    }
-else:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True
-        )
-    } 
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'ips',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'db',
-        'PORT': '5432',
-    } """
-
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
-        'NAME': 'sqldb-ips-generator-dev-cc-01',
-        'HOST': 'sql-nxgcae-dev-cc-01.database.windows.net',
-        'USER': 'uai_ips_generator_dev_cc_01_LOCAL',
-        'PASSWORD': 'zenith_Y34KuY2VTBw6zfh',
+        'NAME':  os.environ['SQL_DATABASE_NAME'],
+        'HOST': os.environ['SQL_SERVER_NAME'],
+        'USER':  os.environ['SQL_USERNAME'],
+        'PASSWORD':  os.environ['SQL_PASSWORD'],
         'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',

@@ -37,6 +37,7 @@ USER app
 
 # copy project
 COPY ./app .
+COPY .env /usr/src/app/ips_generator/.env
 
 # Entrypoint: start.sh
 ENTRYPOINT ["/bin/sh"]
