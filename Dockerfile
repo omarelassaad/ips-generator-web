@@ -38,6 +38,7 @@ RUN useradd --user-group --system --create-home --no-log-init app
 COPY ./app .
 COPY .env /usr/src/app/ips_generator/.env
 
+RUN chown app /usr/src/app/ -R
 RUN chmod +x /usr/src/app/start.sh
 
 # Run as user
