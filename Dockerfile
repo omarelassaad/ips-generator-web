@@ -39,5 +39,7 @@ USER app
 COPY ./app .
 COPY .env /usr/src/app/ips_generator/.env
 
+RUN chmod +x /usr/src/app/start.sh
+
 # Entrypoint: start.sh
 ENTRYPOINT ["/bin/sh", "-c", "/usr/src/app/start.sh"]
