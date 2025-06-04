@@ -10,7 +10,10 @@ param containerRegistry string
 param workloadProfileName string
 
 //KV Secrets and Parameter
-param containerAppEnvironment string
+param sqlDbName string
+param sqlSvrName string
+param sqlUsrName string
+param sqlPswdKV string
 
 //Container configuration
 param imageArtifact string
@@ -48,7 +51,13 @@ resource ipsgeneratorweb 'Microsoft.App/containerApps@2024-03-01' = {
     environmentId: containerAppsEnvironment.id
     workloadProfileName: workloadProfileName
     configuration: {
-      secrets: null
+      secrets: [
+        {
+          name: 'sqlpswdkvref'
+          keyVaultUrl: sqlPswdKV
+          identity: userAssignedIdentity.id
+        }
+      ]
       activeRevisionsMode: containerRevMode
       ingress: {
         external: true
@@ -81,8 +90,20 @@ resource ipsgeneratorweb 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'ips-generator-web'
           env: [
             {
-              name: 'ENVIRONMENT'
-              value: containerAppEnvironment
+              name: 'SQL_DATABASE_NAME'
+              value: sqlDbName
+            }
+            {
+              name: 'SQL_SERVER_NAME'
+              value: sqlSvrName
+            }
+            {
+              name: 'SQL_USERNAME'
+              value: sqlUsrName
+            }
+            {
+              name: 'SQL_PASSWORD'
+              secretRef: 'sqlpswdkvref'
             }
           ]
           resources: {
