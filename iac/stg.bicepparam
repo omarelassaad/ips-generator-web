@@ -10,7 +10,10 @@ param keyVault = '$(KEY_VAULT_URL)'
 param containerRegistry = '$(ACR_NONPROD_URL)'
 param workloadProfileName = '$(WORKLOADPROFILE_NAME)'
 
-param containerAppEnvironment = 'Staging'
+param sqlDbName = 'sqldb-ips-generator-dev-cc-01'
+param sqlSvrName = 'sql-nxgcae-dev-cc-01.database.windows.net'
+param sqlUsrName = 'uai_ips_generator_dev_cc_01_LOCAL'
+param sqlPswdKV = '${keyVault}/sqlPswdIps'
 
 param imageArtifact = '${containerRegistry}/ips-generator-web/test/ips-generator-web:1.0.0-20250529.10'
 param containerResoucerCPU = '0.75'
