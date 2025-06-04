@@ -34,11 +34,11 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2022-03-01'
 }
 
 //* Microservice
-resource ipsgenerator 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'ips-generator'
+resource ipsgeneratorweb 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'ipsgenerator-web'
   location: resourceGroup().location
   tags: {
-    Application: 'IPS Generator'
+    Application: 'IPS Generator Web'
     Department: 'ITOps'
     Environment: subscriptionName
     ProductOwner: 'ITOperations@aviso.ca'
@@ -52,7 +52,7 @@ resource ipsgenerator 'Microsoft.App/containerApps@2024-03-01' = {
       activeRevisionsMode: containerRevMode
       ingress: {
         external: true
-        targetPort: 8080
+        targetPort: 8000
         exposedPort: 0
         transport: 'Auto'
         traffic: [
@@ -78,7 +78,7 @@ resource ipsgenerator 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           image: imageArtifact
-          name: 'ips-generator'
+          name: 'ips-generator-web'
           env: [
             {
               name: 'ENVIRONMENT'
