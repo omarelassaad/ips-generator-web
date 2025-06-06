@@ -20,6 +20,8 @@ DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 # Update ALLOWED_HOSTS to include localhost for development
 ALLOWED_HOSTS = ['*']  # Configure this based on your Render URL
 
+CSRF_TRUSTED_ORIGINS = ['https://ipsgenerator-web.nxgcae.dev.cg.net']
+
 # Static files settings
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
