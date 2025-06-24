@@ -1261,6 +1261,8 @@ def get_disclaimer(strategy_weights):
     relevant_disclaimers = [disclaimers[strategy] for strategy in strategy_weights.keys() if strategy in disclaimers]
     return "\n".join(relevant_disclaimers)
 
+
+@transaction.atomic
 @require_POST
 def save_choose_myself_data(request):
     try:
