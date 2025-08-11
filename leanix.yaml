@@ -1,0 +1,14 @@
+version: 1
+metadata:
+  name: $(Build.Repository.Name)
+  externalId: $(Build.Repository.Name)
+  description: Investor Profile generation to PDF file based on set list of questionnaires
+  type: $(TYPE) 
+
+  repository:
+    url: $(Build.Repository.Uri)
+    status: active
+    visibility: private
+
+  applications:
+    - factSheetId: 4b5c8946-b4e5-4ac9-a155-281bae282755

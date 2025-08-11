@@ -15,9 +15,13 @@ resources:
     - repository: Templates
       type: git
       name: 'TSP DevSecOps/ips-central'
+    - repository: Templates-LeanIX
+      type: git
+      name: 'TSP DevSecOps/leanix-central'
 
 variables:
 - template: Library/vars.yaml@Templates
+- group: LEANIX
 
 stages:
   - stage: Build_Docker
@@ -32,3 +36,14 @@ stages:
         - checkout: self
           fetchDepth: 0
         - template: Master.yaml@Templates
+
+  - stage: LeanIX
+    pool:
+      vmImage: ubuntu-latest
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - job: LeanIX
+        steps:
+        - checkout: self
+        - checkout: Templates-LeanIX
+        - template: Master.yaml@Templates-LeanIX
