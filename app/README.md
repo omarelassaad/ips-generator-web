@@ -25,23 +25,21 @@ For detailed deployment instructions, please refer to [AZURE_DEPLOYMENT.md](AZUR
 ### Quick Start
 1. Clone the repository
 2. Follow the setup instructions in AZURE_DEPLOYMENT.md
-3. Choose your database option:
-   - Start with SQLite (simplest)
-   - Set up PostgreSQL (for production use)
 
-### Database Options
+### Database
 
-1. **SQLite (Quick Start)**
-   - No additional setup needed
-   - Good for testing and development
-   - Can migrate to PostgreSQL later
-
-2. **PostgreSQL (Production)**
+ **PostgreSQL**
    - Azure Database for PostgreSQL
    - Better concurrent access
    - Improved backup and recovery
    - Suitable for multiple users
 
+## Local Development - Docker
+   - navigate to dockerfile and run
+   - create a superuser to access the web application 
+```shell
+
+```
 ## Local Development
 
 1. **Setup Virtual Environment**
@@ -65,12 +63,7 @@ For detailed deployment instructions, please refer to [AZURE_DEPLOYMENT.md](AZUR
    pip install -r requirements.txt
    ```
 
-5. **Run Migrations**
-   ```bash
-   python manage.py migrate
-   ```
-
-6. **Start Development Server**
+5. **Start Development Server**
    ```bash
    python manage.py runserver
    ```
