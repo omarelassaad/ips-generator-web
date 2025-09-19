@@ -17,8 +17,11 @@ param sqlPswdKV string
 
 //Container configuration
 param imageArtifact string
-param containerResoucerCPU string
-param containerResoucerMemory string
+param cpu string
+param ram string
+param minReplicas string
+param maxReplicas string
+param concurrentRequests string
 param containerResoucerStorage string
 param containerRevMode string
 
@@ -107,15 +110,26 @@ resource ipsgeneratorweb 'Microsoft.App/containerApps@2024-03-01' = {
             }
           ]
           resources: {
-            cpu: json(containerResoucerCPU)
-            memory: containerResoucerMemory
+            cpu: json(cpu)
+            memory: ram
           }
           probes: []
         }
       ]
       scale: {
-        minReplicas: 1
-        maxReplicas: 10
+        minReplicas: minReplicas
+        maxReplicas: maxReplicas
+        rules: [
+          {
+            name: 'http-scaler'
+            custom: {
+              type: 'http'
+              metadata: {
+                concurrentRequests: concurrentRequests
+              }
+            }
+          }
+        ]
       }
     }
   }
