@@ -352,6 +352,7 @@ class ChooseMyselfForm(forms.Form):
         ('Brookfield Private Real Assets Fund', 'Brookfield Private Real Assets Fund'),
         ('Dixon Mitchell Total Equity', 'Dixon Mitchell Total Equity'),
         ('NEI Global Total Return Bond Fund', 'NEI Global Total Return Bond Fund'),
+        ('GMO US Equity', 'GMO US Equity'),
         ('Guardian Balanced Fund', 'Guardian Balanced Fund'),
         ('Guardian Canadian Balanced (RI)', 'Guardian Canadian Balanced (RI)'),
         ('Guardian Canadian Bond (RI)', 'Guardian Canadian Bond (RI)'),

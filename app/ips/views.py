@@ -195,6 +195,7 @@ strategy_fee_category = {
     "Beutel Goodman Structured Bond": "Structured Bond",
     "Dixon Mitchell Total Equity": "Equity & Balanced",
     "NEI Global Total Return Bond Fund": "Fixed Income",
+    "GMO US Equity": "Equity & Balanced",
     "Guardian Balanced Fund": "Equity & Balanced",
     "Guardian Canadian Bond Fund": "Fixed Income",
     "Guardian Canadian Balanced (RI)": "Equity & Balanced",
