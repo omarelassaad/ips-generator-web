@@ -120,6 +120,7 @@ strategyData = {
   "Brookfield Private Real Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
   "Dixon Mitchell Total Equity": {"Cash": 2.00, "Fixed Income": 0.00, "Canadian Equity": 64.00, "U.S. Equity": 34.00, "International Equity": 0.00, "Alternatives": 0.00},
   "NEI Global Total Return Bond Fund": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
+  "GMO US Equity": {"Cash": 2.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 98.00, "International Equity": 0.00, "Alternatives": 0.00},
   "Guardian Balanced Fund": {"Cash": 2.00, "Fixed Income": 38.00, "Canadian Equity": 35.00, "U.S. Equity": 20.00, "International Equity": 5.00, "Alternatives": 0.00},
   "Guardian Canadian Balanced (RI)": {"Cash": 2.50, "Fixed Income": 39.00, "Canadian Equity": 58.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
   "Guardian Canadian Bond (RI)": {"Cash": 2.50, "Fixed Income": 97.50, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
