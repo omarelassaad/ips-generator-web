@@ -148,28 +148,28 @@ strategyData = {
 
 fee_data = {
     "Equity & Balanced": [
-        {"lower": 0, "upper": 250000, "maxFee": 2.35, "maxTrailer": 1.25, "minFee": 1.85, "minTrailer": 0.75, "adminFee": 1.10},
-        {"lower": 250001, "upper": 500000, "maxFee": 2.25, "maxTrailer": 1.15, "minFee": 1.75, "minTrailer": 0.65, "adminFee": 1.10},
-        {"lower": 500001, "upper": 1000000, "maxFee": 2.00, "maxTrailer": 1.20, "minFee": 1.70, "minTrailer": 0.90, "adminFee": 0.80},
-        {"lower": 1000001, "upper": 2000000, "maxFee": 1.95, "maxTrailer": 1.20, "minFee": 1.55, "minTrailer": 0.80, "adminFee": 0.75},
-        {"lower": 2000001, "upper": 5000000, "maxFee": 1.90, "maxTrailer": 1.20, "minFee": 1.25, "minTrailer": 0.55, "adminFee": 0.70},
-        {"lower": 5000001, "upper": 999999999, "maxFee": 1.90, "maxTrailer": 1.20, "minFee": 1.25, "minTrailer": 0.55, "adminFee": 0.70}
+        {"lower": 0, "upper": 250000, "maxFee": 2.25, "maxTrailer": 1.25, "minFee": 1.75, "minTrailer": 0.75, "adminFee": 1.00},
+        {"lower": 250001, "upper": 500000, "maxFee": 2.15, "maxTrailer": 1.15, "minFee": 1.65, "minTrailer": 0.65, "adminFee": 1.00},
+        {"lower": 500001, "upper": 1000000, "maxFee": 1.95, "maxTrailer": 1.20, "minFee": 1.65, "minTrailer": 0.90, "adminFee": 0.75},
+        {"lower": 1000001, "upper": 2000000, "maxFee": 1.90, "maxTrailer": 1.20, "minFee": 1.50, "minTrailer": 0.80, "adminFee": 0.70},
+        {"lower": 2000001, "upper": 5000000, "maxFee": 1.85, "maxTrailer": 1.20, "minFee": 1.20, "minTrailer": 0.55, "adminFee": 0.65},
+        {"lower": 5000001, "upper": 999999999, "maxFee": 1.85, "maxTrailer": 1.20, "minFee": 1.20, "minTrailer": 0.55, "adminFee": 0.65}
     ],
     "Structured Bond": [
-        {"lower": 0, "upper": 250000, "maxFee": 1.00, "maxTrailer": 0.50, "minFee": 0.80, "minTrailer": 0.30, "adminFee": 0.50},
-        {"lower": 250001, "upper": 500000, "maxFee": 1.00, "maxTrailer": 0.50, "minFee": 0.80, "minTrailer": 0.30, "adminFee": 0.50},
-        {"lower": 500001, "upper": 1000000, "maxFee": 1.00, "maxTrailer": 0.50, "minFee": 0.80, "minTrailer": 0.30, "adminFee": 0.50},
+        {"lower": 0, "upper": 250000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.30, "adminFee": 0.45},
+        {"lower": 250001, "upper": 500000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.30, "adminFee": 0.45},
+        {"lower": 500001, "upper": 1000000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.30, "adminFee": 0.45},
         {"lower": 1000001, "upper": 2000000, "maxFee": 0.90, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.35, "adminFee": 0.40},
-        {"lower": 2000001, "upper": 5000000, "maxFee": 0.90, "maxTrailer": 0.50, "minFee": 0.70, "minTrailer": 0.30, "adminFee": 0.40},
-        {"lower": 5000001, "upper": 999999999, "maxFee": 0.90, "maxTrailer": 0.50, "minFee": 0.70, "minTrailer": 0.30, "adminFee": 0.40}
+        {"lower": 2000001, "upper": 5000000, "maxFee": 0.85, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.30, "adminFee": 0.35},
+        {"lower": 5000001, "upper": 999999999, "maxFee": 0.85, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.30, "adminFee": 0.35}
     ],
     "Fixed Income": [
-        {"lower": 0, "upper": 250000, "maxFee": 1.15, "maxTrailer": 0.50, "minFee": 0.95, "minTrailer": 0.30, "adminFee": 0.65},
-        {"lower": 250001, "upper": 500000, "maxFee": 1.15, "maxTrailer": 0.50, "minFee": 0.95, "minTrailer": 0.30, "adminFee": 0.65},
-        {"lower": 500001, "upper": 1000000, "maxFee": 1.15, "maxTrailer": 0.50, "minFee": 0.95, "minTrailer": 0.30, "adminFee": 0.65},
+        {"lower": 0, "upper": 250000, "maxFee": 1.10, "maxTrailer": 0.50, "minFee": 0.90, "minTrailer": 0.30, "adminFee": 0.60},
+        {"lower": 250001, "upper": 500000, "maxFee": 1.10, "maxTrailer": 0.50, "minFee": 0.90, "minTrailer": 0.30, "adminFee": 0.60},
+        {"lower": 500001, "upper": 1000000, "maxFee": 1.10, "maxTrailer": 0.50, "minFee": 0.90, "minTrailer": 0.30, "adminFee": 0.60},
         {"lower": 1000001, "upper": 2000000, "maxFee": 1.10, "maxTrailer": 0.60, "minFee": 0.90, "minTrailer": 0.40, "adminFee": 0.50},
-        {"lower": 2000001, "upper": 5000000, "maxFee": 1.00, "maxTrailer": 0.50, "minFee": 0.70, "minTrailer": 0.20, "adminFee": 0.50},
-        {"lower": 5000001, "upper": 999999999, "maxFee": 1.00, "maxTrailer": 0.50, "minFee": 0.70, "minTrailer": 0.20, "adminFee": 0.50}
+        {"lower": 2000001, "upper": 5000000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.20, "adminFee": 0.45},
+        {"lower": 5000001, "upper": 999999999, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.20, "adminFee": 0.45}
     ],
     "Bond Ladder": [
         {"lower": 0, "upper": 1000000, "maxFee": 0.90, "maxTrailer": 0.60, "minFee": 0.60, "minTrailer": 0.30, "adminFee": 0.30},
