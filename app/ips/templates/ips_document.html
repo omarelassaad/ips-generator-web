@@ -580,12 +580,12 @@
         <tr>
             <th class="strategy-column">Strategy</th>
             <th class="weight-column">Weight</th>
+            <th class="return-column">2025</th>
             <th class="return-column">2024</th>
             <th class="return-column">2023</th>
             <th class="return-column">2022</th>
             <th class="return-column">2021</th>
             <th class="return-column">2020</th>
-            <th class="return-column">2019</th>
         </tr>
     </thead>
     <tbody>
@@ -593,12 +593,12 @@
             <tr {% if row.Strategy == "Portfolio" %}class="portfolio-row"{% elif row.Strategy == "Benchmark" %}class="benchmark-row"{% endif %}>
                 <td class="strategy-column">{{ row.Strategy }}</td>
                 <td class="weight-column">{{ row.Weight }}</td>
+                <td class="return-column">{{ row.2025 }}</td>
                 <td class="return-column">{{ row.2024 }}</td>
                 <td class="return-column">{{ row.2023 }}</td>
                 <td class="return-column">{{ row.2022 }}</td>
                 <td class="return-column">{{ row.2021 }}</td>
                 <td class="return-column">{{ row.2020 }}</td>
-                <td class="return-column">{{ row.2019 }}</td>
             </tr>
         {% endfor %}
     </tbody>

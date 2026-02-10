@@ -854,7 +854,7 @@ def generate_ips(request):
 
         # Prepare the calendar year returns table
         calendar_year_table = []
-        years = ['2024', '2023', '2022', '2021', '2020', '2019', '2018']
+        years = ['2025', '2024', '2023', '2022', '2021', '2020', '2019']
         for strategy, weight in strategy_weights.items():
             if strategy in performance_data['Strategy'].values:
                 row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
@@ -1195,7 +1195,7 @@ def choose_myself_performance(request):
 
         # Prepare the calendar year returns table
         calendar_year_table = []
-        years = ['2024', '2023', '2022', '2021', '2020', '2019', '2018']
+        years = ['2025', '2024', '2023', '2022', '2021', '2020', '2019']
         for strategy, weight in strategy_weights.items():
             if strategy in performance_data['Strategy'].values:
                 row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
