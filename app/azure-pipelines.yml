@@ -4,10 +4,10 @@ trigger:
 variables:
   # Azure Service Connection Name (you'll need to set this up in Azure DevOps)
   azureServiceConnection: 'Your-Azure-Service-Connection'
-  
+
   # Python version
-  pythonVersion: '3.11'
-  
+  pythonVersion: '3.12'
+
   # Web App Name (the name of your Azure App Service)
   webAppName: 'your-app-name'
   
@@ -137,4 +137,4 @@ stages:
                 -PYTHONUNBUFFERED "true"
                 -WEB_CONCURRENCY "2"
               deploymentMethod: 'auto'
-              healthCheckPath: '/admin/login/' 
+              healthCheckPath: '/admin/login/'

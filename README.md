@@ -12,7 +12,7 @@ A Django-based Investment Policy Statement (IPS) generator application that allo
 ## Technical Stack
 The stack is conservative and enterprise-friendly, using proven, mainstream libraries:
 - Django 4.2.13 (LTS version)
-- Python 3.11
+- Python 3.12.* (cannot upgrade to 3.13 yet due to psycopg2-binary compatibility)
 - WeasyPrint 62.1 (for PDF generation)
 - matplotlib 3.9.0 (for chart generation)
 - whitenoise 6.6.0 (for static files)
