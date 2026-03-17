@@ -82,7 +82,7 @@ stages:
       env:
         DJANGO_SETTINGS_MODULE: 'ips_generator.settings'
         DJANGO_DEBUG: 'False'
-        DJANGO_SECRET_KEY: 'dummy-key-for-testing'
+        DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
         MALLOC_TRIM_THRESHOLD_: '65536'
         PYTHONUNBUFFERED: 'true'
 
@@ -95,7 +95,7 @@ stages:
       env:
         DJANGO_SETTINGS_MODULE: 'ips_generator.settings'
         DJANGO_DEBUG: 'False'
-        DJANGO_SECRET_KEY: 'dummy-key-for-testing'
+        DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
 
     - task: ArchiveFiles@2
       inputs:
