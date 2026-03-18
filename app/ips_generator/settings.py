@@ -8,8 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Construct the path to the .env file
 ENV_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/ips_generator"
-# Take environment variables from .env file
-env = environ.Env.read_env(os.path.join(ENV_PATH, '.env'))
+# Properly initialize environ.Env and load .env
+env = environ.Env()
+env.read_env(os.path.join(ENV_PATH, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-!ycct3=ds7t)02*j+!u^0rqx65e69_&pklfad&zzmfpiq+qd!d")
@@ -59,7 +60,7 @@ if not DEBUG:
     if os.getenv('RENDER'):
         STATIC_URL = 'https://' + os.getenv('RENDER_EXTERNAL_HOSTNAME', '') + '/static/'
         MEDIA_URL = 'https://' + os.getenv('RENDER_EXTERNAL_HOSTNAME', '') + '/media/'
-    
+
     # In production, media files will be served from staticfiles/media
     MEDIA_ROOT = os.path.join(STATIC_ROOT, 'media')
     # This ensures media files are served through WhiteNoise in production
@@ -115,10 +116,10 @@ WSGI_APPLICATION = "ips_generator.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
-        'NAME':  os.environ['SQL_DATABASE_NAME'],
-        'HOST': os.environ['SQL_SERVER_NAME'],
-        'USER':  os.environ['SQL_USERNAME'],
-        'PASSWORD':  os.environ['SQL_PASSWORD'],
+        'NAME':  env('SQL_DATABASE_NAME'),
+        'HOST': env('SQL_SERVER_NAME'),
+        'USER':  env('SQL_USERNAME'),
+        'PASSWORD':  env('SQL_PASSWORD'),
         'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',

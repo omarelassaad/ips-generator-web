@@ -242,7 +242,7 @@ def calculate_fees(request):
                 return JsonResponse({
                     'error': 'Invalid amount: amounts must be non-negative numbers'
                 }, status=400)
-            
+
             category = strategy_fee_category.get(strategy, "Equity & Balanced")
             if category not in fee_categories:
                 fee_categories[category] = 0
@@ -272,7 +272,7 @@ def calculate_fees(request):
                     overall_admin_fee += range_data["adminFee"] * category_assets
                     fee_range_found = True
                     break
-            
+
             if not fee_range_found:
                 return JsonResponse({
                     'error': f'No valid fee range found for category {category} with assets {category_assets}'
@@ -367,15 +367,15 @@ def questionnaire_view(request):
                         QuestionnaireResponse.objects.create(user=user, question=field, answer=goal, score=0)
                 else:
                     score = int(value) if field in [
-                        'annual_income', 'income_savings', 'spending_needs', 
-                        'risk_tolerance', 'investment_loss', 'recovery_period', 
+                        'annual_income', 'income_savings', 'spending_needs',
+                        'risk_tolerance', 'investment_loss', 'recovery_period',
                         'reaction_to_drop', 'high_risk_opportunities', 'volatility',
                         'investment_knowledge', 'time_horizon', 'liquidity_needs'
                     ] else 0
                     QuestionnaireResponse.objects.create(user=user, question=field, answer=value, score=score)
             return JsonResponse({
-                'total_score': total_score, 
-                'portfolio_recommendation': portfolio_recommendation, 
+                'total_score': total_score,
+                'portfolio_recommendation': portfolio_recommendation,
                 'asset_mix': asset_mix,
                 'risk_rating': risk_rating,
                 'portfolio_definition': portfolio_definition
@@ -393,17 +393,17 @@ def generate_ips_questionnaire_responses(request):
     try:
         responses = QuestionnaireResponse.objects.filter(user=request.user)
         total_score = sum(response.score for response in responses if response.question in [
-            'annual_income', 'income_savings', 'spending_needs', 
-            'risk_tolerance', 'investment_loss', 'recovery_period', 
+            'annual_income', 'income_savings', 'spending_needs',
+            'risk_tolerance', 'investment_loss', 'recovery_period',
             'reaction_to_drop', 'high_risk_opportunities', 'volatility',
             'investment_knowledge', 'time_horizon', 'liquidity_needs'
         ])
-        
+
         form_data = {response.question: response.answer for response in responses}
         form_data['investment_goals'] = [response.answer for response in responses.filter(question='investment_goals')]
 
         form = QuestionnaireForm(data=form_data)
-        
+
         if form.is_valid():
             portfolio_recommendation = form.get_portfolio_recommendation()
             asset_mix = form.get_asset_mix(portfolio_recommendation)
@@ -422,7 +422,7 @@ def generate_ips_questionnaire_responses(request):
             'asset_mix': asset_mix,
             'risk_rating': risk_rating,
             'portfolio_definition': portfolio_definition,
-            'advisor_name': form.cleaned_data.get('advisor_name', 'N/A'), 
+            'advisor_name': form.cleaned_data.get('advisor_name', 'N/A'),
             'annual_withdrawal': form.cleaned_data.get('annual_withdrawal', 'N/A')
         }
 
@@ -451,17 +451,17 @@ def generate_ips(request):
         if not account_details:
             raise ValueError("No account details found in database.")
 
-        logger.info(f"Retrieved {len(account_details)} account details for user {request.user.username}")     
-        
+        logger.info(f"Retrieved {len(account_details)} account details for user {request.user.username}")
+
         amounts = [float(detail['amount']) for detail in account_details]
         strategies = [detail['strategy'] for detail in account_details]
-        
+
         cms_fee = ChooseMyselfData.objects.filter(user=request.user, account_owner='CMS Fee').first()
         desired_rate = ChooseMyselfData.objects.filter(user=request.user, account_owner='Desired Rate').first()
         version_number = account_details[0]['version_number'] if account_details else "N/A"
-        
+
         attach_fact_sheets = request.POST.get('attach_fact_sheets', 'No')
-        
+
         # Calculate fees
         fee_data = calculate_fees_for_ips(strategies, amounts)
         overall_max_fee = fee_data['max_fee']
@@ -498,13 +498,13 @@ def generate_ips(request):
         total_amount = sum(amounts)
         total_client_managed = sum(holding['amount'] for holding in filtered_client_managed_holdings)
         grand_total = total_amount + total_client_managed
-        
-        # Calculate weights for account details and Client-directed Holdings 
+
+        # Calculate weights for account details and Client-directed Holdings
         for detail in account_details:
             detail['weight'] = (float(detail['amount']) / grand_total * 100) if grand_total else 0
         for holding in filtered_client_managed_holdings:
             holding['weight'] = (holding['amount'] / grand_total * 100) if grand_total else 0
-                
+
         # Step 1: Create fee_transparency_data
         fee_transparency_data = []
         for detail in account_details:
@@ -515,7 +515,7 @@ def generate_ips(request):
                 'amount': float(detail['amount']),
                 'weight': (float(detail['amount']) / grand_total * 100) if grand_total else 0,
             })
-        
+
         # Add Client-directed Holdings  to fee_transparency_data
         for holding in filtered_client_managed_holdings:
             fee_transparency_data.append({
@@ -525,7 +525,7 @@ def generate_ips(request):
                 'amount': float(holding['amount']),
                 'weight': (float(holding['amount']) / grand_total * 100) if grand_total else 0,
             })
-        
+
         # Step 2: Calculate fees for each item in fee_transparency_data
         for item in fee_transparency_data:
             if item['strategy'] == 'Client-directed Holdings ':
@@ -538,7 +538,7 @@ def generate_ips(request):
                 category_fee_range = category_max_fee - category_min_fee
                 category_fee = category_min_fee + (category_fee_range * (1 - discount_percentage))
                 item['fee'] = f"{category_fee:.2f}%"
-        
+
         # Step 3: Calculate the total weighted fee
         total_weighted_fee = 0
         for item in fee_transparency_data:
@@ -553,10 +553,10 @@ def generate_ips(request):
         total_fee = sum(float(item['amount']) * float(item['fee'].rstrip('%')) / 100 for item in fee_transparency_data if item['fee'] != 'N/A')
         total_fee_percentage = (total_fee / grand_total) * 100 if grand_total > 0 else 0
 
-        
+
         comments_record = ChooseMyselfData.objects.filter(user=request.user, account_owner='Comments').first()
         comments = comments_record.strategy if comments_record and comments_record.strategy.strip() else ''
-        
+
         # Normalize asset class names
         def normalize_asset_class_name(name):
             return name.replace(' ', '_').replace('.', '')
@@ -593,28 +593,28 @@ def generate_ips(request):
 
         # Set the font family to Arial
         plt.rcParams['font.family'] = 'Arial'
-        
+
         # Normalize asset class names and update US Equity to US Equities, and replace US with U.S.
         labels = [name.replace('_', ' ').replace('Equity', 'Equities').replace('US', 'U.S.') for name in proposed_weights.keys()]
 
-        
+
         sizes = list(proposed_weights.values())
         colors = ['#D60D8C','#205098', '#85BE00', '#112055', '#5948AD', '#E56919']  # Updated colors based on the legend
         explode = (0.02, 0.02, 0.02, 0.02, 0.02, 0.02)  # Slight explode for all slices
-        
+
         # Filter out labels and sizes with zero values
         filtered_labels_sizes_colors_explode = [
             (label, size, color, exp) for label, size, color, exp in zip(labels, sizes, colors, explode) if size > 0
         ]
-        
+
         if filtered_labels_sizes_colors_explode:
             filtered_labels, filtered_sizes, filtered_colors, filtered_explode = zip(*filtered_labels_sizes_colors_explode)
         else:
             filtered_labels, filtered_sizes, filtered_colors, filtered_explode = [], [], [], []
-        
+
         # Set figure size (reduced from 4x4 to 3x3)
         plt.figure(figsize=(6, 6))
-        
+
         # Create the pie chart without values
         wedges, texts = plt.pie(
             filtered_sizes,
@@ -626,28 +626,28 @@ def generate_ips(request):
             textprops={'fontsize': 12},  # Reduced font size
             pctdistance=0.7
         )
-        
+
         # Prepare labels with values for the legend
         legend_labels = [f'{label}: {size:.1f}%' for label, size in zip(filtered_labels, filtered_sizes)]
-        
+
         # Add a legend and adjust its size and position
         plt.legend(wedges, legend_labels, loc="center left", bbox_to_anchor=(-2, 0.5), fontsize=24, frameon=False)
-        
+
         plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-        
+
         # Save the pie chart to the media directory
         pie_chart_filename = 'pie_chart.png'
         pie_chart_path = os.path.join(settings.MEDIA_ROOT, pie_chart_filename)
         plt.savefig(pie_chart_path, bbox_inches='tight', pad_inches=0.3, dpi=300)  # Reduced pad_inches
         plt.close()
-        
+
         # Construct an absolute file URL for the pie chart
         pie_chart_url = Path(pie_chart_path).as_uri()
 
-        
+
         # Collect data from the questionnaire responses
         questionnaire_responses = QuestionnaireResponse.objects.filter(user=request.user)
-        
+
         # Extract client household name and investment advisor name
         client_household_name = next((resp.answer for resp in questionnaire_responses if resp.question == 'client_identifier'), 'N/A')
         investment_advisor_name = next((resp.answer for resp in questionnaire_responses if resp.question == 'advisor_name'), 'N/A')
@@ -671,7 +671,7 @@ def generate_ips(request):
 
 
             RISK_PROFILES = {
-            
+
                 'Low Risk': (
                     "Based on your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is Low Risk. "
                     "Investors with this profile generally prioritize capital preservation and prefer to minimize the possibility of losses. They tend to seek stability and security, even if it means accepting lower returns. "
@@ -702,10 +702,10 @@ def generate_ips(request):
                     "Investors with this profile are willing to accept significant volatility and fluctuations in their portfolio value for the potential of maximum returns. They focus on high-growth opportunities and are comfortable with a high level of risk. "
                     "This risk profile is most appropriate for those with a long-term investment horizon and a strong focus on growth. As such, a 'Maximum Growth' asset mix is considered appropriate for clients with this risk profile."
                 ),
-            
+
             }
 
-            
+
             risk_rating = form.get_risk_profile()
             risk_rating_paragraph = RISK_PROFILES.get(risk_rating, "")
 
@@ -764,16 +764,16 @@ def generate_ips(request):
 
             # Define the income needs paragraphs
             annual_withdrawal = form.cleaned_data.get('annual_withdrawal', None)
-        
+
             if annual_withdrawal in [None, 0]:
                 income_needs_paragraph = "You have indicated that you have no income requirements and do not plan to withdraw funds from your portfolio in the coming years. This allows for a focus on long-term growth and capital appreciation, as the investment strategy can prioritize higher-risk, higher-reward opportunities without the need for maintaining liquidity for withdrawals."
             else:
                 income_needs_paragraph = f"You have indicated that you plan to withdraw ${int(annual_withdrawal):,} annually from your portfolio in the coming years. This amount will be considered in the management of your investment portfolio to ensure that your liquidity needs are met while pursuing your long-term investment goals. The strategy will aim to generate sufficient income and maintain the necessary liquidity to accommodate these annual withdrawals."
-        
+
             # Check for specific account types
             registered_income_accounts = ['RRIF', 'LIF', 'SRIF', 'PRIF', 'LRIF']
             has_registered_income_account = any(account['account_type'] in registered_income_accounts for account in account_details)
-        
+
             if annual_withdrawal in [None, 0] and has_registered_income_account:
                 income_needs_paragraph += " As you have not indicated a specific income withdrawal amount in the risk questionnaire, this assessment does not account for any systematic withdrawals from your registered portfolio."
 
@@ -788,9 +788,9 @@ def generate_ips(request):
                     "You have indicated a neutral stance with no specific bias towards responsible investing. This means that your investment strategy will focus on optimizing returns without particular consideration for environmental, social, and governance (ESG) criteria. The portfolio will be designed to achieve your financial objectives based on traditional investment principles, ensuring that performance and risk management are prioritized according to your overall investment goals."
                 ),
             }
-    
+
             responsible_investing_title, responsible_investing_paragraph = responsible_investing_paragraphs_dict.get(
-                responsible_investing, 
+                responsible_investing,
                 (
                     "Responsible Investing Preference: Neutral",
                     "You have indicated a neutral stance with no specific bias towards responsible investing. This means that your investment strategy will focus on optimizing returns without particular consideration for environmental, social, and governance (ESG) criteria. The portfolio will be designed to achieve your financial objectives based on traditional investment principles, ensuring that performance and risk management are prioritized according to your overall investment goals."
@@ -870,15 +870,15 @@ def generate_ips(request):
         # Calculate the portfolio and benchmark returns for calendar years
         calendar_year_portfolio_return = {year: 0 for year in years}
         calendar_year_benchmark_return = {year: 0 for year in years}
-        
+
         for year in years:
             calendar_year_portfolio_return[year] = sum(
-                (float(row[year].replace('%', '')) if isinstance(row[year], str) and row[year] != 'N/A' else 0) * 
+                (float(row[year].replace('%', '')) if isinstance(row[year], str) and row[year] != 'N/A' else 0) *
                 (float(row['Weight'].replace('%', '')) / 100)
                 for row in calendar_year_table
             )
             calendar_year_benchmark_return[year] = sum(
-                (float(row[f'{year}b'].replace('%', '')) if isinstance(row[f'{year}b'], str) and row[f'{year}b'] != 'N/A' else 0) * 
+                (float(row[f'{year}b'].replace('%', '')) if isinstance(row[f'{year}b'], str) and row[f'{year}b'] != 'N/A' else 0) *
                 (float(row['Weight'].replace('%', '')) / 100)
                 for row in calendar_year_table
             )
@@ -901,7 +901,7 @@ def generate_ips(request):
 
         # Find the ips_changes record
         ips_changes_record = ChooseMyselfData.objects.filter(
-            user=request.user, 
+            user=request.user,
             account_owner='IPS Changes'
         ).first()
 
@@ -978,54 +978,65 @@ def generate_ips(request):
         # Add the first page PDF
         with open(first_page_pdf_path, 'rb') as first_page_file:
             merger.append(PdfReader(first_page_file))
-        
+
         # Add the main content PDF
         main_content_pdf = io.BytesIO(main_content_pdf_bytes)
         merger.append(PdfReader(main_content_pdf))
-        
+
         # Add the last page PDF
         with open(last_page_pdf_path, 'rb') as last_page_file:
             merger.append(PdfReader(last_page_file))
-        
+
         # If user chose to attach fact sheets, add them
         if attach_fact_sheets == 'Yes':
             fact_sheets_dir = os.path.join(settings.BASE_DIR, 'static', 'strategies')
             logger.info(f"Looking for fact sheets in: {fact_sheets_dir}")
-            
+
             # Use a set to keep track of added fact sheets
             added_fact_sheets = set()
-            
+
+            # Sanitize strategy to prevent path traversal
             for strategy in strategies:
-                if strategy not in added_fact_sheets:
-                    fact_sheet_path = os.path.join(fact_sheets_dir, f"{strategy}.pdf")
+                safe_strategy = os.path.basename(strategy)
+                # Additional validation to prevent path traversal and unsafe names
+                invalid_names = {'', '.', '..', 'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'}
+                if (
+                    safe_strategy in invalid_names or
+                    any(sep in safe_strategy for sep in ('/', '\\')) or
+                    safe_strategy.strip() == ''
+                ):
+                    logger.warning(f"Rejected unsafe strategy name: {strategy}")
+                    continue
+                if safe_strategy not in added_fact_sheets:
+                    fact_sheet_path = os.path.join(fact_sheets_dir, f"{safe_strategy}.pdf")
+
                     logger.info(f"Checking for fact sheet: {fact_sheet_path}")
-                    
                     if os.path.exists(fact_sheet_path):
                         logger.info(f"Found fact sheet: {fact_sheet_path}")
                         with open(fact_sheet_path, 'rb') as fact_sheet_file:
                             merger.append(PdfReader(fact_sheet_file))
-                        added_fact_sheets.add(strategy)
+                        added_fact_sheets.add(safe_strategy)
                     else:
                         logger.warning(f"Fact sheet not found: {fact_sheet_path}")
-        
+
         # Create the HTTP response with the merged PDF
         response = HttpResponse(content_type='application/pdf')
-        
+
         current_date = datetime.now().strftime("%Y-%m-%d")
 
         # Create the custom filename with the current date
         custom_filename = f"{current_date} IPS for {client_household_name} Version {version_number}.pdf"
         # Ensure the filename is URL-safe
         custom_filename = custom_filename.replace(" ", "_")
-        
+
         # Set the Content-Disposition header with the custom filename
         response['Content-Disposition'] = f'inline; filename="{custom_filename}"'
-        
+
         merged_pdf = io.BytesIO()
         merger.write(merged_pdf)
         merger.close()
         response.write(merged_pdf.getvalue())
-        
+
         return response
 
     except Exception as e:
@@ -1071,13 +1082,13 @@ def choose_myself_view(request):
             return redirect('generate_ips')
     else:
         form = ChooseMyselfForm()
-    
+
     account_owners = QuestionnaireResponse.objects.filter(user=request.user, question='account_owner').values_list('answer', flat=True)
     account_types = QuestionnaireResponse.objects.filter(user=request.user, question='account_type').values_list('answer', flat=True)
 
     # Combine account owner and account type
     combined_accounts = [f"{owner} - {atype}" for owner, atype in zip(account_owners, account_types)]
-    
+
     return render(request, 'choose_myself.html', {
         'form': form,
         'combined_accounts': combined_accounts,
@@ -1090,10 +1101,10 @@ def let_pm_choose_view(request):
         if form.is_valid():
             # Retrieve the stored data
             stored_data = LetPmChooseData.objects.filter(user=request.user)
-            
+
             # Process the data and generate PDF
             # ... (implement your PDF generation logic here)
-            
+
             return redirect('let_pm_choose_result')
     else:
         form = LetPmChooseForm()
@@ -1119,7 +1130,7 @@ def get_target_weights(request):
         asset_mix = form.get_asset_mix(portfolio_recommendation)
         risk_rating, portfolio_definition = get_risk_and_definition(portfolio_recommendation)
         return JsonResponse({
-            'target_weights': asset_mix, 
+            'target_weights': asset_mix,
             'portfolio_recommendation': portfolio_recommendation,
             'risk_rating': risk_rating,
             'portfolio_definition': portfolio_definition
@@ -1211,15 +1222,15 @@ def choose_myself_performance(request):
         # Calculate the portfolio and benchmark returns for calendar years
         calendar_year_portfolio_return = {year: 0 for year in years}
         calendar_year_benchmark_return = {year: 0 for year in years}
-        
+
         for year in years:
             calendar_year_portfolio_return[year] = sum(
-                (float(row[year].replace('%', '')) if isinstance(row[year], str) and row[year] != 'N/A' else 0) * 
+                (float(row[year].replace('%', '')) if isinstance(row[year], str) and row[year] != 'N/A' else 0) *
                 (float(row['Weight'].replace('%', '')) / 100)
                 for row in calendar_year_table
             )
             calendar_year_benchmark_return[year] = sum(
-                (float(row[f'{year}b'].replace('%', '')) if isinstance(row[f'{year}b'], str) and row[f'{year}b'] != 'N/A' else 0) * 
+                (float(row[f'{year}b'].replace('%', '')) if isinstance(row[f'{year}b'], str) and row[f'{year}b'] != 'N/A' else 0) *
                 (float(row['Weight'].replace('%', '')) / 100)
                 for row in calendar_year_table
             )
@@ -1261,7 +1272,7 @@ def get_disclaimer(strategy_weights):
         "Sagard Private Credit Fund": "The performance of the <b>Sagard Private Credit Fund</b> is presented against the Morningstar LSTA US Leveraged Loan Total Return (CAD hedged) Index for reference purposes only. Due to inherent delays associated with private fund reporting, the Fund's actual return calculations are typically available with a lag. Consequently, this Index serves as an illustrative proxy to approximate the Fund's returns and to compensate for any data gaps when calculating portfolio returns in conjunction with other strategies. The Fund does not actively track the Index, nor does it seek to replicate or outperform it. The Morningstar LSTA US Leveraged Loan Total Return (CAD hedged) Index is a widely recognized market benchmark designed to reflect the general performance of a broad segment of the leveraged loan asset class, consistent with the Fund's investment objectives and strategies. However, the Index does not account for fees, expenses, taxes, or other costs associated with investing in the Fund. It should be noted that the Fund's holdings, sector allocations, and risk profile may differ significantly from those of the Index, leading to substantial variances in performance across different time periods. Past performance is neither a guarantee nor a reliable indicator of future results. Investors are advised not to rely solely upon the benchmark Index to gauge the Fund's expected or potential returns, risk characteristics, or suitability for investment purposes.",
         "Mawer EAFE Large Cap Fund": "The performance of the <b>Mawer EAFE Large Cap Fund</b> is presented using a blended approach for reference purposes only. From May 2020 onwards, actual strategy returns are used. For the period from 2015 to April 2020, the MSCI EAFE NR index was used as a proxy to illustrate historical performance. This approach serves to provide a more comprehensive historical context when calculating portfolio returns in conjunction with other strategies. The MSCI EAFE NR index is a widely recognized market benchmark designed to measure the equity market performance of developed markets outside of North America. However, the index does not account for fees, expenses, taxes, or other costs associated with investing in the fund. It should be noted that the fund's holdings, sector allocations, and risk profile may differ significantly from those of the index, leading to substantial variances in performance across different time periods. Past performance is neither a guarantee nor a reliable indicator of future results. Investors are advised not to rely solely upon the benchmark index to gauge the fund's expected or potential returns, risk characteristics, or suitability for investment purposes."
     }
-    
+
     relevant_disclaimers = [disclaimers[strategy] for strategy in strategy_weights.keys() if strategy in disclaimers]
     return "\n".join(relevant_disclaimers)
 
@@ -1271,7 +1282,7 @@ def get_disclaimer(strategy_weights):
 def save_choose_myself_data(request):
     try:
         data = request.POST
-        
+
         # Clear existing data for the user
         ChooseMyselfData.objects.filter(user=request.user).delete()
 
@@ -1356,7 +1367,7 @@ def save_choose_myself_data(request):
         ChooseMyselfData.objects.create(
             user=request.user,
             account_owner='IPS Changes',
-            account_type='IPS Changes', 
+            account_type='IPS Changes',
             amount=0,
             strategy=ips_changes,
             version_number=version_number,
@@ -1367,7 +1378,7 @@ def save_choose_myself_data(request):
     except Exception as e:
         logger.error(f"Error in save_choose_myself_data: {e}", exc_info=True)
         return JsonResponse({'status': 'failed', 'message': str(e)}, status=400)
-    
+
 @login_required
 @require_POST
 def save_let_pm_choose_data(request):
@@ -1473,17 +1484,17 @@ def generate_ips_details_for_pm(request):
         # Fetch all the data needed for the IPS PCQ
         responses = QuestionnaireResponse.objects.filter(user=request.user)
         total_score = sum(response.score for response in responses if response.question in [
-            'annual_income', 'income_savings', 'spending_needs', 
-            'risk_tolerance', 'investment_loss', 'recovery_period', 
+            'annual_income', 'income_savings', 'spending_needs',
+            'risk_tolerance', 'investment_loss', 'recovery_period',
             'reaction_to_drop', 'high_risk_opportunities', 'volatility',
             'investment_knowledge', 'time_horizon', 'liquidity_needs'
         ])
-        
+
         form_data = {response.question: response.answer for response in responses}
         form_data['investment_goals'] = [response.answer for response in responses.filter(question='investment_goals')]
 
         form = QuestionnaireForm(data=form_data)
-        
+
         if form.is_valid():
             portfolio_recommendation = form.get_portfolio_recommendation()
             asset_mix = form.get_asset_mix(portfolio_recommendation)
@@ -1518,7 +1529,7 @@ def generate_ips_details_for_pm(request):
             'asset_mix': asset_mix,
             'risk_rating': risk_rating,
             'portfolio_definition': portfolio_definition,
-            'advisor_name': form.cleaned_data.get('advisor_name', 'N/A'), 
+            'advisor_name': form.cleaned_data.get('advisor_name', 'N/A'),
             'annual_withdrawal': form.cleaned_data.get('annual_withdrawal', 'N/A'),
             'let_pm_choose_data': let_pm_choose_data,
             'desired_trailer_rate': desired_trailer_rate.amount if desired_trailer_rate else 'N/A',
@@ -1631,7 +1642,7 @@ def choose_myself_risk_analytics(request):
         # Placeholder correlation matrix data
         asset_classes = ['Cash', 'Fixed Income', 'Canadian Equity', 'U.S. Equity', 'International Equity', 'Alternatives']
         correlation_headers = asset_classes
-        
+
         # Create a placeholder correlation matrix
         for asset_class in asset_classes:
             row_values = ['TBD' for _ in asset_classes]
@@ -1665,11 +1676,11 @@ def generate_account_summary(request):
     try:
         # Force matplotlib to use Agg backend for this request
         matplotlib.use('Agg', force=True)
-        
+
         data = json.loads(request.body)
         accounts = []
         total_amount = 0
-        
+
         # Process accounts data
         for account in data.get('accounts', []):
             accounts.append({
@@ -1691,7 +1702,7 @@ def generate_account_summary(request):
             user=request.user,
             question='client_identifier'
         ).first()
-        
+
         version_number = ChooseMyselfData.objects.filter(
             user=request.user
         ).exclude(
@@ -1717,13 +1728,13 @@ def generate_account_summary(request):
             'logo_url': logo_url,
             'version_number': version_number.version_number if version_number else "1"
         }
-        
+
         # Render HTML
         html_string = render_to_string('account_summary.html', context)
-        
+
         # Create response
         response = HttpResponse(content_type='application/pdf')
-        
+
         # Set filename
         current_date = datetime.now().strftime("%Y-%m-%d")
         client_name = client_household_name.answer if client_household_name else "Unknown"
@@ -1734,7 +1745,7 @@ def generate_account_summary(request):
 
         # Get the absolute path to the static directory
         static_dir = settings.STATIC_ROOT if not settings.DEBUG else settings.STATICFILES_DIRS[0]
-        
+
         # Create CSS to handle static files properly
         css = CSS(string='''
             @font-face {
@@ -1751,9 +1762,9 @@ def generate_account_summary(request):
         html = HTML(string=html_string, base_url=base_url)
         result = html.write_pdf(stylesheets=[css])
         response.write(result)
-        
+
         return response
-        
+
     except Exception as e:
         logger.error(f"Account summary generation error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
@@ -1769,27 +1780,27 @@ def generate_pie_chart(data, request):
     try:
         # Create figure with explicit DPI setting
         plt.figure(figsize=(10, 8), dpi=300)
-        
+
         # Create pie chart with explicit font settings
-        plt.pie(data['sizes'], 
+        plt.pie(data['sizes'],
                 labels=data['labels'],
                 autopct='%1.1f%%')
         plt.axis('equal')
-        
+
         # Use media directory within static for production
         if not settings.DEBUG:
             target_dir = os.path.join(settings.STATIC_ROOT, 'images')  # Store in static/images instead of media
         else:
             target_dir = os.path.join(settings.MEDIA_ROOT)
-        
+
         # Ensure directory exists
         os.makedirs(target_dir, exist_ok=True)
-        
+
         # Generate timestamp for unique filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         pie_chart_filename = f'pie_chart_{timestamp}.png'
         pie_chart_path = os.path.join(target_dir, pie_chart_filename)
-        
+
         # Save with explicit settings
         plt.savefig(pie_chart_path,
                    bbox_inches='tight',
@@ -1799,16 +1810,16 @@ def generate_pie_chart(data, request):
                    transparent=False,
                    facecolor='white',
                    edgecolor='none')
-        
+
         # Clean up old files
         cleanup_old_pie_charts(target_dir)
-        
+
         # Return the correct URL - always use absolute paths
         if settings.DEBUG:
             return f"{settings.MEDIA_URL}{pie_chart_filename}?v={timestamp}"
         else:
             return f"/static/images/{pie_chart_filename}?v={timestamp}"  # Use /static/images instead of /media
-            
+
     except Exception as e:
         logger.error(f"Pie chart generation error: {str(e)}")
         raise

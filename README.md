@@ -47,22 +47,22 @@ For detailed deployment instructions, please refer to [AZURE_DEPLOYMENT.md](AZUR
 1. **Setup Virtual Environment**
    ```bash
    python -m venv env
-   source env/bin/activate  # On Windows: env\Scripts\activate
+   source ./env/bin/activate  # On Windows: env\Scripts\activate
    ```
 
 2. **Install Dependencies**
    ```bash
-   pip install -r requirements.txt
+   pip install -r ./app/requirements.txt
    ```
 
 3. **Run Migrations**
    ```bash
-   python manage.py migrate
+   python ./app/manage.py migrate
    ```
 
 4. **Start Development Server**
    ```bash
-   python manage.py runserver
+   python ./app/manage.py runserver
    ```
 
 ## Database Configuration
