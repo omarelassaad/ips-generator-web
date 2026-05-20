@@ -1134,10 +1134,12 @@ def choose_myself_view(request):
             questionnaire_risk_profile = q_form.get_risk_profile()
             portfolio_rec = q_form.get_portfolio_recommendation()
             questionnaire_portfolio = portfolio_rec.replace(' (RI)', '')
-    effective_portfolio = portfolio_override or questionnaire_portfolio
-
     portfolio_override_choices = list(QuestionnaireForm.ASSET_MIX.keys())
     portfolio_allocations_json = json.dumps(QuestionnaireForm.ASSET_MIX)
+
+    # Compute single selected values for template — avoids |default: filter edge cases
+    selected_risk_profile = risk_profile_override if risk_profile_override else questionnaire_risk_profile
+    selected_portfolio = portfolio_override if portfolio_override else questionnaire_portfolio
 
     return render(request, 'choose_myself.html', {
         'form': form,
@@ -1146,7 +1148,8 @@ def choose_myself_view(request):
         'portfolio_override': portfolio_override,
         'questionnaire_risk_profile': questionnaire_risk_profile,
         'questionnaire_portfolio': questionnaire_portfolio,
-        'effective_portfolio': effective_portfolio,
+        'selected_risk_profile': selected_risk_profile,
+        'selected_portfolio': selected_portfolio,
         'portfolio_override_choices': portfolio_override_choices,
         'portfolio_allocations_json': portfolio_allocations_json,
     })

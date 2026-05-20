@@ -125,24 +125,20 @@
       <div style="flex:1; min-width:200px;">
         <label for="risk-profile-override">Risk Profile</label>
         <select id="risk-profile-override" name="risk_profile_override">
-          {% with effective_rp=risk_profile_override|default:questionnaire_risk_profile %}
-          <option value="Low Risk" {% if effective_rp == "Low Risk" %}selected{% endif %}>Low Risk{% if questionnaire_risk_profile == "Low Risk" %} (Questionnaire){% endif %}</option>
-          <option value="Low Medium Risk" {% if effective_rp == "Low Medium Risk" %}selected{% endif %}>Low Medium Risk{% if questionnaire_risk_profile == "Low Medium Risk" %} (Questionnaire){% endif %}</option>
-          <option value="Medium Risk" {% if effective_rp == "Medium Risk" %}selected{% endif %}>Medium Risk{% if questionnaire_risk_profile == "Medium Risk" %} (Questionnaire){% endif %}</option>
-          <option value="Medium High Risk" {% if effective_rp == "Medium High Risk" %}selected{% endif %}>Medium High Risk{% if questionnaire_risk_profile == "Medium High Risk" %} (Questionnaire){% endif %}</option>
-          <option value="High Risk" {% if effective_rp == "High Risk" %}selected{% endif %}>High Risk{% if questionnaire_risk_profile == "High Risk" %} (Questionnaire){% endif %}</option>
-          <option value="Very High Risk" {% if effective_rp == "Very High Risk" %}selected{% endif %}>Very High Risk{% if questionnaire_risk_profile == "Very High Risk" %} (Questionnaire){% endif %}</option>
-          {% endwith %}
+          <option value="Low Risk" {% if selected_risk_profile == "Low Risk" %}selected{% endif %}>Low Risk{% if questionnaire_risk_profile == "Low Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Low Medium Risk" {% if selected_risk_profile == "Low Medium Risk" %}selected{% endif %}>Low Medium Risk{% if questionnaire_risk_profile == "Low Medium Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Medium Risk" {% if selected_risk_profile == "Medium Risk" %}selected{% endif %}>Medium Risk{% if questionnaire_risk_profile == "Medium Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Medium High Risk" {% if selected_risk_profile == "Medium High Risk" %}selected{% endif %}>Medium High Risk{% if questionnaire_risk_profile == "Medium High Risk" %} (Questionnaire){% endif %}</option>
+          <option value="High Risk" {% if selected_risk_profile == "High Risk" %}selected{% endif %}>High Risk{% if questionnaire_risk_profile == "High Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Very High Risk" {% if selected_risk_profile == "Very High Risk" %}selected{% endif %}>Very High Risk{% if questionnaire_risk_profile == "Very High Risk" %} (Questionnaire){% endif %}</option>
         </select>
       </div>
       <div style="flex:1; min-width:200px;">
         <label for="portfolio-override">Recommended Portfolio</label>
         <select id="portfolio-override" name="portfolio_override">
-          {% with effective_po=portfolio_override|default:questionnaire_portfolio %}
           {% for po in portfolio_override_choices %}
-          <option value="{{ po }}" {% if effective_po == po %}selected{% endif %}>{{ po }}{% if questionnaire_portfolio == po %} (Questionnaire){% endif %}</option>
+          <option value="{{ po }}" {% if selected_portfolio == po %}selected{% endif %}>{{ po }}{% if questionnaire_portfolio == po %} (Questionnaire){% endif %}</option>
           {% endfor %}
-          {% endwith %}
         </select>
       </div>
     </div>
@@ -308,6 +304,22 @@
 
 
 <script>
+const portfolioAllocations = {{ portfolio_allocations_json|safe }};
+
+function applyPortfolioTargetWeights(portfolioName) {
+  const alloc = portfolioAllocations[portfolioName];
+  if (!alloc) return;
+  document.querySelector('.target-weight-cash').textContent = alloc['Cash'] || '0%';
+  document.querySelector('.target-weight-fixed-income').textContent = alloc['Fixed Income'] || '0%';
+  document.querySelector('.target-weight-canadian-equity').textContent = alloc['Canadian Equity'] || '0%';
+  document.querySelector('.target-weight-us-equity').textContent = alloc['U.S. Equity'] || '0%';
+  document.querySelector('.target-weight-international-equity').textContent = alloc['International Equity'] || '0%';
+  document.querySelector('.target-weight-alternatives').textContent = alloc['Alternatives'] || '0%';
+  document.querySelector('.target-weight-total').innerHTML = '<strong>100%</strong>';
+  const title = document.getElementById('portfolio-recommendation-title');
+  if (title) title.textContent = `${portfolioName} Target vs. Proposed Asset Mix`;
+}
+
 const strategyData = {
   "Beutel Goodman Conservative Balanced": {"Cash": 1.50, "Fixed Income": 68.50, "Canadian Equity": 22.50, "U.S. Equity": 7.50, "International Equity": 0.00, "Alternatives": 0.00},
   "Beutel Goodman Structured Bond": {"Cash": 5.00, "Fixed Income": 95.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
@@ -944,11 +956,16 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fs-no').addEventListener('change', saveChooseMyselfData);
   document.getElementById('fs-yes').addEventListener('change', saveChooseMyselfData);
 
-  // Save overrides when changed
+  // Save overrides when changed; portfolio change also updates target weights
   const riskOverrideSel = document.getElementById('risk-profile-override');
   const portOverrideSel = document.getElementById('portfolio-override');
   if (riskOverrideSel) riskOverrideSel.addEventListener('change', saveChooseMyselfData);
-  if (portOverrideSel) portOverrideSel.addEventListener('change', saveChooseMyselfData);
+  if (portOverrideSel) {
+    portOverrideSel.addEventListener('change', function() {
+      applyPortfolioTargetWeights(this.value);
+      saveChooseMyselfData();
+    });
+  }
 
   // Attach event listeners to existing rows
   const tableBody = document.querySelector('#account-strategy-table tbody');
