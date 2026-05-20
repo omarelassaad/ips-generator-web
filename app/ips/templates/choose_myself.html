@@ -24,6 +24,46 @@
       <label for="version-number" style="display: block;">Please enter the version number: (this is the version referenced in the footer of the IPS) </label>
       <input type="text" id="version-number" style="width: 100%; margin-top: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" inputmode="numeric" pattern="\d*" />
     </div>
+<!-- Risk Assessment Override Panel -->
+<div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:16px; margin-bottom:20px;">
+  <h5 style="margin-bottom:12px; font-size:14px; font-weight:600;">Risk Assessment Results</h5>
+  <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <div style="font-size:12px; color:#6c757d; margin-bottom:4px;">Questionnaire Risk Profile</div>
+      <div style="font-weight:600;">{{ questionnaire_risk_profile|default:"N/A" }}</div>
+    </div>
+    <div>
+      <div style="font-size:12px; color:#6c757d; margin-bottom:4px;">Questionnaire Portfolio</div>
+      <div style="font-weight:600;">{{ questionnaire_portfolio|default:"N/A" }}</div>
+    </div>
+    <div>
+      <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px;">Override Risk Profile</label>
+      <select id="risk-profile-override" name="risk_profile_override" style="min-width:200px; padding:5px; border:1px solid #ced4da; border-radius:4px;">
+        <option value="">-- No Override --</option>
+        <option value="Conservative" {% if risk_profile_override == "Conservative" %}selected{% endif %}>Conservative</option>
+        <option value="Moderate Conservative" {% if risk_profile_override == "Moderate Conservative" %}selected{% endif %}>Moderate Conservative</option>
+        <option value="Moderate" {% if risk_profile_override == "Moderate" %}selected{% endif %}>Moderate</option>
+        <option value="Moderate Aggressive" {% if risk_profile_override == "Moderate Aggressive" %}selected{% endif %}>Moderate Aggressive</option>
+        <option value="Aggressive" {% if risk_profile_override == "Aggressive" %}selected{% endif %}>Aggressive</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px;">Override Portfolio</label>
+      <select id="portfolio-override" name="portfolio_override" style="min-width:220px; padding:5px; border:1px solid #ced4da; border-radius:4px;">
+        <option value="">-- No Override --</option>
+        {% for po in portfolio_override_choices %}
+        <option value="{{ po }}" {% if portfolio_override == po %}selected{% endif %}>{{ po }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% if risk_profile_override or portfolio_override %}
+  <div style="margin-top:10px; padding:8px 12px; background:#fff3cd; border:1px solid #ffc107; border-radius:4px; font-size:12px;">
+    ⚠️ Override active — IPS will use overridden values instead of questionnaire results.
+  </div>
+  {% endif %}
+</div>
+
 <div id="account-strategy-table" class="container mt-3">
     <div class="table-responsive">
         <table class="table table-bordered">
@@ -859,7 +899,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('create-ips-form').addEventListener('submit', function(e) {
     const versionNumber = document.getElementById('version-number').value;
     const attachFactSheets = document.querySelector('input[name="attach_fact_sheets"]:checked')?.value || 'No';
-    
+
     let hiddenInput = document.createElement('input');
     hiddenInput.type = 'hidden';
     hiddenInput.name = 'version_number';
@@ -871,6 +911,21 @@ document.addEventListener('DOMContentLoaded', function() {
     hiddenInput.name = 'attach_fact_sheets';
     hiddenInput.value = attachFactSheets;
     this.appendChild(hiddenInput);
+
+    const riskOverrideSel2 = document.getElementById('risk-profile-override');
+    const portOverrideSel2 = document.getElementById('portfolio-override');
+
+    let riskInput = document.createElement('input');
+    riskInput.type = 'hidden';
+    riskInput.name = 'risk_profile_override';
+    riskInput.value = riskOverrideSel2 ? riskOverrideSel2.value : '';
+    this.appendChild(riskInput);
+
+    let portInput = document.createElement('input');
+    portInput.type = 'hidden';
+    portInput.name = 'portfolio_override';
+    portInput.value = portOverrideSel2 ? portOverrideSel2.value : '';
+    this.appendChild(portInput);
   });
   
   document.getElementById('cmh-no').addEventListener('change', function() {
@@ -898,6 +953,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('fs-no').addEventListener('change', saveChooseMyselfData);
   document.getElementById('fs-yes').addEventListener('change', saveChooseMyselfData);
+
+  // Save overrides when changed
+  const riskOverrideSel = document.getElementById('risk-profile-override');
+  const portOverrideSel = document.getElementById('portfolio-override');
+  if (riskOverrideSel) riskOverrideSel.addEventListener('change', saveChooseMyselfData);
+  if (portOverrideSel) portOverrideSel.addEventListener('change', saveChooseMyselfData);
 
   // Attach event listeners to existing rows
   const tableBody = document.querySelector('#account-strategy-table tbody');
@@ -1073,6 +1134,11 @@ function saveChooseMyselfData() {
     formData.append('cms_fee', clientManagedHoldingsEnabled ? document.getElementById('cms_fee').value : '0');
     formData.append('attach_fact_sheets', document.querySelector('input[name="attach_fact_sheets"]:checked')?.value || 'No');
     formData.append('client_managed_holdings_enabled', clientManagedHoldingsEnabled);
+
+    const riskOverrideEl = document.getElementById('risk-profile-override');
+    const portOverrideEl = document.getElementById('portfolio-override');
+    formData.append('risk_profile_override', riskOverrideEl ? riskOverrideEl.value : '');
+    formData.append('portfolio_override', portOverrideEl ? portOverrideEl.value : '');
 
     fetch("{% url 'save_choose_myself_data' %}", {
         method: "POST",

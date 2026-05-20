@@ -442,7 +442,7 @@ def generate_ips(request):
     try:
         # Retrieve account details from the database
         account_details = list(ChooseMyselfData.objects.filter(user=request.user).exclude(
-            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes']  # Added 'IPS Changes'
+            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes', 'Risk Profile Override', 'Portfolio Override']
         ).values(
             'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
         ))
@@ -707,6 +707,31 @@ def generate_ips(request):
 
 
             risk_rating = form.get_risk_profile()
+
+            # Read overrides from POST first to avoid Azure SQL write lag
+            _risk_profile_override = request.POST.get('risk_profile_override') or None
+            _portfolio_override = request.POST.get('portfolio_override') or None
+
+            # Fall back to DB if not in POST
+            if not _risk_profile_override:
+                _rp_rec = ChooseMyselfData.objects.filter(
+                    user=request.user, account_owner='Risk Profile Override').first()
+                _risk_profile_override = _rp_rec.strategy if _rp_rec and _rp_rec.strategy else None
+
+            if not _portfolio_override:
+                _po_rec = ChooseMyselfData.objects.filter(
+                    user=request.user, account_owner='Portfolio Override').first()
+                _portfolio_override = _po_rec.strategy if _po_rec and _po_rec.strategy else None
+
+            if _risk_profile_override:
+                risk_rating = _risk_profile_override
+
+            if _portfolio_override:
+                try:
+                    asset_mix = QuestionnaireForm.ASSET_MIX.get(_portfolio_override, asset_mix)
+                except Exception:
+                    pass
+
             risk_rating_paragraph = RISK_PROFILES.get(risk_rating, "")
 
             asset_mix_descriptions = {
@@ -718,7 +743,7 @@ def generate_ips(request):
                 "Maximum Growth": "The Maximum Growth asset mix is almost entirely made up of equities or high-risk assets, providing maximum exposure to market fluctuations. This mix targets the highest possible returns through investments in high-growth equities and other volatile assets. It is suitable for investors looking for the highest growth potential and willing to accept very high risk."
             }
 
-            asset_mix_title = portfolio_recommendation.replace(" (RI)", "")
+            asset_mix_title = _portfolio_override or portfolio_recommendation.replace(" (RI)", "")
             recommended_asset_mix_paragraph = asset_mix_descriptions.get(asset_mix_title, "N/A")
 
             # Define the investment goals paragraphs
@@ -1089,9 +1114,41 @@ def choose_myself_view(request):
     # Combine account owner and account type
     combined_accounts = [f"{owner} - {atype}" for owner, atype in zip(account_owners, account_types)]
 
+    # Load saved overrides for risk profile and portfolio
+    rp_rec = ChooseMyselfData.objects.filter(user=request.user, account_owner='Risk Profile Override').first()
+    po_rec = ChooseMyselfData.objects.filter(user=request.user, account_owner='Portfolio Override').first()
+    risk_profile_override = rp_rec.strategy if rp_rec else ''
+    portfolio_override = po_rec.strategy if po_rec else ''
+
+    # Load questionnaire results to show current recommendations
+    questionnaire_qs = QuestionnaireResponse.objects.filter(user=request.user).order_by('-created_at').first()
+    questionnaire_risk_profile = ''
+    questionnaire_portfolio = ''
+    effective_portfolio = ''
+    if questionnaire_qs:
+        responses = QuestionnaireResponse.objects.filter(user=request.user)
+        q_data = {response.question: response.answer for response in responses}
+        q_data['investment_goals'] = [response.answer for response in responses.filter(question='investment_goals')]
+        q_form = QuestionnaireForm(q_data)
+        if q_form.is_valid():
+            questionnaire_risk_profile = q_form.get_risk_profile()
+            portfolio_rec = q_form.get_portfolio_recommendation()
+            questionnaire_portfolio = portfolio_rec.replace(' (RI)', '')
+    effective_portfolio = portfolio_override or questionnaire_portfolio
+
+    portfolio_override_choices = list(QuestionnaireForm.ASSET_MIX.keys())
+    portfolio_allocations_json = json.dumps(QuestionnaireForm.ASSET_MIX)
+
     return render(request, 'choose_myself.html', {
         'form': form,
         'combined_accounts': combined_accounts,
+        'risk_profile_override': risk_profile_override,
+        'portfolio_override': portfolio_override,
+        'questionnaire_risk_profile': questionnaire_risk_profile,
+        'questionnaire_portfolio': questionnaire_portfolio,
+        'effective_portfolio': effective_portfolio,
+        'portfolio_override_choices': portfolio_override_choices,
+        'portfolio_allocations_json': portfolio_allocations_json,
     })
 
 @login_required
@@ -1370,6 +1427,24 @@ def save_choose_myself_data(request):
             account_type='IPS Changes',
             amount=0,
             strategy=ips_changes,
+            version_number=version_number,
+        )
+
+        # Save risk profile and portfolio overrides
+        ChooseMyselfData.objects.create(
+            user=request.user,
+            account_owner='Risk Profile Override',
+            account_type='Override',
+            amount=0,
+            strategy=data.get('risk_profile_override', ''),
+            version_number=version_number,
+        )
+        ChooseMyselfData.objects.create(
+            user=request.user,
+            account_owner='Portfolio Override',
+            account_type='Override',
+            amount=0,
+            strategy=data.get('portfolio_override', ''),
             version_number=version_number,
         )
 
