@@ -1,31 +1,84 @@
 """
-Safety-net migration: creates the 6 admin tables with raw T-SQL IF NOT EXISTS.
+Comprehensive raw-T-SQL migration — the single source of truth for all ips tables.
 
-If migration 0002 was already marked applied in django_migrations (from a
-previous broken run where the RunPython raised LookupError but the transaction
-record somehow survived), this migration will still create any missing tables.
+start.sh runs:  manage.py migrate ips 0003 --fake
+                manage.py migrate
+so 0001-0003 are always faked and this migration does the real work.
+Every statement is idempotent (IF OBJECT_ID / IF NOT EXISTS), so re-running is safe.
 """
 from django.db import migrations
 
 
-def ensure_admin_tables(apps, schema_editor):
-    """Idempotent raw-SQL table creation for all 6 admin models."""
+def ensure_all_ips_tables(apps, schema_editor):
     from django.db import connection
 
     statements = [
-        # ── FeeCategory ──────────────────────────────────────────────────────
+
+        # ── ips_returnsupload ─────────────────────────────────────────────────
+        # Create the table if it doesn't exist at all
+        """
+        IF OBJECT_ID(N'ips_returnsupload', N'U') IS NULL
+        BEGIN
+            CREATE TABLE ips_returnsupload (
+                id             bigint        IDENTITY(1,1) NOT NULL,
+                file           nvarchar(100)               NOT NULL DEFAULT '',
+                as_of_date     nvarchar(50)                NOT NULL DEFAULT '',
+                calendar_years nvarchar(200)               NOT NULL
+                    DEFAULT '2025,2024,2023,2022,2021,2020,2019',
+                uploaded_at    datetime2                   NOT NULL
+                    DEFAULT GETUTCDATE(),
+                is_active      bit                         NOT NULL DEFAULT 1,
+                CONSTRAINT PK_ips_returnsupload PRIMARY KEY (id)
+            )
+        END
+        """,
+        # Backfill missing columns if the table pre-existed
+        """
+        IF OBJECT_ID(N'ips_returnsupload', N'U') IS NOT NULL
+           AND NOT EXISTS (
+               SELECT 1 FROM sys.columns
+               WHERE object_id = OBJECT_ID('ips_returnsupload')
+                 AND name = 'as_of_date'
+           )
+            ALTER TABLE ips_returnsupload
+                ADD as_of_date nvarchar(50) NOT NULL DEFAULT ''
+        """,
+        """
+        IF OBJECT_ID(N'ips_returnsupload', N'U') IS NOT NULL
+           AND NOT EXISTS (
+               SELECT 1 FROM sys.columns
+               WHERE object_id = OBJECT_ID('ips_returnsupload')
+                 AND name = 'calendar_years'
+           )
+            ALTER TABLE ips_returnsupload
+                ADD calendar_years nvarchar(200) NOT NULL
+                    DEFAULT '2025,2024,2023,2022,2021,2020,2019'
+        """,
+        """
+        IF OBJECT_ID(N'ips_returnsupload', N'U') IS NOT NULL
+           AND NOT EXISTS (
+               SELECT 1 FROM sys.columns
+               WHERE object_id = OBJECT_ID('ips_returnsupload')
+                 AND name = 'is_active'
+           )
+            ALTER TABLE ips_returnsupload
+                ADD is_active bit NOT NULL DEFAULT 1
+        """,
+
+        # ── ips_feecategory ───────────────────────────────────────────────────
         """
         IF OBJECT_ID(N'ips_feecategory', N'U') IS NULL
         BEGIN
             CREATE TABLE ips_feecategory (
-                id       bigint IDENTITY(1,1) NOT NULL,
-                name     nvarchar(100)        NOT NULL,
+                id   bigint        IDENTITY(1,1) NOT NULL,
+                name nvarchar(100)               NOT NULL,
                 CONSTRAINT PK_ips_feecategory      PRIMARY KEY (id),
                 CONSTRAINT UQ_ips_feecategory_name UNIQUE      (name)
             )
         END
         """,
-        # ── FeeTier ──────────────────────────────────────────────────────────
+
+        # ── ips_feetier ───────────────────────────────────────────────────────
         """
         IF OBJECT_ID(N'ips_feetier', N'U') IS NULL
         BEGIN
@@ -54,7 +107,8 @@ def ensure_admin_tables(apps, schema_editor):
         )
             CREATE INDEX ips_feetier_category_id_idx ON ips_feetier (category_id)
         """,
-        # ── Mandate ──────────────────────────────────────────────────────────
+
+        # ── ips_mandate ───────────────────────────────────────────────────────
         """
         IF OBJECT_ID(N'ips_mandate', N'U') IS NULL
         BEGIN
@@ -88,7 +142,8 @@ def ensure_admin_tables(apps, schema_editor):
         )
             CREATE INDEX ips_mandate_fee_category_id_idx ON ips_mandate (fee_category_id)
         """,
-        # ── PortfolioProfile ─────────────────────────────────────────────────
+
+        # ── ips_portfolioprofile ──────────────────────────────────────────────
         """
         IF OBJECT_ID(N'ips_portfolioprofile', N'U') IS NULL
         BEGIN
@@ -114,7 +169,8 @@ def ensure_admin_tables(apps, schema_editor):
             )
         END
         """,
-        # ── IPSCopyBlock ─────────────────────────────────────────────────────
+
+        # ── ips_ipscopyblock ──────────────────────────────────────────────────
         """
         IF OBJECT_ID(N'ips_ipscopyblock', N'U') IS NULL
         BEGIN
@@ -138,7 +194,8 @@ def ensure_admin_tables(apps, schema_editor):
         )
             CREATE INDEX ips_ipscopyblock_category_idx ON ips_ipscopyblock (category)
         """,
-        # ── SiteDocument ─────────────────────────────────────────────────────
+
+        # ── ips_sitedocument ──────────────────────────────────────────────────
         """
         IF OBJECT_ID(N'ips_sitedocument', N'U') IS NULL
         BEGIN
@@ -147,7 +204,7 @@ def ensure_admin_tables(apps, schema_editor):
                 [key]       nvarchar(50)               NOT NULL,
                 label       nvarchar(100)              NOT NULL DEFAULT '',
                 file        nvarchar(100)                       NULL,
-                uploaded_at datetime2                  NOT NULL,
+                uploaded_at datetime2                  NOT NULL DEFAULT GETUTCDATE(),
                 CONSTRAINT PK_ips_sitedocument     PRIMARY KEY (id),
                 CONSTRAINT UQ_ips_sitedocument_key UNIQUE ([key])
             )
@@ -167,5 +224,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(ensure_admin_tables, migrations.RunPython.noop),
+        migrations.RunPython(ensure_all_ips_tables, migrations.RunPython.noop),
     ]
