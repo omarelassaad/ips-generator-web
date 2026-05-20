@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-trixie
 
 # set work directory
 WORKDIR /usr/src/app
@@ -16,7 +16,7 @@ RUN apt-get update \
   && update-ca-certificates \ 
   && curl -fsSL --insecure https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsoft.asc \ 
   && gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg /tmp/microsoft.asc \ 
-  && echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \ 
+  && echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/13/prod trixie main" > /etc/apt/sources.list.d/mssql-release.list \ 
   && echo 'Acquire::https::Verify-Peer "false";' >> /etc/apt/apt.conf.d/99insecure \ 
   && echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure \ 
   && apt-get update \ 
