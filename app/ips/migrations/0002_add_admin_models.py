@@ -8,8 +8,11 @@ def create_tables_if_needed(apps, schema_editor):
     NOTE: We use raw cursor SQL instead of schema_editor.create_model() because
     RunPython inside SeparateDatabaseAndState receives from_state.apps (before
     state_operations are applied), so apps.get_model() would raise LookupError.
+    On SQLite this is a no-op — migration 0004 handles table creation there.
     """
     from django.db import connection
+    if connection.vendor == 'sqlite':
+        return  # SQLite: 0004 handles table creation via schema_editor.create_model()
     statements = [
         # ── FeeCategory ──────────────────────────────────────────────────────
         """
