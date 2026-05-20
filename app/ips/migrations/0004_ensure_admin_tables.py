@@ -13,16 +13,88 @@ def ensure_all_ips_tables(apps, schema_editor):
     from django.db import connection
 
     # ── SQLite path (local testing) ───────────────────────────────────────────
+    # Use plain CREATE TABLE IF NOT EXISTS — simpler and more reliable than
+    # schema_editor.create_model() with historical model objects.
     if connection.vendor == 'sqlite':
-        existing = set(connection.introspection.table_names())
-        for model_name in [
-            'ReturnsUpload',
-            'FeeCategory', 'FeeTier', 'Mandate',
-            'PortfolioProfile', 'IPSCopyBlock', 'SiteDocument',
-        ]:
-            model = apps.get_model('ips', model_name)
-            if model._meta.db_table not in existing:
-                schema_editor.create_model(model)
+        sqlite_statements = [
+            """CREATE TABLE IF NOT EXISTS "ips_returnsupload" (
+                "id"             integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "file"           varchar(100) NOT NULL DEFAULT '',
+                "as_of_date"     varchar(50)  NOT NULL DEFAULT '',
+                "calendar_years" varchar(200) NOT NULL DEFAULT '2025,2024,2023,2022,2021,2020,2019',
+                "uploaded_at"    datetime     NOT NULL,
+                "is_active"      bool         NOT NULL DEFAULT 1
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_feecategory" (
+                "id"   integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "name" varchar(100) NOT NULL UNIQUE
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_feetier" (
+                "id"          integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "category_id" integer      NOT NULL REFERENCES "ips_feecategory" ("id"),
+                "lower"       bigint       NOT NULL,
+                "upper"       bigint       NOT NULL,
+                "max_fee"     decimal      NOT NULL,
+                "max_trailer" decimal      NOT NULL,
+                "min_fee"     decimal      NOT NULL,
+                "min_trailer" decimal      NOT NULL,
+                "admin_fee"   decimal      NOT NULL,
+                "order"       smallint     NOT NULL DEFAULT 0
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_mandate" (
+                "id"                   integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "name"                 varchar(200) NOT NULL UNIQUE,
+                "fee_category_id"      integer      NOT NULL REFERENCES "ips_feecategory" ("id"),
+                "cash"                 decimal      NOT NULL DEFAULT 0,
+                "fixed_income"         decimal      NOT NULL DEFAULT 0,
+                "canadian_equity"      decimal      NOT NULL DEFAULT 0,
+                "us_equity"            decimal      NOT NULL DEFAULT 0,
+                "international_equity" decimal      NOT NULL DEFAULT 0,
+                "alternatives"         decimal      NOT NULL DEFAULT 0,
+                "fact_sheet"           varchar(100),
+                "disclaimer"           text         NOT NULL DEFAULT '',
+                "minimum_investment"   integer      NOT NULL DEFAULT 0,
+                "is_active"            bool         NOT NULL DEFAULT 1,
+                "display_order"        smallint     NOT NULL DEFAULT 0
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_portfolioprofile" (
+                "id"                       integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "name"                     varchar(100) NOT NULL UNIQUE,
+                "description"              text         NOT NULL DEFAULT '',
+                "order"                    smallint     NOT NULL DEFAULT 0,
+                "cash"                     decimal      NOT NULL DEFAULT 0,
+                "fixed_income"             decimal      NOT NULL DEFAULT 0,
+                "canadian_equity"          decimal      NOT NULL DEFAULT 0,
+                "us_equity"               decimal      NOT NULL DEFAULT 0,
+                "international_equity"     decimal      NOT NULL DEFAULT 0,
+                "alternatives"             decimal      NOT NULL DEFAULT 0,
+                "liq_cash"                 decimal      NOT NULL DEFAULT 0,
+                "liq_fixed_income"         decimal      NOT NULL DEFAULT 0,
+                "liq_canadian_equity"      decimal      NOT NULL DEFAULT 0,
+                "liq_us_equity"            decimal      NOT NULL DEFAULT 0,
+                "liq_international_equity" decimal      NOT NULL DEFAULT 0,
+                "liq_alternatives"         decimal      NOT NULL DEFAULT 0
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_ipscopyblock" (
+                "id"       integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "category" varchar(50)  NOT NULL,
+                "key"      varchar(100) NOT NULL,
+                "title"    varchar(200) NOT NULL DEFAULT '',
+                "body"     text         NOT NULL DEFAULT '',
+                "order"    smallint     NOT NULL DEFAULT 0,
+                UNIQUE ("category", "key")
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_sitedocument" (
+                "id"          integer     NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "key"         varchar(50) NOT NULL UNIQUE,
+                "label"       varchar(100) NOT NULL DEFAULT '',
+                "file"        varchar(100),
+                "uploaded_at" datetime    NOT NULL
+            )""",
+        ]
+        with connection.cursor() as cursor:
+            for sql in sqlite_statements:
+                cursor.execute(sql)
         return
 
     # ── SQL Server / Azure SQL path ───────────────────────────────────────────
