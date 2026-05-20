@@ -119,13 +119,13 @@
   </div>
 
   <!-- Risk Assessment Results & Override -->
-  <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:18px; margin: 20px 0;">
-    <h5 style="margin-bottom:16px; font-size:15px; font-weight:600;">Risk Assessment Results</h5>
-    <div style="display:flex; gap:40px; flex-wrap:wrap; align-items:flex-end;">
-      <div>
-        <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Risk Profile</label>
-        <select id="risk-profile-override" name="risk_profile_override" style="min-width:210px; padding:6px 10px; border:1px solid #ced4da; border-radius:4px; font-size:14px;">
-{% with effective_rp=risk_profile_override|default:questionnaire_risk_profile %}
+  <div style="margin: 20px 0;">
+    <h3 style="text-align:left;">Risk Assessment Results</h3>
+    <div style="display:flex; gap:40px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:200px;">
+        <label for="risk-profile-override">Risk Profile</label>
+        <select id="risk-profile-override" name="risk_profile_override">
+          {% with effective_rp=risk_profile_override|default:questionnaire_risk_profile %}
           <option value="Low Risk" {% if effective_rp == "Low Risk" %}selected{% endif %}>Low Risk{% if questionnaire_risk_profile == "Low Risk" %} (Questionnaire){% endif %}</option>
           <option value="Low Medium Risk" {% if effective_rp == "Low Medium Risk" %}selected{% endif %}>Low Medium Risk{% if questionnaire_risk_profile == "Low Medium Risk" %} (Questionnaire){% endif %}</option>
           <option value="Medium Risk" {% if effective_rp == "Medium Risk" %}selected{% endif %}>Medium Risk{% if questionnaire_risk_profile == "Medium Risk" %} (Questionnaire){% endif %}</option>
@@ -135,9 +135,9 @@
           {% endwith %}
         </select>
       </div>
-      <div>
-        <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Recommended Portfolio</label>
-        <select id="portfolio-override" name="portfolio_override" style="min-width:230px; padding:6px 10px; border:1px solid #ced4da; border-radius:4px; font-size:14px;">
+      <div style="flex:1; min-width:200px;">
+        <label for="portfolio-override">Recommended Portfolio</label>
+        <select id="portfolio-override" name="portfolio_override">
           {% with effective_po=portfolio_override|default:questionnaire_portfolio %}
           {% for po in portfolio_override_choices %}
           <option value="{{ po }}" {% if effective_po == po %}selected{% endif %}>{{ po }}{% if questionnaire_portfolio == po %} (Questionnaire){% endif %}</option>
