@@ -64,36 +64,43 @@
             <td class="percentage-column" style="text-align: center;">0%</td>
             <td class="strategy-column">
               <select name="strategy" style="width: 100%; text-align: left;">
-                <option value="Aviso 5-year Bond Ladder (Income)">Aviso 5-year Bond Ladder (Income)</option>
-                <option value="Aviso 5-year Bond Ladder (Taxable)">Aviso 5-year Bond Ladder (Taxable)</option>
-                <option value="Beutel Goodman Conservative Balanced">Beutel Goodman Conservative Balanced</option>
-                <option value="Beutel Goodman Structured Bond">Beutel Goodman Structured Bond</option>
-                <option value="Brookfield Private Real Assets Fund">Brookfield Private Real Assets Fund</option>
-                <option value="Dixon Mitchell Total Equity">Dixon Mitchell Total Equity</option>
-                <option value="NEI Global Total Return Bond Fund">NEI Global Total Return Bond Fund</option>
-                <option value="GMO US Equity">GMO US Equity</option>
-                <option value="Guardian Balanced Fund">Guardian Balanced Fund</option>
-                <option value="Guardian Canadian Balanced (RI)">Guardian Canadian Balanced (RI)</option>
-                <option value="Guardian Canadian Bond (RI)">Guardian Canadian Bond (RI)</option>
-                <option value="Guardian Canadian Bond Fund">Guardian Canadian Bond Fund</option>
-                <option value="Guardian Canadian Equity (RI)">Guardian Canadian Equity (RI)</option>
-                <option value="Guardian Canadian Equity Fund">Guardian Canadian Equity Fund</option>
-                <option value="Guardian Canadian Equity Income">Guardian Canadian Equity Income</option>
-                <option value="Guardian Global Dividend">Guardian Global Dividend</option>
-                <option value="Guardian Global Dividend Fund">Guardian Global Dividend Fund</option>
-                <option value="Guardian Global Equity (RI)">Guardian Global Equity (RI)</option>
-                <option value="Hamilton Lane Global Private Assets Fund">Hamilton Lane Global Private Assets Fund</option>
-                <option value="Jarislowsky Fraser North American Balanced">Jarislowsky Fraser North American Balanced</option>
-                <option value="Jarislowsky Fraser North American Equity">Jarislowsky Fraser North American Equity</option>
-                <option value="Lazard Global Equity">Lazard Global Equity</option>
-                <option value="Lazard International Equity">Lazard International Equity</option>
-                <option value="Mawer EAFE Large Cap Fund">Mawer EAFE Large Cap Fund</option>
-                <option value="Manning & Napier US Equity (RI)">Manning & Napier US Equity (RI)</option>
-                <option value="QV Dividend Income (RI)">QV Dividend Income (RI)</option>
-                <option value="QV Small Cap (RI)">QV Small Cap (RI)</option>
-                <option value="Scheer Rowlett Canadian Equity">Scheer Rowlett Canadian Equity</option>
-                <option value="Sagard Private Credit Fund">Sagard Private Credit Fund</option>
-                <option value="Sionna Canadian Equity">Sionna Canadian Equity</option>
+                {% if mandates %}
+                  {% for mandate in mandates %}
+                  <option value="{{ mandate.name }}">{{ mandate.name }}</option>
+                  {% endfor %}
+                {% else %}
+                  {# fallback hardcoded options remain if no mandates in DB #}
+                  <option value="Aviso 5-year Bond Ladder (Income)">Aviso 5-year Bond Ladder (Income)</option>
+                  <option value="Aviso 5-year Bond Ladder (Taxable)">Aviso 5-year Bond Ladder (Taxable)</option>
+                  <option value="Beutel Goodman Conservative Balanced">Beutel Goodman Conservative Balanced</option>
+                  <option value="Beutel Goodman Structured Bond">Beutel Goodman Structured Bond</option>
+                  <option value="Brookfield Private Real Assets Fund">Brookfield Private Real Assets Fund</option>
+                  <option value="Dixon Mitchell Total Equity">Dixon Mitchell Total Equity</option>
+                  <option value="NEI Global Total Return Bond Fund">NEI Global Total Return Bond Fund</option>
+                  <option value="GMO US Equity">GMO US Equity</option>
+                  <option value="Guardian Balanced Fund">Guardian Balanced Fund</option>
+                  <option value="Guardian Canadian Balanced (RI)">Guardian Canadian Balanced (RI)</option>
+                  <option value="Guardian Canadian Bond (RI)">Guardian Canadian Bond (RI)</option>
+                  <option value="Guardian Canadian Bond Fund">Guardian Canadian Bond Fund</option>
+                  <option value="Guardian Canadian Equity (RI)">Guardian Canadian Equity (RI)</option>
+                  <option value="Guardian Canadian Equity Fund">Guardian Canadian Equity Fund</option>
+                  <option value="Guardian Canadian Equity Income">Guardian Canadian Equity Income</option>
+                  <option value="Guardian Global Dividend">Guardian Global Dividend</option>
+                  <option value="Guardian Global Dividend Fund">Guardian Global Dividend Fund</option>
+                  <option value="Guardian Global Equity (RI)">Guardian Global Equity (RI)</option>
+                  <option value="Hamilton Lane Global Private Assets Fund">Hamilton Lane Global Private Assets Fund</option>
+                  <option value="Jarislowsky Fraser North American Balanced">Jarislowsky Fraser North American Balanced</option>
+                  <option value="Jarislowsky Fraser North American Equity">Jarislowsky Fraser North American Equity</option>
+                  <option value="Lazard Global Equity">Lazard Global Equity</option>
+                  <option value="Lazard International Equity">Lazard International Equity</option>
+                  <option value="Mawer EAFE Large Cap Fund">Mawer EAFE Large Cap Fund</option>
+                  <option value="Manning &amp; Napier US Equity (RI)">Manning &amp; Napier US Equity (RI)</option>
+                  <option value="QV Dividend Income (RI)">QV Dividend Income (RI)</option>
+                  <option value="QV Small Cap (RI)">QV Small Cap (RI)</option>
+                  <option value="Scheer Rowlett Canadian Equity">Scheer Rowlett Canadian Equity</option>
+                  <option value="Sagard Private Credit Fund">Sagard Private Credit Fund</option>
+                  <option value="Sionna Canadian Equity">Sionna Canadian Equity</option>
+                {% endif %}
               </select>
             </td>
             <td><button type="button" class="remove-row-button" onclick="removeRow(this)">Remove</button></td>

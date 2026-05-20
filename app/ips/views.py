@@ -14,7 +14,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
-from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload
+from django.core.cache import cache
+from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload, Mandate, FeeCategory, FeeTier, PortfolioProfile, IPSCopyBlock, SiteDocument
 from .forms import QuestionnaireForm, ChooseMyselfForm, LetPmChooseForm, RegisterForm
 from django.template.loader import render_to_string
 from django.templatetags.static import static
@@ -140,117 +141,95 @@ try:
 except Exception:
     performance_data = None
 
-strategyData = {
-    "Aviso 5-year Bond Ladder (Income)": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Aviso 5-year Bond Ladder (Taxable)": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Beutel Goodman Conservative Balanced": {"Cash": 1.50, "Fixed Income": 68.50, "Canadian Equity": 22.50, "U.S. Equity": 7.50, "International Equity": 0.00, "Alternatives": 0.00},
-  "Beutel Goodman Structured Bond": {"Cash": 5.00, "Fixed Income": 95.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Brookfield Private Real Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
-  "Dixon Mitchell Total Equity": {"Cash": 2.00, "Fixed Income": 0.00, "Canadian Equity": 64.00, "U.S. Equity": 34.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "NEI Global Total Return Bond Fund": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "GMO US Equity": {"Cash": 2.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 98.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Guardian Balanced Fund": {"Cash": 2.00, "Fixed Income": 38.00, "Canadian Equity": 35.00, "U.S. Equity": 20.00, "International Equity": 5.00, "Alternatives": 0.00},
-  "Guardian Canadian Balanced (RI)": {"Cash": 2.50, "Fixed Income": 39.00, "Canadian Equity": 58.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Guardian Canadian Bond (RI)": {"Cash": 2.50, "Fixed Income": 97.50, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Guardian Canadian Bond Fund": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Guardian Canadian Equity (RI)": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Guardian Canadian Equity Fund": {"Cash": 2.00, "Fixed Income": 0.00, "Canadian Equity": 98.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Guardian Canadian Equity Income": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Guardian Global Dividend": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
-  "Guardian Global Dividend Fund": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
-  "Guardian Global Equity (RI)": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
-  "Hamilton Lane Global Private Assets Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
-  "Jarislowsky Fraser North American Balanced": {"Cash": 10.00, "Fixed Income": 45.00, "Canadian Equity": 20.00, "U.S. Equity": 25.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Jarislowsky Fraser North American Equity": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 45.00, "U.S. Equity": 45.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Lazard Global Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 3.50, "U.S. Equity": 62.00, "International Equity": 32.00, "Alternatives": 0.00},
-  "Lazard International Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 97.50, "Alternatives": 0.00},
-  "Mawer EAFE Large Cap Fund": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 97.50, "Alternatives": 0.00},
-  "Manning & Napier US Equity (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 95.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "QV Dividend Income (RI)": {"Cash": 10.00, "Fixed Income": 0.00, "Canadian Equity": 90.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "QV Small Cap (RI)": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 95.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Scheer Rowlett Canadian Equity": {"Cash": 3.00, "Fixed Income": 0.00, "Canadian Equity": 97.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-  "Sagard Private Credit Fund": {"Cash": 5.00, "Fixed Income": 0.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 95.00},
-  "Sionna Canadian Equity": {"Cash": 2.50, "Fixed Income": 0.00, "Canadian Equity": 97.50, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},
-}
+
+# ---------------------------------------------------------------------------
+# DB-backed data helpers (replace all hardcoded dicts)
+# ---------------------------------------------------------------------------
+
+def get_strategy_data():
+    """Return {mandate_name: asset_allocation_dict} from the DB, cached."""
+    cached = cache.get('strategy_data')
+    if cached is not None:
+        return cached
+    data = {m.name: m.asset_allocation() for m in Mandate.objects.filter(is_active=True)}
+    cache.set('strategy_data', data, 60 * 60 * 24)
+    return data
 
 
-fee_data = {
-    "Equity & Balanced": [
-        {"lower": 0, "upper": 250000, "maxFee": 2.25, "maxTrailer": 1.25, "minFee": 1.75, "minTrailer": 0.75, "adminFee": 1.00},
-        {"lower": 250001, "upper": 500000, "maxFee": 2.15, "maxTrailer": 1.15, "minFee": 1.65, "minTrailer": 0.65, "adminFee": 1.00},
-        {"lower": 500001, "upper": 1000000, "maxFee": 1.95, "maxTrailer": 1.20, "minFee": 1.65, "minTrailer": 0.90, "adminFee": 0.75},
-        {"lower": 1000001, "upper": 2000000, "maxFee": 1.90, "maxTrailer": 1.20, "minFee": 1.50, "minTrailer": 0.80, "adminFee": 0.70},
-        {"lower": 2000001, "upper": 5000000, "maxFee": 1.85, "maxTrailer": 1.20, "minFee": 1.20, "minTrailer": 0.55, "adminFee": 0.65},
-        {"lower": 5000001, "upper": 999999999, "maxFee": 1.85, "maxTrailer": 1.20, "minFee": 1.20, "minTrailer": 0.55, "adminFee": 0.65}
-    ],
-    "Structured Bond": [
-        {"lower": 0, "upper": 250000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.30, "adminFee": 0.45},
-        {"lower": 250001, "upper": 500000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.30, "adminFee": 0.45},
-        {"lower": 500001, "upper": 1000000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.30, "adminFee": 0.45},
-        {"lower": 1000001, "upper": 2000000, "maxFee": 0.90, "maxTrailer": 0.50, "minFee": 0.75, "minTrailer": 0.35, "adminFee": 0.40},
-        {"lower": 2000001, "upper": 5000000, "maxFee": 0.85, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.30, "adminFee": 0.35},
-        {"lower": 5000001, "upper": 999999999, "maxFee": 0.85, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.30, "adminFee": 0.35}
-    ],
-    "Fixed Income": [
-        {"lower": 0, "upper": 250000, "maxFee": 1.10, "maxTrailer": 0.50, "minFee": 0.90, "minTrailer": 0.30, "adminFee": 0.60},
-        {"lower": 250001, "upper": 500000, "maxFee": 1.10, "maxTrailer": 0.50, "minFee": 0.90, "minTrailer": 0.30, "adminFee": 0.60},
-        {"lower": 500001, "upper": 1000000, "maxFee": 1.10, "maxTrailer": 0.50, "minFee": 0.90, "minTrailer": 0.30, "adminFee": 0.60},
-        {"lower": 1000001, "upper": 2000000, "maxFee": 1.10, "maxTrailer": 0.60, "minFee": 0.90, "minTrailer": 0.40, "adminFee": 0.50},
-        {"lower": 2000001, "upper": 5000000, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.20, "adminFee": 0.45},
-        {"lower": 5000001, "upper": 999999999, "maxFee": 0.95, "maxTrailer": 0.50, "minFee": 0.65, "minTrailer": 0.20, "adminFee": 0.45}
-    ],
-    "Bond Ladder": [
-        {"lower": 0, "upper": 1000000, "maxFee": 0.90, "maxTrailer": 0.60, "minFee": 0.60, "minTrailer": 0.30, "adminFee": 0.30},
-        {"lower": 1000001, "upper": 2000000, "maxFee": 0.85, "maxTrailer": 0.60, "minFee": 0.55, "minTrailer": 0.30, "adminFee": 0.25},
-        {"lower": 2000001, "upper": 999999999, "maxFee": 0.80, "maxTrailer": 0.60, "minFee": 0.50, "minTrailer": 0.30, "adminFee": 0.20}
-    ],
-    "Conservative Balanced": [
-        {"lower": 0, "upper": 250000, "maxFee": 1.75, "maxTrailer": 0.95, "minFee": 1.40, "minTrailer": 0.60, "adminFee": 0.80},
-        {"lower": 250001, "upper": 500000, "maxFee": 1.75, "maxTrailer": 0.95, "minFee": 1.40, "minTrailer": 0.60, "adminFee": 0.80},
-        {"lower": 500001, "upper": 1000000, "maxFee": 1.75, "maxTrailer": 0.95, "minFee": 1.40, "minTrailer": 0.60, "adminFee": 0.80},
-        {"lower": 1000001, "upper": 2000000, "maxFee": 1.65, "maxTrailer": 0.90, "minFee": 1.35, "minTrailer": 0.60, "adminFee": 0.75},
-        {"lower": 2000001, "upper": 5000000, "maxFee": 1.50, "maxTrailer": 0.80, "minFee": 1.25, "minTrailer": 0.55, "adminFee": 0.70},
-        {"lower": 5000001, "upper": 999999999, "maxFee": 1.50, "maxTrailer": 0.80, "minFee": 1.25, "minTrailer": 0.55, "adminFee": 0.70}
-    ],
-    "Alternative": [
-        {"lower": 0, "upper": 999999, "maxFee": 1.00, "maxTrailer": 0.50, "minFee": 0.80, "minTrailer": 0.30, "adminFee": 0.50},
-        {"lower": 1000000, "upper": 999999999, "maxFee": 0.90, "maxTrailer": 0.45, "minFee": 0.75, "minTrailer": 0.30, "adminFee": 0.45}
-    ]
-}
+def get_fee_data():
+    """Return {category_name: [tier_dict, ...]} from the DB, cached."""
+    cached = cache.get('fee_data')
+    if cached is not None:
+        return cached
+    data = {}
+    for tier in FeeTier.objects.select_related('category').order_by('category__name', 'order', 'lower'):
+        data.setdefault(tier.category.name, []).append(tier.to_dict())
+    cache.set('fee_data', data, 60 * 60 * 24)
+    return data
 
 
-strategy_fee_category = {
-    "Beutel Goodman Conservative Balanced": "Conservative Balanced",
-    "Beutel Goodman Structured Bond": "Structured Bond",
-    "Dixon Mitchell Total Equity": "Equity & Balanced",
-    "NEI Global Total Return Bond Fund": "Fixed Income",
-    "GMO US Equity": "Equity & Balanced",
-    "Guardian Balanced Fund": "Equity & Balanced",
-    "Guardian Canadian Bond Fund": "Fixed Income",
-    "Guardian Canadian Balanced (RI)": "Equity & Balanced",
-    "Guardian Canadian Equity (RI)": "Equity & Balanced",
-    "Guardian Canadian Equity Fund": "Equity & Balanced",
-    "Guardian Canadian Equity Income": "Equity & Balanced",
-    "Guardian Canadian Bond (RI)": "Fixed Income",
-    "Guardian Global Dividend": "Equity & Balanced",
-    "Guardian Global Dividend Fund": "Equity & Balanced",
-    "Guardian Global Equity (RI)": "Equity & Balanced",
-    "Jarislowsky Fraser North American Balanced": "Equity & Balanced",
-    "Jarislowsky Fraser North American Equity": "Equity & Balanced",
-    "Lazard Global Equity": "Equity & Balanced",
-    "Lazard International Equity": "Equity & Balanced",
-    "Mawer EAFE Large Cap Fund": "Equity & Balanced",
-    "Manning & Napier US Equity (RI)": "Equity & Balanced",
-    "QV Dividend Income (RI)": "Equity & Balanced",
-    "QV Small Cap (RI)": "Equity & Balanced",
-    "Scheer Rowlett Canadian Equity": "Equity & Balanced",
-    "Aviso 5-year Bond Ladder (Taxable)": "Bond Ladder",
-    "Aviso 5-year Bond Ladder (Income)": "Bond Ladder",
-    "Sionna Canadian Equity": "Equity & Balanced",
-    "Brookfield Private Real Assets Fund": "Alternative",
-    "Hamilton Lane Global Private Assets Fund": "Alternative",
-    "Sagard Private Credit Fund": "Alternative"
-  }
+def get_strategy_fee_map():
+    """Return {mandate_name: fee_category_name} from the DB, cached."""
+    cached = cache.get('strategy_fee_map')
+    if cached is not None:
+        return cached
+    data = {
+        m.name: m.fee_category.name
+        for m in Mandate.objects.filter(is_active=True).select_related('fee_category')
+    }
+    cache.set('strategy_fee_map', data, 60 * 60 * 24)
+    return data
+
+
+def get_mandates():
+    """Return {mandate_name: Mandate} ordered by display_order, cached."""
+    cached = cache.get('mandates')
+    if cached is not None:
+        return cached
+    data = {m.name: m for m in Mandate.objects.filter(is_active=True).order_by('display_order', 'name')}
+    cache.set('mandates', data, 60 * 60 * 24)
+    return data
+
+
+def get_copy_blocks(category):
+    """Return {key: (title, body)} for a given IPSCopyBlock category, cached."""
+    cache_key = f'copy_blocks_{category}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    data = {b.key: (b.title, b.body) for b in IPSCopyBlock.objects.filter(category=category).order_by('order', 'key')}
+    cache.set(cache_key, data, 60 * 60 * 24)
+    return data
+
+
+def get_site_document_path(key, fallback_static_path):
+    """Return the filesystem path for a SiteDocument, falling back to the static file."""
+    try:
+        doc = SiteDocument.objects.get(key=key)
+        if doc.file and os.path.exists(doc.file.path):
+            return doc.file.path
+    except SiteDocument.DoesNotExist:
+        pass
+    return fallback_static_path
+
+
+def get_portfolio_profiles():
+    """Return {name: PortfolioProfile} ordered by display order, cached."""
+    cached = cache.get('portfolio_profiles')
+    if cached is not None:
+        return cached
+    data = {p.name: p for p in PortfolioProfile.objects.all().order_by('order')}
+    cache.set('portfolio_profiles', data, 60 * 60 * 24)
+    return data
+
+
+def get_calendar_years():
+    """Return list of calendar year strings from the active ReturnsUpload."""
+    try:
+        upload = ReturnsUpload.objects.filter(is_active=True).latest('uploaded_at')
+        return [y.strip() for y in upload.calendar_years.split(',') if y.strip()]
+    except Exception:
+        return ['2025', '2024', '2023', '2022', '2021', '2020', '2019']
 
 @require_POST
 def calculate_fees(request):
@@ -271,7 +250,7 @@ def calculate_fees(request):
                     'error': 'Invalid amount: amounts must be non-negative numbers'
                 }, status=400)
 
-            category = strategy_fee_category.get(strategy, "Equity & Balanced")
+            category = get_strategy_fee_map().get(strategy, "Equity & Balanced")
             if category not in fee_categories:
                 fee_categories[category] = 0
             fee_categories[category] += amount
@@ -289,7 +268,7 @@ def calculate_fees(request):
         overall_admin_fee = 0
 
         for category, category_assets in fee_categories.items():
-            fee_ranges = fee_data.get(category, [])
+            fee_ranges = get_fee_data().get(category, [])
             fee_range_found = False
             for range_data in fee_ranges:
                 if range_data["lower"] <= category_assets <= range_data["upper"]:
@@ -327,7 +306,7 @@ def calculate_fees(request):
 def calculate_fees_for_ips(strategies, amounts):
     fee_categories = {}
     for strategy, amount in zip(strategies, amounts):
-        category = strategy_fee_category.get(strategy, "Equity & Balanced")
+        category = get_strategy_fee_map().get(strategy, "Equity & Balanced")
         if category not in fee_categories:
             fee_categories[category] = 0
         fee_categories[category] += amount
@@ -341,7 +320,7 @@ def calculate_fees_for_ips(strategies, amounts):
     category_fees = {}
 
     for category, category_assets in fee_categories.items():
-        fee_ranges = fee_data.get(category, [])
+        fee_ranges = get_fee_data().get(category, [])
         category_min_fee = float('inf')
         category_max_fee = 0
         for range_data in fee_ranges:
@@ -559,7 +538,7 @@ def generate_ips(request):
             if item['strategy'] == 'Client-directed Holdings ':
                 item['fee'] = f"{float(cms_fee.amount):.2f}%" if cms_fee else "N/A"
             else:
-                category = strategy_fee_category.get(item['strategy'], "Equity & Balanced")
+                category = get_strategy_fee_map().get(item['strategy'], "Equity & Balanced")
                 category_fee_data = fee_data['category_fees'].get(category, {})
                 category_min_fee = category_fee_data.get('min_fee', 0)
                 category_max_fee = category_fee_data.get('max_fee', 0)
@@ -603,8 +582,9 @@ def generate_ips(request):
             amount = float(detail['amount'])
             detail['weight'] = (amount / total_amount * 100) if total_amount else 0
             strategy = detail['strategy']
-            if strategy in strategyData:
-                strategy_weights = strategyData[strategy]
+            _strategy_data = get_strategy_data()
+            if strategy in _strategy_data:
+                strategy_weights = _strategy_data[strategy]
                 for asset_class, weight in strategy_weights.items():
                     normalized_asset_class = normalize_asset_class_name(asset_class)
                     if normalized_asset_class in proposed_weights:
@@ -1006,9 +986,15 @@ def generate_ips(request):
             'creation_date': creation_date,
         }
 
-        # Paths to the existing PDF files
-        first_page_pdf_path = os.path.join(settings.BASE_DIR, 'static', 'intro', 'IPS_First_Page.pdf')
-        last_page_pdf_path = os.path.join(settings.BASE_DIR, 'static', 'intro', 'IPS_Last_Page.pdf')
+        # Paths to the existing PDF files (DB-uploaded takes priority over static fallback)
+        first_page_pdf_path = get_site_document_path(
+            'ips_first_page',
+            os.path.join(settings.BASE_DIR, 'static', 'intro', 'IPS_First_Page.pdf'),
+        )
+        last_page_pdf_path = get_site_document_path(
+            'ips_last_page',
+            os.path.join(settings.BASE_DIR, 'static', 'intro', 'IPS_Last_Page.pdf'),
+        )
 
         # Check if the PDF files exist
         if not os.path.exists(first_page_pdf_path):
@@ -1061,7 +1047,12 @@ def generate_ips(request):
                     logger.warning(f"Rejected unsafe strategy name: {strategy}")
                     continue
                 if safe_strategy not in added_fact_sheets:
-                    fact_sheet_path = os.path.join(fact_sheets_dir, f"{safe_strategy}.pdf")
+                    # Try DB-uploaded fact sheet first, fall back to static file
+                    mandate_obj = get_mandates().get(strategy)
+                    if mandate_obj and mandate_obj.fact_sheet and os.path.exists(mandate_obj.fact_sheet.path):
+                        fact_sheet_path = mandate_obj.fact_sheet.path
+                    else:
+                        fact_sheet_path = os.path.join(fact_sheets_dir, f"{safe_strategy}.pdf")
 
                     logger.info(f"Checking for fact sheet: {fact_sheet_path}")
                     if os.path.exists(fact_sheet_path):
@@ -1169,6 +1160,8 @@ def choose_myself_view(request):
     selected_risk_profile = risk_profile_override if risk_profile_override else questionnaire_risk_profile
     selected_portfolio = portfolio_override if portfolio_override else questionnaire_portfolio
 
+    mandates = list(Mandate.objects.filter(is_active=True).order_by('display_order', 'name'))
+
     return render(request, 'choose_myself.html', {
         'form': form,
         'combined_accounts': combined_accounts,
@@ -1180,6 +1173,7 @@ def choose_myself_view(request):
         'selected_portfolio': selected_portfolio,
         'portfolio_override_choices': portfolio_override_choices,
         'portfolio_allocations_json': portfolio_allocations_json,
+        'mandates': mandates,
     })
 
 @login_required

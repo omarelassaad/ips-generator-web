@@ -3,6 +3,219 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+
+# ---------------------------------------------------------------------------
+# Fee Schedule
+# ---------------------------------------------------------------------------
+
+class FeeCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "Fee Category"
+        verbose_name_plural = "Fee Categories"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class FeeTier(models.Model):
+    category    = models.ForeignKey(FeeCategory, on_delete=models.CASCADE, related_name='tiers')
+    lower       = models.BigIntegerField(help_text="Lower AUM bound (inclusive, $)")
+    upper       = models.BigIntegerField(help_text="Upper AUM bound (inclusive, $). Use 999999999 for no limit.")
+    max_fee     = models.DecimalField(max_digits=5, decimal_places=2, help_text="Max total fee %")
+    max_trailer = models.DecimalField(max_digits=5, decimal_places=2, help_text="Max trailer fee %")
+    min_fee     = models.DecimalField(max_digits=5, decimal_places=2, help_text="Min total fee %")
+    min_trailer = models.DecimalField(max_digits=5, decimal_places=2, help_text="Min trailer fee %")
+    admin_fee   = models.DecimalField(max_digits=5, decimal_places=2, help_text="Admin/platform fee %")
+    order       = models.PositiveSmallIntegerField(default=0, help_text="Display order within category")
+
+    class Meta:
+        verbose_name = "Fee Tier"
+        verbose_name_plural = "Fee Tiers"
+        ordering = ['category', 'order', 'lower']
+
+    def __str__(self):
+        return f"{self.category.name}: ${self.lower:,} – ${self.upper:,}"
+
+    def to_dict(self):
+        return {
+            "lower":      self.lower,
+            "upper":      self.upper,
+            "maxFee":     float(self.max_fee),
+            "maxTrailer": float(self.max_trailer),
+            "minFee":     float(self.min_fee),
+            "minTrailer": float(self.min_trailer),
+            "adminFee":   float(self.admin_fee),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Mandates (investment strategies)
+# ---------------------------------------------------------------------------
+
+class Mandate(models.Model):
+    name                 = models.CharField(max_length=200, unique=True)
+    fee_category         = models.ForeignKey(FeeCategory, on_delete=models.PROTECT, related_name='mandates')
+    # Asset allocations
+    cash                 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    fixed_income         = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    canadian_equity      = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    us_equity            = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    international_equity = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    alternatives         = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    # Supporting documents
+    fact_sheet           = models.FileField(upload_to='fact_sheets/', blank=True, null=True,
+                                            help_text="PDF fact sheet for this mandate")
+    disclaimer           = models.TextField(blank=True, default='',
+                                            help_text="Strategy-specific disclaimer (HTML allowed). Leave blank if none.")
+    # Minimum investment
+    minimum_investment   = models.PositiveIntegerField(default=0,
+                                                       help_text="Minimum investment amount ($) enforced in the IPS form")
+    # Status
+    is_active            = models.BooleanField(default=True,
+                                               help_text="Inactive mandates are hidden from the IPS form")
+    display_order        = models.PositiveSmallIntegerField(default=0,
+                                                            help_text="Order in dropdown lists (lower = first)")
+
+    class Meta:
+        verbose_name = "Mandate"
+        verbose_name_plural = "Mandates"
+        ordering = ['display_order', 'name']
+
+    def __str__(self):
+        return self.name
+
+    def asset_allocation(self):
+        """Return allocation as a dict matching the legacy strategyData format."""
+        return {
+            "Cash":                 float(self.cash),
+            "Fixed Income":         float(self.fixed_income),
+            "Canadian Equity":      float(self.canadian_equity),
+            "U.S. Equity":          float(self.us_equity),
+            "International Equity": float(self.international_equity),
+            "Alternatives":         float(self.alternatives),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Portfolio profiles (asset mix allocations + descriptions)
+# ---------------------------------------------------------------------------
+
+class PortfolioProfile(models.Model):
+    name        = models.CharField(max_length=100, unique=True,
+                                   help_text="e.g. Income, Balanced, Growth")
+    description = models.TextField(help_text="Narrative shown in the IPS document")
+    order       = models.PositiveSmallIntegerField(default=0, help_text="Display order (lower = first)")
+
+    # Standard allocations (when liquidity needs are Not Important)
+    cash                 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    fixed_income         = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    canadian_equity      = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    us_equity            = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    international_equity = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    alternatives         = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    # Liquidity-adjusted allocations (when liquidity needs are Very / Somewhat Important)
+    liq_cash                 = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+                                                   verbose_name="Cash (liquidity-adjusted)")
+    liq_fixed_income         = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+                                                   verbose_name="Fixed Income (liquidity-adjusted)")
+    liq_canadian_equity      = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+                                                   verbose_name="Canadian Equity (liquidity-adjusted)")
+    liq_us_equity            = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+                                                   verbose_name="U.S. Equity (liquidity-adjusted)")
+    liq_international_equity = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+                                                   verbose_name="Intl Equity (liquidity-adjusted)")
+    liq_alternatives         = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+                                                   verbose_name="Alternatives (liquidity-adjusted)")
+
+    class Meta:
+        verbose_name = "Portfolio Profile"
+        verbose_name_plural = "Portfolio Profiles"
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+    def to_form_dict(self, liquidity_adjusted=False):
+        """Return allocation dict in the format expected by views/templates."""
+        if liquidity_adjusted:
+            return {
+                'Cash': f'{self.liq_cash:.0f}%',
+                'Fixed Income': f'{self.liq_fixed_income:.0f}%',
+                'Canadian Equity': f'{self.liq_canadian_equity:.0f}%',
+                'U.S. Equity': f'{self.liq_us_equity:.0f}%',
+                'International Equity': f'{self.liq_international_equity:.0f}%',
+                'Alternatives': f'{self.liq_alternatives:.0f}%',
+                'Total': '100%',
+            }
+        return {
+            'Cash': f'{self.cash:.0f}%',
+            'Fixed Income': f'{self.fixed_income:.0f}%',
+            'Canadian Equity': f'{self.canadian_equity:.0f}%',
+            'U.S. Equity': f'{self.us_equity:.0f}%',
+            'International Equity': f'{self.international_equity:.0f}%',
+            'Alternatives': f'{self.alternatives:.0f}%',
+            'Total': '100%',
+        }
+
+
+# ---------------------------------------------------------------------------
+# IPS narrative copy blocks
+# ---------------------------------------------------------------------------
+
+class IPSCopyBlock(models.Model):
+    CATEGORY_CHOICES = [
+        ('risk_profile',              'Risk Profile'),
+        ('investment_goal',           'Investment Goal'),
+        ('time_horizon',              'Time Horizon'),
+        ('liquidity_needs',           'Liquidity Needs'),
+        ('responsible_investing',     'Responsible Investing'),
+        ('risk_analytics_disclaimer', 'Risk Analytics Disclaimer'),
+    ]
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, db_index=True)
+    key      = models.CharField(max_length=100,
+                                help_text="Lookup key used in code (e.g. 'Low Risk', 'Retirement', '1', 'RI')")
+    title    = models.CharField(max_length=200, blank=True, default='',
+                                help_text="Short label shown as a heading (leave blank if not needed)")
+    body     = models.TextField(help_text="Main paragraph text. HTML tags allowed.")
+    order    = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "IPS Copy Block"
+        verbose_name_plural = "IPS Copy Blocks"
+        unique_together = [['category', 'key']]
+        ordering = ['category', 'order', 'key']
+
+    def __str__(self):
+        return f"[{self.get_category_display()}] {self.key}"
+
+
+# ---------------------------------------------------------------------------
+# Site-wide documents (cover page, back page)
+# ---------------------------------------------------------------------------
+
+class SiteDocument(models.Model):
+    KEY_CHOICES = [
+        ('ips_first_page', 'IPS Cover Page'),
+        ('ips_last_page',  'IPS Back Page'),
+    ]
+    key         = models.CharField(max_length=50, unique=True, choices=KEY_CHOICES)
+    label       = models.CharField(max_length=100)
+    file        = models.FileField(upload_to='site_documents/', blank=True, null=True,
+                                   help_text="Upload a PDF to replace the current file")
+    uploaded_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site Document"
+        verbose_name_plural = "Site Documents"
+
+    def __str__(self):
+        return self.label
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     is_approved = models.BooleanField(default=False)
