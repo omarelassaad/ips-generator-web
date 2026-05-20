@@ -1,0 +1,2 @@
+# Always use LF for shell scripts — prevents CRLF breaking bash on Linux containers
+*.sh text eol=lf

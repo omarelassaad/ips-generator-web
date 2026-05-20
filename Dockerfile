@@ -45,7 +45,8 @@ COPY ./app .
 COPY .env /usr/src/app/ips_generator/.env
 
 RUN chown app /usr/src/app/ -R
-RUN chmod +x /usr/src/app/start.sh
+# Strip Windows CRLF line endings in case Git checked out with autocrlf
+RUN sed -i 's/\r//' /usr/src/app/start.sh && chmod +x /usr/src/app/start.sh
 
 # Run as user
 USER app
