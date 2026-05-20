@@ -17,6 +17,38 @@ def ensure_all_ips_tables(apps, schema_editor):
     # schema_editor.create_model() with historical model objects.
     if connection.vendor == 'sqlite':
         sqlite_statements = [
+            # ── core pre-existing models (no prior Django migration) ──────────
+            """CREATE TABLE IF NOT EXISTS "ips_profile" (
+                "id"          integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "user_id"     integer NOT NULL UNIQUE REFERENCES "auth_user" ("id"),
+                "is_approved" bool    NOT NULL DEFAULT 0
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_questionnaireresponse" (
+                "id"       integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "user_id"  integer      NOT NULL REFERENCES "auth_user" ("id"),
+                "question" varchar(255) NOT NULL DEFAULT 'Unknown',
+                "answer"   varchar(255),
+                "score"    integer      NOT NULL
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_choosemyselfdata" (
+                "id"             integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "user_id"        integer      NOT NULL REFERENCES "auth_user" ("id"),
+                "account_owner"  varchar(255) NOT NULL,
+                "account_type"   varchar(50)  NOT NULL,
+                "amount"         decimal      NOT NULL,
+                "strategy"       text         NOT NULL,
+                "version_number" varchar(50)  NOT NULL DEFAULT 'N/A'
+            )""",
+            """CREATE TABLE IF NOT EXISTS "ips_letpmchoosedata" (
+                "id"              integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "user_id"         integer      NOT NULL REFERENCES "auth_user" ("id"),
+                "account_owner"   varchar(255) NOT NULL,
+                "account_type"    varchar(255) NOT NULL,
+                "amount"          decimal      NOT NULL,
+                "timestamp"       datetime     NOT NULL,
+                "additional_info" varchar(255)
+            )""",
+            # ── returns upload ────────────────────────────────────────────────
             """CREATE TABLE IF NOT EXISTS "ips_returnsupload" (
                 "id"             integer NOT NULL PRIMARY KEY AUTOINCREMENT,
                 "file"           varchar(100) NOT NULL DEFAULT '',
