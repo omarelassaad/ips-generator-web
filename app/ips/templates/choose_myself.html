@@ -125,22 +125,24 @@
       <div>
         <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Risk Profile</label>
         <select id="risk-profile-override" name="risk_profile_override" style="min-width:210px; padding:6px 10px; border:1px solid #ced4da; border-radius:4px; font-size:14px;">
-          {% with qrp=questionnaire_risk_profile %}
-          <option value="Low Risk" {% if risk_profile_override == "Low Risk" or not risk_profile_override and qrp == "Low Risk" %}selected{% endif %}>Low Risk</option>
-          <option value="Low Medium Risk" {% if risk_profile_override == "Low Medium Risk" or not risk_profile_override and qrp == "Low Medium Risk" %}selected{% endif %}>Low Medium Risk</option>
-          <option value="Medium Risk" {% if risk_profile_override == "Medium Risk" or not risk_profile_override and qrp == "Medium Risk" %}selected{% endif %}>Medium Risk</option>
-          <option value="Medium High Risk" {% if risk_profile_override == "Medium High Risk" or not risk_profile_override and qrp == "Medium High Risk" %}selected{% endif %}>Medium High Risk</option>
-          <option value="High Risk" {% if risk_profile_override == "High Risk" or not risk_profile_override and qrp == "High Risk" %}selected{% endif %}>High Risk</option>
-          <option value="Very High Risk" {% if risk_profile_override == "Very High Risk" or not risk_profile_override and qrp == "Very High Risk" %}selected{% endif %}>Very High Risk</option>
+{% with effective_rp=risk_profile_override|default:questionnaire_risk_profile %}
+          <option value="Low Risk" {% if effective_rp == "Low Risk" %}selected{% endif %}>Low Risk{% if questionnaire_risk_profile == "Low Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Low Medium Risk" {% if effective_rp == "Low Medium Risk" %}selected{% endif %}>Low Medium Risk{% if questionnaire_risk_profile == "Low Medium Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Medium Risk" {% if effective_rp == "Medium Risk" %}selected{% endif %}>Medium Risk{% if questionnaire_risk_profile == "Medium Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Medium High Risk" {% if effective_rp == "Medium High Risk" %}selected{% endif %}>Medium High Risk{% if questionnaire_risk_profile == "Medium High Risk" %} (Questionnaire){% endif %}</option>
+          <option value="High Risk" {% if effective_rp == "High Risk" %}selected{% endif %}>High Risk{% if questionnaire_risk_profile == "High Risk" %} (Questionnaire){% endif %}</option>
+          <option value="Very High Risk" {% if effective_rp == "Very High Risk" %}selected{% endif %}>Very High Risk{% if questionnaire_risk_profile == "Very High Risk" %} (Questionnaire){% endif %}</option>
           {% endwith %}
         </select>
       </div>
       <div>
         <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Recommended Portfolio</label>
         <select id="portfolio-override" name="portfolio_override" style="min-width:230px; padding:6px 10px; border:1px solid #ced4da; border-radius:4px; font-size:14px;">
+          {% with effective_po=portfolio_override|default:questionnaire_portfolio %}
           {% for po in portfolio_override_choices %}
-          <option value="{{ po }}" {% if portfolio_override == po or not portfolio_override and effective_portfolio == po %}selected{% endif %}>{{ po }}</option>
+          <option value="{{ po }}" {% if effective_po == po %}selected{% endif %}>{{ po }}{% if questionnaire_portfolio == po %} (Questionnaire){% endif %}</option>
           {% endfor %}
+          {% endwith %}
         </select>
       </div>
     </div>
