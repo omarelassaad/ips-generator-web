@@ -9,18 +9,24 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEBIAN_FRONTEND noninteractive
 
-# Install Microsoft SQL Server requirements.
-ENV ACCEPT_EULA=Y
-RUN apt-get update -y && apt-get update \
-  && apt-get install -y --no-install-recommends curl gcc g++ gnupg unixodbc-dev
+# Install gnupg2 first, then add Microsoft repo 
+# Install ODBC Driver 18 
+RUN apt-get update \ 
+  && apt-get install -y gnupg2 curl ca-certificates \ 
+  && update-ca-certificates \ 
+  && curl -fsSL --insecure https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsoft.asc \ 
+  && gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg /tmp/microsoft.asc \ 
+  && echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \ 
+  && echo 'Acquire::https::Verify-Peer "false";' >> /etc/apt/apt.conf.d/99insecure \ 
+  && echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure \ 
+  && apt-get update \ 
+  && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 mssql-tools18 unixodbc-dev \ 
+  && rm /etc/apt/apt.conf.d/99insecure \ 
+  && echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bash_profile \ 
+  && echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc 
 
-# Add SQL Server ODBC Driver 17 for Debian 12 (Bookworm)
-RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
-  && curl https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends --allow-unauthenticated msodbcsql17 mssql-tools \
-  && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
-  && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+
+
 
 # install GTK3
 RUN echo "Installing GTK3 binaries"
