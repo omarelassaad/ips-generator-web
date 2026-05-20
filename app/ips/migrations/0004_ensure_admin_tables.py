@@ -1,16 +1,31 @@
 """
-Comprehensive raw-T-SQL migration — the single source of truth for all ips tables.
+Comprehensive migration — the single source of truth for all ips tables.
 
-start.sh runs:  manage.py migrate ips 0003 --fake
-                manage.py migrate
-so 0001-0003 are always faked and this migration does the real work.
-Every statement is idempotent (IF OBJECT_ID / IF NOT EXISTS), so re-running is safe.
+On Azure SQL: start.sh fakes 0001-0003, this migration runs raw T-SQL
+              with IF OBJECT_ID IS NULL guards to create every table.
+On SQLite:    start.sh runs all migrations normally; this migration uses
+              Django's schema editor to create any tables that are still missing.
 """
 from django.db import migrations
 
 
 def ensure_all_ips_tables(apps, schema_editor):
     from django.db import connection
+
+    # ── SQLite path (local testing) ───────────────────────────────────────────
+    if connection.vendor == 'sqlite':
+        existing = set(connection.introspection.table_names())
+        for model_name in [
+            'ReturnsUpload',
+            'FeeCategory', 'FeeTier', 'Mandate',
+            'PortfolioProfile', 'IPSCopyBlock', 'SiteDocument',
+        ]:
+            model = apps.get_model('ips', model_name)
+            if model._meta.db_table not in existing:
+                schema_editor.create_model(model)
+        return
+
+    # ── SQL Server / Azure SQL path ───────────────────────────────────────────
 
     statements = [
 
