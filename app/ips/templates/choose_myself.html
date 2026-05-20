@@ -121,37 +121,29 @@
   <!-- Risk Assessment Results & Override -->
   <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:18px; margin: 20px 0;">
     <h5 style="margin-bottom:16px; font-size:15px; font-weight:600;">Risk Assessment Results</h5>
-    <div style="display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start;">
+    <div style="display:flex; gap:40px; flex-wrap:wrap; align-items:flex-end;">
       <div>
-        <div style="font-size:12px; color:#6c757d; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Risk Profile</div>
-        <div style="font-weight:700; font-size:16px; margin-bottom:10px;">{{ questionnaire_risk_profile|default:"N/A" }}</div>
-        <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px;">Override</label>
+        <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Risk Profile</label>
         <select id="risk-profile-override" name="risk_profile_override" style="min-width:210px; padding:6px 10px; border:1px solid #ced4da; border-radius:4px; font-size:14px;">
-          <option value="">-- Use Questionnaire Result --</option>
-          <option value="Conservative" {% if risk_profile_override == "Conservative" %}selected{% endif %}>Conservative</option>
-          <option value="Moderate Conservative" {% if risk_profile_override == "Moderate Conservative" %}selected{% endif %}>Moderate Conservative</option>
-          <option value="Moderate" {% if risk_profile_override == "Moderate" %}selected{% endif %}>Moderate</option>
-          <option value="Moderate Aggressive" {% if risk_profile_override == "Moderate Aggressive" %}selected{% endif %}>Moderate Aggressive</option>
-          <option value="Aggressive" {% if risk_profile_override == "Aggressive" %}selected{% endif %}>Aggressive</option>
+          {% with qrp=questionnaire_risk_profile %}
+          <option value="Low Risk" {% if risk_profile_override == "Low Risk" or not risk_profile_override and qrp == "Low Risk" %}selected{% endif %}>Low Risk</option>
+          <option value="Low Medium Risk" {% if risk_profile_override == "Low Medium Risk" or not risk_profile_override and qrp == "Low Medium Risk" %}selected{% endif %}>Low Medium Risk</option>
+          <option value="Medium Risk" {% if risk_profile_override == "Medium Risk" or not risk_profile_override and qrp == "Medium Risk" %}selected{% endif %}>Medium Risk</option>
+          <option value="Medium High Risk" {% if risk_profile_override == "Medium High Risk" or not risk_profile_override and qrp == "Medium High Risk" %}selected{% endif %}>Medium High Risk</option>
+          <option value="High Risk" {% if risk_profile_override == "High Risk" or not risk_profile_override and qrp == "High Risk" %}selected{% endif %}>High Risk</option>
+          <option value="Very High Risk" {% if risk_profile_override == "Very High Risk" or not risk_profile_override and qrp == "Very High Risk" %}selected{% endif %}>Very High Risk</option>
+          {% endwith %}
         </select>
       </div>
       <div>
-        <div style="font-size:12px; color:#6c757d; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Recommended Portfolio</div>
-        <div style="font-weight:700; font-size:16px; margin-bottom:10px;">{{ questionnaire_portfolio|default:"N/A" }}</div>
-        <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px;">Override</label>
+        <label style="font-size:12px; color:#6c757d; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Recommended Portfolio</label>
         <select id="portfolio-override" name="portfolio_override" style="min-width:230px; padding:6px 10px; border:1px solid #ced4da; border-radius:4px; font-size:14px;">
-          <option value="">-- Use Questionnaire Result --</option>
           {% for po in portfolio_override_choices %}
-          <option value="{{ po }}" {% if portfolio_override == po %}selected{% endif %}>{{ po }}</option>
+          <option value="{{ po }}" {% if portfolio_override == po or not portfolio_override and effective_portfolio == po %}selected{% endif %}>{{ po }}</option>
           {% endfor %}
         </select>
       </div>
     </div>
-    {% if risk_profile_override or portfolio_override %}
-    <div style="margin-top:14px; padding:8px 14px; background:#fff3cd; border:1px solid #ffc107; border-radius:4px; font-size:13px;">
-      ⚠️ Override active — IPS will use overridden values instead of questionnaire results.
-    </div>
-    {% endif %}
   </div>
 
   <div id="target-vs-proposed" style="margin-top: 20px;">
