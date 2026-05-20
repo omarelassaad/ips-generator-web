@@ -113,25 +113,35 @@ TEMPLATES = [
 WSGI_APPLICATION = "ips_generator.wsgi.application"
 
 # Database configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'mssql',
-        'NAME':  env('SQL_DATABASE_NAME'),
-        'HOST': env('SQL_SERVER_NAME'),
-        'USER':  env('SQL_USERNAME'),
-        'PASSWORD':  env('SQL_PASSWORD'),
-        'PORT': '1433',
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-        },
+# Set USE_SQLITE=true in docker-compose environment to test migrations locally.
+# Remove it (or set it to anything else) to go back to Azure SQL.
+if os.getenv('USE_SQLITE', 'false').lower() == 'true':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'mssql',
+            'NAME':  env('SQL_DATABASE_NAME'),
+            'HOST': env('SQL_SERVER_NAME'),
+            'USER':  env('SQL_USERNAME'),
+            'PASSWORD':  env('SQL_PASSWORD'),
+            'PORT': '1433',
+            'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',
+            },
+        }
+    }
 
-# Add SSL configuration for Azure PostgreSQL
-if not DEBUG:
-    DATABASES['default']['OPTIONS'] = {
-        'sslmode': 'require'
-    }
+    # SSL for non-debug Azure SQL
+    if not DEBUG:
+        DATABASES['default']['OPTIONS'] = {
+            'sslmode': 'require'
+        }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
