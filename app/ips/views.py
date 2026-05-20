@@ -1121,7 +1121,7 @@ def choose_myself_view(request):
     portfolio_override = po_rec.strategy if po_rec else ''
 
     # Load questionnaire results to show current recommendations
-    questionnaire_qs = QuestionnaireResponse.objects.filter(user=request.user).order_by('-created_at').first()
+    questionnaire_qs = QuestionnaireResponse.objects.filter(user=request.user).order_by('-id').first()
     questionnaire_risk_profile = ''
     questionnaire_portfolio = ''
     effective_portfolio = ''
