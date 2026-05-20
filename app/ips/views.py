@@ -151,8 +151,11 @@ def get_strategy_data():
     cached = cache.get('strategy_data')
     if cached is not None:
         return cached
-    data = {m.name: m.asset_allocation() for m in Mandate.objects.filter(is_active=True)}
-    cache.set('strategy_data', data, 60 * 60 * 24)
+    try:
+        data = {m.name: m.asset_allocation() for m in Mandate.objects.filter(is_active=True)}
+        cache.set('strategy_data', data, 60 * 60 * 24)
+    except Exception:
+        data = {}
     return data
 
 
@@ -161,10 +164,13 @@ def get_fee_data():
     cached = cache.get('fee_data')
     if cached is not None:
         return cached
-    data = {}
-    for tier in FeeTier.objects.select_related('category').order_by('category__name', 'order', 'lower'):
-        data.setdefault(tier.category.name, []).append(tier.to_dict())
-    cache.set('fee_data', data, 60 * 60 * 24)
+    try:
+        data = {}
+        for tier in FeeTier.objects.select_related('category').order_by('category__name', 'order', 'lower'):
+            data.setdefault(tier.category.name, []).append(tier.to_dict())
+        cache.set('fee_data', data, 60 * 60 * 24)
+    except Exception:
+        data = {}
     return data
 
 
@@ -173,11 +179,14 @@ def get_strategy_fee_map():
     cached = cache.get('strategy_fee_map')
     if cached is not None:
         return cached
-    data = {
-        m.name: m.fee_category.name
-        for m in Mandate.objects.filter(is_active=True).select_related('fee_category')
-    }
-    cache.set('strategy_fee_map', data, 60 * 60 * 24)
+    try:
+        data = {
+            m.name: m.fee_category.name
+            for m in Mandate.objects.filter(is_active=True).select_related('fee_category')
+        }
+        cache.set('strategy_fee_map', data, 60 * 60 * 24)
+    except Exception:
+        data = {}
     return data
 
 
@@ -186,8 +195,11 @@ def get_mandates():
     cached = cache.get('mandates')
     if cached is not None:
         return cached
-    data = {m.name: m for m in Mandate.objects.filter(is_active=True).order_by('display_order', 'name')}
-    cache.set('mandates', data, 60 * 60 * 24)
+    try:
+        data = {m.name: m for m in Mandate.objects.filter(is_active=True).order_by('display_order', 'name')}
+        cache.set('mandates', data, 60 * 60 * 24)
+    except Exception:
+        data = {}
     return data
 
 
@@ -197,8 +209,11 @@ def get_copy_blocks(category):
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
-    data = {b.key: (b.title, b.body) for b in IPSCopyBlock.objects.filter(category=category).order_by('order', 'key')}
-    cache.set(cache_key, data, 60 * 60 * 24)
+    try:
+        data = {b.key: (b.title, b.body) for b in IPSCopyBlock.objects.filter(category=category).order_by('order', 'key')}
+        cache.set(cache_key, data, 60 * 60 * 24)
+    except Exception:
+        data = {}
     return data
 
 
@@ -208,7 +223,7 @@ def get_site_document_path(key, fallback_static_path):
         doc = SiteDocument.objects.get(key=key)
         if doc.file and os.path.exists(doc.file.path):
             return doc.file.path
-    except SiteDocument.DoesNotExist:
+    except Exception:
         pass
     return fallback_static_path
 
@@ -218,8 +233,11 @@ def get_portfolio_profiles():
     cached = cache.get('portfolio_profiles')
     if cached is not None:
         return cached
-    data = {p.name: p for p in PortfolioProfile.objects.all().order_by('order')}
-    cache.set('portfolio_profiles', data, 60 * 60 * 24)
+    try:
+        data = {p.name: p for p in PortfolioProfile.objects.all().order_by('order')}
+        cache.set('portfolio_profiles', data, 60 * 60 * 24)
+    except Exception:
+        data = {}
     return data
 
 
@@ -1160,7 +1178,10 @@ def choose_myself_view(request):
     selected_risk_profile = risk_profile_override if risk_profile_override else questionnaire_risk_profile
     selected_portfolio = portfolio_override if portfolio_override else questionnaire_portfolio
 
-    mandates = list(Mandate.objects.filter(is_active=True).order_by('display_order', 'name'))
+    try:
+        mandates = list(Mandate.objects.filter(is_active=True).order_by('display_order', 'name'))
+    except Exception:
+        mandates = []
 
     return render(request, 'choose_myself.html', {
         'form': form,
