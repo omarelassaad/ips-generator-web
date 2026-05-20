@@ -14,7 +14,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
-from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile
+from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload
 from .forms import QuestionnaireForm, ChooseMyselfForm, LetPmChooseForm, RegisterForm
 from django.template.loader import render_to_string
 from django.templatetags.static import static
@@ -103,14 +103,42 @@ def logout_view(request):
     return redirect('login')
 
 def load_performance_data():
-    excel_path = os.path.join(settings.BASE_DIR, 'static', 'returns', 'returns.xlsx')
-    if not os.path.exists(excel_path):
-        logger.error(f"File not found: {excel_path}")
-        raise FileNotFoundError(f"File not found: {excel_path}")
-    logger.info(f"Loading performance data from: {excel_path}")
-    return pd.read_excel(excel_path, sheet_name='Sheet1')
+    """Load the active returns Excel from the DB upload, falling back to the
+    static file if no upload exists yet."""
+    cached = cache.get('performance_data')
+    if cached is not None:
+        return cached
 
-performance_data = load_performance_data()
+    try:
+        upload = ReturnsUpload.objects.filter(is_active=True).latest('uploaded_at')
+        excel_path = upload.file.path
+        logger.info(f"Loading performance data from upload: {excel_path}")
+    except Exception:
+        excel_path = os.path.join(settings.BASE_DIR, 'static', 'returns', 'returns.xlsx')
+        logger.info(f"No active upload found, falling back to: {excel_path}")
+
+    if not os.path.exists(excel_path):
+        logger.error(f"Returns file not found: {excel_path}")
+        return None
+
+    df = pd.read_excel(excel_path, sheet_name='Sheet1')
+    cache.set('performance_data', df, 60 * 60 * 24)
+    return df
+
+
+def get_returns_as_of_date():
+    """Return the as-of date string from the active ReturnsUpload."""
+    try:
+        upload = ReturnsUpload.objects.filter(is_active=True).latest('uploaded_at')
+        return upload.as_of_date
+    except Exception:
+        return ""
+
+
+try:
+    performance_data = load_performance_data()
+except Exception:
+    performance_data = None
 
 strategyData = {
     "Aviso 5-year Bond Ladder (Income)": {"Cash": 2.00, "Fixed Income": 98.00, "Canadian Equity": 0.00, "U.S. Equity": 0.00, "International Equity": 0.00, "Alternatives": 0.00},

@@ -54,3 +54,27 @@ class LetPmChooseData(models.Model):
 
     class Meta:
         ordering = ['timestamp']
+
+
+class ReturnsUpload(models.Model):
+    file = models.FileField(upload_to='returns/', help_text="Excel file (.xlsx) with Sheet1 performance data")
+    as_of_date = models.CharField(max_length=50, help_text='e.g. "March 31, 2026"')
+    calendar_years = models.CharField(
+        max_length=200,
+        default='2025,2024,2023,2022,2021,2020,2019',
+        help_text='Comma-separated list of calendar years to show in the performance table, most recent first.'
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Only one upload should be active at a time. "
+                  "Saving a new active upload automatically deactivates the previous one."
+    )
+
+    class Meta:
+        verbose_name = "Returns Upload"
+        verbose_name_plural = "Returns Uploads"
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"Returns as of {self.as_of_date} (uploaded {self.uploaded_at.strftime('%Y-%m-%d') if self.uploaded_at else '—'})"
