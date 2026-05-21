@@ -10,7 +10,7 @@ IF OBJECT_ID(N'ips_returnsupload', N'U') IS NULL
 BEGIN
     CREATE TABLE ips_returnsupload (
         id             bigint        IDENTITY(1,1) NOT NULL,
-        file           nvarchar(100)               NOT NULL DEFAULT '',
+        [file]         nvarchar(100)               NOT NULL DEFAULT '',
         as_of_date     nvarchar(50)                NOT NULL DEFAULT '',
         calendar_years nvarchar(200)               NOT NULL
             DEFAULT '2025,2024,2023,2022,2021,2020,2019',
@@ -165,7 +165,7 @@ BEGIN
         id          bigint       IDENTITY(1,1) NOT NULL,
         [key]       nvarchar(50)               NOT NULL,
         label       nvarchar(100)              NOT NULL DEFAULT '',
-        file        nvarchar(100)                       NULL,
+        [file]      nvarchar(100)                       NULL,
         uploaded_at datetime2                  NOT NULL DEFAULT GETUTCDATE(),
         CONSTRAINT PK_ips_sitedocument     PRIMARY KEY (id),
         CONSTRAINT UQ_ips_sitedocument_key UNIQUE ([key])
