@@ -1,3 +1,9 @@
+# Ensure media subdirectories exist and are writable by the app user.
+# This must run at container startup (after volume mount) not at build time.
+mkdir -p /usr/src/app/media/returns
+mkdir -p /usr/src/app/media/fact_sheets
+mkdir -p /usr/src/app/media/site_documents
+
 # Fake migrations 0001-0004 (tables created by DBA via create_ips_tables.sql).
 # Migrations 0005+ run normally — the service account now has CREATE TABLE rights.
 python manage.py migrate ips 0004 --fake

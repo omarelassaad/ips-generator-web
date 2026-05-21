@@ -44,6 +44,11 @@ RUN useradd --user-group --system --create-home --no-log-init app
 COPY ./app .
 COPY .env /usr/src/app/ips_generator/.env
 
+# Pre-create media subdirectories so the named volume inherits them
+# with correct ownership when first initialised from the image.
+RUN mkdir -p /usr/src/app/media/returns \
+    && mkdir -p /usr/src/app/media/fact_sheets \
+    && mkdir -p /usr/src/app/media/site_documents
 RUN chown app /usr/src/app/ -R
 # Strip Windows CRLF line endings in case Git checked out with autocrlf
 RUN sed -i 's/\r//' /usr/src/app/start.sh && chmod +x /usr/src/app/start.sh
