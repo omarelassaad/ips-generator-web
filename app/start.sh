@@ -8,6 +8,7 @@ mkdir -p /usr/src/app/media/site_documents
 # For Azure SQL (production): fake 0001-0004 since DBA created those tables via SQL script.
 if [ "$USE_SQLITE" = "True" ]; then
     python manage.py migrate
+    python manage.py seed_data
 else
     python manage.py migrate ips 0004 --fake
     python manage.py migrate
