@@ -1216,6 +1216,8 @@ def choose_myself_view(request):
         'portfolio_allocations_json': portfolio_allocations_json,
         'mandates': mandates,
         'existing_rows_json': existing_rows_json,
+        'loaded_proposal_id': request.session.get('loaded_proposal_id'),
+        'loaded_proposal_label': request.session.get('loaded_proposal_label', ''),
     })
 
 @login_required
@@ -2001,25 +2003,17 @@ def cleanup_old_pie_charts(media_dir, max_files=5):
 @login_required
 @require_POST
 def save_proposal(request):
-    """Snapshot the current ChooseMyselfData rows and save as a named proposal."""
+    """Snapshot the current ChooseMyselfData rows.
+
+    - If proposal_id is posted (Save): overwrite the existing proposal.
+    - Otherwise (Save As): create a new proposal with the given label.
+    """
     try:
         rows = list(
             ChooseMyselfData.objects.filter(user=request.user).values(
                 'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
             )
         )
-
-        label = request.POST.get('label', '').strip()
-        if not label:
-            # Auto-generate from first non-special account_owner
-            special = {'CMS Fee', 'Desired Rate', 'Risk Profile Override',
-                       'Portfolio Override', 'Comments', 'IPS Changes', 'Client-directed Holdings '}
-            first_owner = next(
-                (r['account_owner'] for r in rows if r['account_owner'] not in special),
-                None
-            )
-            date_str = timezone.now().strftime('%Y-%m-%d')
-            label = f"{first_owner} — {date_str}" if first_owner else f"Proposal — {date_str}"
 
         risk_profile_override = request.POST.get('risk_profile_override', '')
         portfolio_override = request.POST.get('portfolio_override', '')
@@ -2029,13 +2023,44 @@ def save_proposal(request):
             if hasattr(r['amount'], '__float__'):
                 r['amount'] = str(r['amount'])
 
-        SavedProposal.objects.create(
-            user=request.user,
-            label=label,
-            data=json.dumps(rows),
-            risk_profile_override=risk_profile_override,
-            portfolio_override=portfolio_override,
-        )
+        data_json = json.dumps(rows)
+        proposal_id = request.POST.get('proposal_id', '').strip()
+
+        if proposal_id:
+            # ── Save: overwrite the loaded proposal ──────────────────────────
+            proposal = get_object_or_404(SavedProposal, id=proposal_id, user=request.user)
+            proposal.data = data_json
+            proposal.risk_profile_override = risk_profile_override
+            proposal.portfolio_override = portfolio_override
+            proposal.updated_at = timezone.now()
+            proposal.save()
+            # Keep session pointing to same proposal
+            request.session['loaded_proposal_id'] = proposal.id
+            request.session['loaded_proposal_label'] = proposal.label
+        else:
+            # ── Save As: create a new proposal ───────────────────────────────
+            label = request.POST.get('label', '').strip()
+            if not label:
+                special = {'CMS Fee', 'Desired Rate', 'Risk Profile Override',
+                           'Portfolio Override', 'Comments', 'IPS Changes', 'Client-directed Holdings '}
+                first_owner = next(
+                    (r['account_owner'] for r in rows if r['account_owner'] not in special),
+                    None
+                )
+                date_str = timezone.now().strftime('%Y-%m-%d')
+                label = f"{first_owner} — {date_str}" if first_owner else f"Proposal — {date_str}"
+
+            new_proposal = SavedProposal.objects.create(
+                user=request.user,
+                label=label,
+                data=data_json,
+                risk_profile_override=risk_profile_override,
+                portfolio_override=portfolio_override,
+            )
+            # Point session to the newly created proposal
+            request.session['loaded_proposal_id'] = new_proposal.id
+            request.session['loaded_proposal_label'] = new_proposal.label
+
     except Exception as e:
         logger.error(f"save_proposal error: {e}")
 
@@ -2071,6 +2096,9 @@ def load_proposal(request, proposal_id):
                     strategy=r.get('strategy', ''),
                     version_number=r.get('version_number', 'N/A'),
                 )
+        # Remember which proposal is loaded so choose_myself can show Save vs Save As
+        request.session['loaded_proposal_id'] = proposal.id
+        request.session['loaded_proposal_label'] = proposal.label
     except Exception as e:
         logger.error(f"load_proposal error: {e}")
     return redirect('choose_myself')

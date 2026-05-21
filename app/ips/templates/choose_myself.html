@@ -314,15 +314,44 @@
   {% csrf_token %}
   <input type="hidden" id="sp-risk-profile-override" name="risk_profile_override" value="">
   <input type="hidden" id="sp-portfolio-override" name="portfolio_override" value="">
+
+  {% if loaded_proposal_id %}
+  {# ── Loaded proposal: Save (overwrite) + Save As (new name) ── #}
+  <input type="hidden" id="sp-proposal-id" name="proposal_id" value="{{ loaded_proposal_id }}">
+  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+    {# Save button — submits with proposal_id, no label needed #}
+    <button type="submit" id="save-proposal-button"
+            style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+      &#128190; Save &ldquo;{{ loaded_proposal_label }}&rdquo;
+    </button>
+    {# Save As — shows label input and submits without proposal_id #}
+    <button type="button" id="save-as-toggle"
+            style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+      Save As&hellip;
+    </button>
+  </div>
+  <div id="save-as-panel" style="display: none; margin-top: 10px; display: none; align-items: center; gap: 10px; flex-wrap: wrap;">
+    <input type="text" name="label" id="sp-label"
+           placeholder="e.g. John Smith — RRSP (copy)"
+           style="padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 280px;">
+    <button type="button" id="save-as-submit"
+            style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+      Save As New Proposal
+    </button>
+  </div>
+
+  {% else %}
+  {# ── Fresh session: just create a new proposal ── #}
   <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
     <input type="text" name="label" id="sp-label"
            placeholder="e.g. John Smith — RRSP"
            style="padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 280px;">
     <button type="submit" id="save-proposal-button"
             style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
-      Save Proposal
+      &#128190; Save Proposal
     </button>
   </div>
+  {% endif %}
 </form>
 
 
@@ -1612,13 +1641,43 @@ document.getElementById('generate-summary-button').addEventListener('click', fun
     saveForm.style.display = createBtn.style.display === 'block' ? 'block' : 'none';
   }
 
-  // On submit, copy override dropdown values into hidden inputs.
+  // On any submit, copy override dropdown values into hidden inputs.
   saveForm.addEventListener('submit', function () {
     var riskSel = document.getElementById('risk-profile-override');
     var portSel = document.getElementById('portfolio-override');
     document.getElementById('sp-risk-profile-override').value = riskSel ? riskSel.value : '';
     document.getElementById('sp-portfolio-override').value = portSel ? portSel.value : '';
   });
+
+  // ── Save As toggle (only present when a proposal is loaded) ───────────────
+  var saveAsToggle = document.getElementById('save-as-toggle');
+  var saveAsPanel  = document.getElementById('save-as-panel');
+  var saveAsSubmit = document.getElementById('save-as-submit');
+  var proposalIdInput = document.getElementById('sp-proposal-id');
+
+  if (saveAsToggle && saveAsPanel && saveAsSubmit) {
+    saveAsToggle.addEventListener('click', function () {
+      var visible = saveAsPanel.style.display === 'flex';
+      saveAsPanel.style.display = visible ? 'none' : 'flex';
+      saveAsToggle.textContent = visible ? 'Save As…' : 'Cancel';
+    });
+
+    saveAsSubmit.addEventListener('click', function () {
+      // Temporarily remove proposal_id so the view creates a new record
+      var savedId = proposalIdInput ? proposalIdInput.value : '';
+      if (proposalIdInput) proposalIdInput.disabled = true;
+
+      // Populate override fields then submit
+      var riskSel = document.getElementById('risk-profile-override');
+      var portSel = document.getElementById('portfolio-override');
+      document.getElementById('sp-risk-profile-override').value = riskSel ? riskSel.value : '';
+      document.getElementById('sp-portfolio-override').value = portSel ? portSel.value : '';
+      saveForm.submit();
+
+      // Re-enable (in case browser keeps the page in cache)
+      if (proposalIdInput) proposalIdInput.disabled = false;
+    });
+  }
 })();
 
 </script>
