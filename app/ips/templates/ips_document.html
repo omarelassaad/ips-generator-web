@@ -605,7 +605,7 @@
 </table>
 
     <div id="disclaimers" style="margin-top: 20px; font-size: 12px;">
-        <p>The return data is as of December 31, 2025. Indicated rates of return are historical annual compounded total returns including reinvestment of all distributions for the period ended, and do not take into account management expenses, account sales, redemption, distribution or optional charges or income taxes payable by any security holder that would have reduced returns.</p>
+        <p>The return data is as of {{ returns_as_of_date }}. Indicated rates of return are historical annual compounded total returns including reinvestment of all distributions for the period ended, and do not take into account management expenses, account sales, redemption, distribution or optional charges or income taxes payable by any security holder that would have reduced returns.</p>
         {% for line in disclaimer_lines %}
             <p>{{ line|safe }}</p>
         {% endfor %}
@@ -693,12 +693,17 @@
 </div>
     <div class="fee-explanation" style="margin-top: 20px; font-size: 16px;">
         <p>
-            Based on the above portfolio mix, your calculated blended management fee rate is <strong>{{ total_overall_fee }}</strong>. 
+            Based on the above portfolio mix, your calculated blended management fee rate is <strong>{{ total_overall_fee }}</strong>.
             This rate will be specified in your <em>Managed Account Agreement</em> as part of the account opening/update process.
         </p>
+        {% if override_active and override_trailer is not None %}
         <p>
-            Please note that this calculated blended fee rate is derived from the above individual strategy specific management fee rate(s) 
-            and will vary as individual strategy market values fluctuate. We would be happy to provide you with an up-to-date calculated 
+            The trailer fee included in the above management fee rate is <strong>{{ override_trailer }}%</strong>.
+        </p>
+        {% endif %}
+        <p>
+            Please note that this calculated blended fee rate is derived from the above individual strategy specific management fee rate(s)
+            and will vary as individual strategy market values fluctuate. We would be happy to provide you with an up-to-date calculated
             blended fee rate upon request.
         </p>
     </div>

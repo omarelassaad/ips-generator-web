@@ -217,6 +217,29 @@
     <p id="trailer-text" style="display: none;"></p>
   </div>
 
+  {% if can_override_fee %}
+  <div id="fee-override-section" style="margin-top: 12px; padding: 12px; border: 1px solid #e0b800; background: #fffdf0; border-radius: 4px; display: none;">
+    <label style="font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+      <input type="checkbox" id="fee-override-active" name="fee_override_active">
+      Override calculated fee
+    </label>
+    <div id="fee-override-inputs" style="display: none; margin-top: 10px;">
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <div>
+          <label for="fee-override-amount" style="font-size: 13px;">Total Fee (%)</label>
+          <input type="number" id="fee-override-amount" name="fee_override_amount" step="0.01" min="0" max="5"
+                 style="display: block; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; width: 120px; margin-top: 4px;">
+        </div>
+        <div>
+          <label for="fee-override-trailer" style="font-size: 13px;">Trailer (%)</label>
+          <input type="number" id="fee-override-trailer" name="fee_override_trailer" step="0.01" min="0" max="5"
+                 style="display: block; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; width: 120px; margin-top: 4px;">
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div id="ips-type-section" style="display: none; margin-top: 20px;">
     <h4 style="margin-bottom: 10px;">Is this a new IPS or an existing IPS?</h4>
     <div class="radio-options">
@@ -876,6 +899,42 @@ function updateFeeRangeAndTrailer() {
   }
 }
 
+// ── Fee override wiring ───────────────────────────────────────────────────────
+(function initFeeOverride() {
+  const overrideCb = document.getElementById('fee-override-active');
+  const overrideSection = document.getElementById('fee-override-section');
+  const overrideInputs = document.getElementById('fee-override-inputs');
+  if (!overrideCb || !overrideSection) return;
+
+  // Show/hide the inputs when checkbox is toggled
+  overrideCb.addEventListener('change', function() {
+    overrideInputs.style.display = this.checked ? 'block' : 'none';
+    saveChooseMyselfData();
+  });
+
+  // Trigger save on amount/trailer changes
+  const overrideAmtEl = document.getElementById('fee-override-amount');
+  const overrideTrailerEl = document.getElementById('fee-override-trailer');
+  if (overrideAmtEl) overrideAmtEl.addEventListener('change', saveChooseMyselfData);
+  if (overrideTrailerEl) overrideTrailerEl.addEventListener('change', saveChooseMyselfData);
+
+  // Show the override section whenever the fees section becomes visible.
+  // We achieve this with a MutationObserver on the fees section.
+  const feesSection = document.getElementById('fees-section');
+  if (feesSection) {
+    const obs = new MutationObserver(function() {
+      if (feesSection.style.display !== 'none' && feesSection.style.display !== '') {
+        overrideSection.style.display = 'block';
+      }
+    });
+    obs.observe(feesSection, { attributes: true, attributeFilter: ['style'] });
+    // If fees section is already visible on load, show override section now
+    if (feesSection.style.display !== 'none' && feesSection.style.display !== '') {
+      overrideSection.style.display = 'block';
+    }
+  }
+})();
+
 document.getElementById('desired-rate').addEventListener('input', function() {
   updateFeeRangeAndTrailer();
   updateIpsTypeVisibility();
@@ -927,7 +986,7 @@ document.getElementById('comments-box').addEventListener('input', function() {
   const SPECIAL = new Set([
     'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes',
     'Risk Profile Override', 'Portfolio Override', 'Client-directed Holdings ',
-    'Fact Sheets'
+    'Fact Sheets', 'Fee Override', 'Fee Override Trailer'
   ]);
 
   const accountRows = rows.filter(r => !SPECIAL.has(r.account_owner));
@@ -989,6 +1048,23 @@ document.getElementById('comments-box').addEventListener('input', function() {
     const fsVal = special['Fact Sheets'].strategy || 'No';
     const fsRadio = document.querySelector(`input[name="attach_fact_sheets"][value="${fsVal}"]`);
     if (fsRadio) fsRadio.checked = true;
+  }
+  if (special['Fee Override']) {
+    const isActive = special['Fee Override'].strategy === 'Yes';
+    const overrideAmt = parseFloat(special['Fee Override'].amount) || 0;
+    const overrideTrailer = parseFloat(special['Fee Override Trailer']?.amount) || 0;
+    const cb = document.getElementById('fee-override-active');
+    const section = document.getElementById('fee-override-section');
+    if (cb && isActive) {
+      cb.checked = true;
+      const overrideInputs = document.getElementById('fee-override-inputs');
+      if (overrideInputs) overrideInputs.style.display = 'block';
+      const overrideAmtEl = document.getElementById('fee-override-amount');
+      const overrideTrailerEl = document.getElementById('fee-override-trailer');
+      if (overrideAmtEl && overrideAmt > 0) overrideAmtEl.value = overrideAmt;
+      if (overrideTrailerEl && overrideTrailer > 0) overrideTrailerEl.value = overrideTrailer;
+    }
+    if (section) section.style.display = 'block';
   }
   if (special['Risk Profile Override']) {
     const sel = document.getElementById('risk-profile-override');
@@ -1346,6 +1422,10 @@ function saveChooseMyselfData() {
     const portOverrideEl = document.getElementById('portfolio-override');
     formData.append('risk_profile_override', riskOverrideEl ? riskOverrideEl.value : '');
     formData.append('portfolio_override', portOverrideEl ? portOverrideEl.value : '');
+
+    formData.append('fee_override_active', document.getElementById('fee-override-active')?.checked ? 'Yes' : 'No');
+    formData.append('fee_override_amount', document.getElementById('fee-override-amount')?.value || '');
+    formData.append('fee_override_trailer', document.getElementById('fee-override-trailer')?.value || '');
 
     fetch("{% url 'save_choose_myself_data' %}", {
         method: "POST",

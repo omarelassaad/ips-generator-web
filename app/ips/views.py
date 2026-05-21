@@ -476,7 +476,7 @@ def generate_ips(request):
     try:
         # Retrieve account details from the database
         account_details = list(ChooseMyselfData.objects.filter(user=request.user).exclude(
-            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes', 'Risk Profile Override', 'Portfolio Override', 'Fact Sheets']
+            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes', 'Risk Profile Override', 'Portfolio Override', 'Fact Sheets', 'Fee Override', 'Fee Override Trailer']
         ).values(
             'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
         ))
@@ -495,6 +495,13 @@ def generate_ips(request):
         version_number = account_details[0]['version_number'] if account_details else "N/A"
 
         attach_fact_sheets = request.POST.get('attach_fact_sheets', 'No')
+
+        # Fetch fee override settings
+        fee_override = ChooseMyselfData.objects.filter(user=request.user, account_owner='Fee Override').first()
+        fee_override_trailer = ChooseMyselfData.objects.filter(user=request.user, account_owner='Fee Override Trailer').first()
+        override_active = fee_override and fee_override.strategy == 'Yes'
+        override_fee_amount = float(fee_override.amount) if override_active and fee_override else None
+        override_trailer_amount = float(fee_override_trailer.amount) if override_active and fee_override_trailer else None
 
         # Calculate fees
         fee_data = calculate_fees_for_ips(strategies, amounts)
@@ -564,6 +571,8 @@ def generate_ips(request):
         for item in fee_transparency_data:
             if item['strategy'] == 'Client-directed Holdings ':
                 item['fee'] = f"{float(cms_fee.amount):.2f}%" if cms_fee else "N/A"
+            elif override_active:
+                item['fee'] = f"{override_fee_amount:.2f}%"
             else:
                 category = get_strategy_fee_map().get(item['strategy'], "Equity & Balanced")
                 category_fee_data = fee_data['category_fees'].get(category, {})
@@ -574,15 +583,17 @@ def generate_ips(request):
                 item['fee'] = f"{category_fee:.2f}%"
 
         # Step 3: Calculate the total weighted fee
-        total_weighted_fee = 0
-        for item in fee_transparency_data:
-            if item['fee'] != 'N/A':
-                fee_percentage = float(item['fee'].rstrip('%'))
-                weight_percentage = item['weight'] / 100
-                weighted_fee = fee_percentage * weight_percentage
-                total_weighted_fee += weighted_fee
-
-        total_overall_fee = round(total_weighted_fee, 2)
+        if override_active:
+            total_overall_fee = override_fee_amount
+        else:
+            total_weighted_fee = 0
+            for item in fee_transparency_data:
+                if item['fee'] != 'N/A':
+                    fee_percentage = float(item['fee'].rstrip('%'))
+                    weight_percentage = item['weight'] / 100
+                    weighted_fee = fee_percentage * weight_percentage
+                    total_weighted_fee += weighted_fee
+            total_overall_fee = round(total_weighted_fee, 2)
 
         total_fee = sum(float(item['amount']) * float(item['fee'].rstrip('%')) / 100 for item in fee_transparency_data if item['fee'] != 'N/A')
         total_fee_percentage = (total_fee / grand_total) * 100 if grand_total > 0 else 0
@@ -1017,6 +1028,10 @@ def generate_ips(request):
             'selected_strategies': strategies,
             'ips_changes': ips_changes_record.strategy if ips_changes_record and ips_changes_record.strategy.strip() else None,
             'creation_date': creation_date,
+            'returns_as_of_date': get_returns_as_of_date(),
+            'override_fee': override_fee_amount,
+            'override_trailer': override_trailer_amount,
+            'override_active': override_active,
         }
 
         # Paths to the existing PDF files (DB-uploaded takes priority over static fallback)
@@ -1224,6 +1239,7 @@ def choose_myself_view(request):
         'existing_rows_json': existing_rows_json,
         'loaded_proposal_id': request.session.get('loaded_proposal_id'),
         'loaded_proposal_label': request.session.get('loaded_proposal_label', ''),
+        'can_override_fee': getattr(request.user, 'profile', None) and request.user.profile.can_override_fee,
     })
 
 @login_required
@@ -1398,6 +1414,7 @@ def choose_myself_performance(request):
             'calendar_year_summary': calendar_year_table,
             'disclaimer_lines': disclaimer_lines,
             'selected_strategies': strategies,
+            'returns_as_of_date': get_returns_as_of_date(),
         }
 
         return render(request, 'choose_myself_performance.html', context)
@@ -1543,6 +1560,25 @@ def save_choose_myself_data(request):
             account_type='Fact Sheets',
             amount=0,
             strategy=data.get('attach_fact_sheets', 'No'),
+            version_number=version_number,
+        )
+
+        # Save fee override settings
+        fee_override_active = data.get('fee_override_active', 'No')
+        ChooseMyselfData.objects.create(
+            user=request.user,
+            account_owner='Fee Override',
+            account_type='Fee Override',
+            amount=float(data.get('fee_override_amount', 0) or 0),
+            strategy=fee_override_active,
+            version_number=version_number,
+        )
+        ChooseMyselfData.objects.create(
+            user=request.user,
+            account_owner='Fee Override Trailer',
+            account_type='Fee Override Trailer',
+            amount=float(data.get('fee_override_trailer', 0) or 0),
+            strategy='Fee Override Trailer',
             version_number=version_number,
         )
 
@@ -2062,7 +2098,8 @@ def save_proposal(request):
             label = request.POST.get('label', '').strip()
             if not label:
                 special = {'CMS Fee', 'Desired Rate', 'Risk Profile Override',
-                           'Portfolio Override', 'Comments', 'IPS Changes', 'Client-directed Holdings '}
+                           'Portfolio Override', 'Comments', 'IPS Changes', 'Client-directed Holdings ',
+                           'Fee Override', 'Fee Override Trailer'}
                 first_owner = next(
                     (r['account_owner'] for r in rows if r['account_owner'] not in special),
                     None

@@ -219,6 +219,7 @@ class SiteDocument(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     is_approved = models.BooleanField(default=False)
+    can_override_fee = models.BooleanField(default=False, help_text="Allow this user to override the calculated fee and trailer")
 
     def __str__(self):
         return f"{self.user.username} - {'Approved' if self.is_approved else 'Not Approved'}"
