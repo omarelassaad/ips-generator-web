@@ -886,6 +886,110 @@ document.getElementById('comments-box').addEventListener('input', function() {
   saveChooseMyselfData();
 });
 
+// ── Restore saved / loaded proposal data ─────────────────────────────────────
+(function restoreFormFromData() {
+  const rows = {{ existing_rows_json|safe }};
+  if (!rows || rows.length === 0) return;
+
+  const SPECIAL = new Set([
+    'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes',
+    'Risk Profile Override', 'Portfolio Override', 'Client-directed Holdings '
+  ]);
+
+  const accountRows = rows.filter(r => !SPECIAL.has(r.account_owner));
+  const special = {};
+  rows.filter(r => SPECIAL.has(r.account_owner)).forEach(r => { special[r.account_owner] = r; });
+  const cmhRows = rows.filter(r => r.account_owner === 'Client-directed Holdings ');
+
+  // ── Regular account rows ──────────────────────────────────────────────────
+  if (accountRows.length > 0) {
+    const tbody = document.getElementById('account-strategy-body');
+
+    function fillRow(row, data) {
+      row.querySelector('input[name="account_owner"]').value = data.account_owner;
+      row.querySelector('select[name="account_type"]').value = data.account_type;
+      const amt = parseFloat(data.amount) || 0;
+      row.querySelector('.amount-input').value = amt > 0
+        ? '$' + amt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+        : '';
+      row.querySelector('select[name="strategy"]').value = data.strategy;
+    }
+
+    // Keep the first row as template; remove any extras
+    while (tbody.rows.length > 1) tbody.deleteRow(1);
+
+    // Fill first row
+    fillRow(tbody.rows[0], accountRows[0]);
+
+    // Clone and fill remaining rows
+    for (let i = 1; i < accountRows.length; i++) {
+      const newRow = tbody.rows[0].cloneNode(true);
+      newRow.querySelectorAll('input, select').forEach(el => el.value = '');
+      tbody.appendChild(newRow);
+      fillRow(newRow, accountRows[i]);
+      attachEventListeners(newRow);
+      attachRowEventListeners(newRow);
+    }
+  }
+
+  // ── Version number ────────────────────────────────────────────────────────
+  const vn = (rows.find(r => r.version_number && r.version_number !== 'N/A') || {}).version_number;
+  if (vn) document.getElementById('version-number').value = vn;
+
+  // ── Special fields ────────────────────────────────────────────────────────
+  if (special['Desired Rate']) {
+    const dr = parseFloat(special['Desired Rate'].amount) || 0;
+    if (dr > 0) document.getElementById('desired-rate').value = dr;
+  }
+  if (special['Comments']) {
+    document.getElementById('comments-box').value = special['Comments'].strategy || '';
+  }
+  if (special['CMS Fee']) {
+    const cf = parseFloat(special['CMS Fee'].amount) || 0;
+    if (cf > 0) document.getElementById('cms_fee').value = cf;
+  }
+  if (special['IPS Changes']) {
+    document.getElementById('ips-changes-box').value = special['IPS Changes'].strategy || '';
+  }
+  if (special['Risk Profile Override']) {
+    const sel = document.getElementById('risk-profile-override');
+    if (sel) sel.value = special['Risk Profile Override'].strategy || '';
+  }
+  if (special['Portfolio Override']) {
+    const sel = document.getElementById('portfolio-override');
+    if (sel) sel.value = special['Portfolio Override'].strategy || '';
+  }
+
+  // ── Client-directed Holdings ──────────────────────────────────────────────
+  if (cmhRows.length > 0) {
+    document.getElementById('cmh-yes').checked = true;
+    document.getElementById('cmh-details').style.display = 'block';
+    const container = document.getElementById('cmh-accounts-container');
+    const template = container.querySelector('.cmh-account');
+    cmhRows.forEach((cmh, idx) => {
+      let div;
+      if (idx === 0) {
+        div = template;
+      } else {
+        div = template.cloneNode(true);
+        container.appendChild(div);
+      }
+      div.querySelector('select[name="cmh_combined_account"]').value = cmh.account_type;
+      const cmhAmt = parseFloat(cmh.amount) || 0;
+      div.querySelector('.cmh-amount-input').value = cmhAmt > 0
+        ? '$' + cmhAmt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+        : '';
+    });
+  }
+
+  // Recalculate totals and show action buttons
+  calculatePercentages();
+  calculateWeights();
+  updateFeeRangeAndTrailer();
+  showCreateIpsButton();
+  document.getElementById('see-performance-button').style.display = 'block';
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
   fetch('{% url "get_target_weights" %}', {
     method: 'GET',

@@ -1192,6 +1192,17 @@ def choose_myself_view(request):
     except Exception:
         mandates = []
 
+    # Pass existing ChooseMyselfData rows as JSON so the template can
+    # pre-populate the form (especially after loading a saved proposal).
+    existing_rows = list(
+        ChooseMyselfData.objects.filter(user=request.user).values(
+            'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
+        )
+    )
+    for r in existing_rows:
+        r['amount'] = str(r['amount'])  # Decimal → str for JSON serialisation
+    existing_rows_json = json.dumps(existing_rows) if existing_rows else 'null'
+
     return render(request, 'choose_myself.html', {
         'form': form,
         'combined_accounts': combined_accounts,
@@ -1204,6 +1215,7 @@ def choose_myself_view(request):
         'portfolio_override_choices': portfolio_override_choices,
         'portfolio_allocations_json': portfolio_allocations_json,
         'mandates': mandates,
+        'existing_rows_json': existing_rows_json,
     })
 
 @login_required
