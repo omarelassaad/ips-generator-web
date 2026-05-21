@@ -932,7 +932,7 @@ document.getElementById('comments-box').addEventListener('input', function() {
   const accountRows = rows.filter(r => !SPECIAL.has(r.account_owner));
   const special = {};
   rows.filter(r => SPECIAL.has(r.account_owner)).forEach(r => { special[r.account_owner] = r; });
-  const cmhRows = rows.filter(r => r.account_owner === 'Client-directed Holdings ');
+  const cmhRows = rows.filter(r => r.account_owner === 'Client-directed Holdings ' && parseFloat(r.amount) > 0);
 
   // ── Regular account rows ──────────────────────────────────────────────────
   if (accountRows.length > 0) {
@@ -1473,10 +1473,19 @@ function isCmsFeeValid() {
 }
 
 function clearClientManagedHoldings() {
-  const cmhAmountInputs = document.querySelectorAll('.cmh-amount-input');
-  cmhAmountInputs.forEach(input => {
-    input.value = '$0';
-  });
+  const container = document.getElementById('cmh-accounts-container');
+  // Remove all rows except the first (keep it as blank template)
+  while (container.children.length > 1) {
+    container.removeChild(container.lastChild);
+  }
+  // Clear the first row's values
+  const firstRow = container.querySelector('.cmh-account');
+  if (firstRow) {
+    const sel = firstRow.querySelector('select[name="cmh_combined_account"]');
+    const amt = firstRow.querySelector('.cmh-amount-input');
+    if (sel) sel.selectedIndex = 0;
+    if (amt) amt.value = '';
+  }
   updateCmsTotals();
 }
 

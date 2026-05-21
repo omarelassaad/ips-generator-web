@@ -1460,6 +1460,10 @@ def save_choose_myself_data(request):
             except ValueError:
                 cmh_amount = 0
 
+            # Skip empty/zero rows — user cleared CMH by selecting No
+            if cmh_amount <= 0 or not cmh_account_types[i].strip():
+                continue
+
             ChooseMyselfData.objects.create(
                 user=request.user,
                 account_owner='Client-directed Holdings ',
