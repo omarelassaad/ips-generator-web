@@ -696,9 +696,9 @@
             Based on the above portfolio mix, your calculated blended management fee rate is <strong>{{ total_overall_fee }}</strong>.
             This rate will be specified in your <em>Managed Account Agreement</em> as part of the account opening/update process.
         </p>
-        {% if override_active and override_trailer is not None %}
+        {% if display_trailer is not None %}
         <p>
-            The trailer fee included in the above management fee rate is <strong>{{ override_trailer }}%</strong>.
+            The trailer fee included in the above management fee rate is <strong>{{ display_trailer }}%</strong>.
         </p>
         {% endif %}
         <p>

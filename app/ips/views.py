@@ -586,6 +586,15 @@ def generate_ips(request):
             if item['fee'] != 'N/A':
                 natural_blended_fee += float(item['fee'].rstrip('%')) * (item['weight'] / 100)
 
+        # Natural blended trailer — interpolated proportionally using the same discount as the fee
+        if fee_range > 0:
+            natural_blended_trailer = round(
+                fee_data['min_trailer'] + (fee_data['max_trailer'] - fee_data['min_trailer']) * (1 - discount_percentage),
+                2
+            )
+        else:
+            natural_blended_trailer = round(fee_data['max_trailer'], 2)
+
         if override_active and natural_blended_fee > 0:
             # Back-calculate a discount ratio so the weighted average hits the override target
             discount_ratio = override_fee_amount / natural_blended_fee
@@ -594,8 +603,10 @@ def generate_ips(request):
                     adjusted = float(item['fee'].rstrip('%')) * discount_ratio
                     item['fee'] = f"{adjusted:.2f}%"
             total_overall_fee = override_fee_amount
+            display_trailer = override_trailer_amount if override_trailer_amount is not None else natural_blended_trailer
         else:
             total_overall_fee = round(natural_blended_fee, 2)
+            display_trailer = natural_blended_trailer
 
         total_fee = sum(float(item['amount']) * float(item['fee'].rstrip('%')) / 100 for item in fee_transparency_data if item['fee'] != 'N/A')
         total_fee_percentage = (total_fee / grand_total) * 100 if grand_total > 0 else 0
@@ -1034,6 +1045,7 @@ def generate_ips(request):
             'override_fee': override_fee_amount,
             'override_trailer': override_trailer_amount,
             'override_active': override_active,
+            'display_trailer': display_trailer,
         }
 
         # Paths to the existing PDF files (DB-uploaded takes priority over static fallback)
