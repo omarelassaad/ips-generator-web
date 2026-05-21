@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.core.cache import cache
-from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload, Mandate, FeeCategory, FeeTier, PortfolioProfile, IPSCopyBlock, SiteDocument
+from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload, Mandate, FeeCategory, FeeTier, PortfolioProfile, IPSCopyBlock, SiteDocument, SavedProposal
 from .forms import QuestionnaireForm, ChooseMyselfForm, LetPmChooseForm, RegisterForm
 from django.template.loader import render_to_string
 from django.templatetags.static import static
@@ -1962,3 +1962,97 @@ def cleanup_old_pie_charts(media_dir, max_files=5):
                     logger.warning(f"Failed to remove old pie chart {f}: {str(e)}")
     except Exception as e:
         logger.warning(f"Failed to cleanup old pie charts: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Save Proposal views
+# ---------------------------------------------------------------------------
+
+@login_required
+@require_POST
+def save_proposal(request):
+    """Snapshot the current ChooseMyselfData rows and save as a named proposal."""
+    try:
+        rows = list(
+            ChooseMyselfData.objects.filter(user=request.user).values(
+                'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
+            )
+        )
+
+        label = request.POST.get('label', '').strip()
+        if not label:
+            # Auto-generate from first non-special account_owner
+            special = {'CMS Fee', 'Desired Rate', 'Risk Profile Override',
+                       'Portfolio Override', 'Comments', 'IPS Changes', 'Client-directed Holdings '}
+            first_owner = next(
+                (r['account_owner'] for r in rows if r['account_owner'] not in special),
+                None
+            )
+            date_str = timezone.now().strftime('%Y-%m-%d')
+            label = f"{first_owner} — {date_str}" if first_owner else f"Proposal — {date_str}"
+
+        risk_profile_override = request.POST.get('risk_profile_override', '')
+        portfolio_override = request.POST.get('portfolio_override', '')
+
+        # Convert Decimal to str for JSON serialisation
+        for r in rows:
+            if hasattr(r['amount'], '__float__'):
+                r['amount'] = str(r['amount'])
+
+        SavedProposal.objects.create(
+            user=request.user,
+            label=label,
+            data=json.dumps(rows),
+            risk_profile_override=risk_profile_override,
+            portfolio_override=portfolio_override,
+        )
+    except Exception as e:
+        logger.error(f"save_proposal error: {e}")
+
+    return redirect('proposals_list')
+
+
+@login_required
+def proposals_list(request):
+    """Show all saved proposals for the current user."""
+    try:
+        proposals = SavedProposal.objects.filter(user=request.user)
+    except Exception as e:
+        logger.error(f"proposals_list error: {e}")
+        proposals = []
+    return render(request, 'proposals.html', {'proposals': proposals})
+
+
+@login_required
+@require_POST
+def load_proposal(request, proposal_id):
+    """Restore ChooseMyselfData from a saved proposal and redirect to choose_myself."""
+    proposal = get_object_or_404(SavedProposal, id=proposal_id, user=request.user)
+    try:
+        rows = json.loads(proposal.data)
+        with transaction.atomic():
+            ChooseMyselfData.objects.filter(user=request.user).delete()
+            for r in rows:
+                ChooseMyselfData.objects.create(
+                    user=request.user,
+                    account_owner=r.get('account_owner', ''),
+                    account_type=r.get('account_type', ''),
+                    amount=r.get('amount', '0'),
+                    strategy=r.get('strategy', ''),
+                    version_number=r.get('version_number', 'N/A'),
+                )
+    except Exception as e:
+        logger.error(f"load_proposal error: {e}")
+    return redirect('choose_myself')
+
+
+@login_required
+@require_POST
+def delete_proposal(request, proposal_id):
+    """Delete a saved proposal."""
+    proposal = get_object_or_404(SavedProposal, id=proposal_id, user=request.user)
+    try:
+        proposal.delete()
+    except Exception as e:
+        logger.error(f"delete_proposal error: {e}")
+    return redirect('proposals_list')

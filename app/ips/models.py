@@ -291,3 +291,19 @@ class ReturnsUpload(models.Model):
 
     def __str__(self):
         return f"Returns as of {self.as_of_date} (uploaded {self.uploaded_at.strftime('%Y-%m-%d') if self.uploaded_at else '—'})"
+
+
+class SavedProposal(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_proposals')
+    label = models.CharField(max_length=200)
+    data = models.TextField()  # JSON snapshot of all ChooseMyselfData rows
+    risk_profile_override = models.CharField(max_length=100, blank=True, default='')
+    portfolio_override = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.label}"

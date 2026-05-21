@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .proposals-container {
+    max-width: 900px;
+    margin: 30px auto;
+  }
+  .proposals-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .proposals-header h2 {
+    margin: 0;
+  }
+  .proposals-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .proposals-table th {
+    background-color: #205098;
+    color: white;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .proposals-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e5e5;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  .proposals-table tr:last-child td {
+    border-bottom: none;
+  }
+  .proposals-table tr:hover td {
+    background-color: #f5f8ff;
+  }
+  .action-cell {
+    white-space: nowrap;
+  }
+  .btn-load {
+    background-color: #205098;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-right: 6px;
+  }
+  .btn-load:hover {
+    background-color: #174080;
+  }
+  .btn-delete {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .btn-delete:hover {
+    background-color: #b02a37;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 15px;
+  }
+  .back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #205098;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .back-link:hover {
+    text-decoration: underline;
+  }
+  .override-badge {
+    display: inline-block;
+    font-size: 11px;
+    color: #555;
+    background: #eef2ff;
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-left: 4px;
+  }
+</style>
+
+<div class="proposals-container">
+  <div class="proposals-header">
+    <h2>My Saved Proposals</h2>
+    <a href="{% url 'choose_myself' %}" style="background-color: #205098; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px;">
+      &larr; Back to Choose Myself
+    </a>
+  </div>
+
+  {% if proposals %}
+  <table class="proposals-table">
+    <thead>
+      <tr>
+        <th>Label</th>
+        <th>Overrides</th>
+        <th>Last Updated</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for proposal in proposals %}
+      <tr>
+        <td>{{ proposal.label }}</td>
+        <td>
+          {% if proposal.risk_profile_override %}
+            <span class="override-badge">Risk: {{ proposal.risk_profile_override }}</span>
+          {% endif %}
+          {% if proposal.portfolio_override %}
+            <span class="override-badge">Portfolio: {{ proposal.portfolio_override }}</span>
+          {% endif %}
+          {% if not proposal.risk_profile_override and not proposal.portfolio_override %}
+            <span style="color: #aaa;">—</span>
+          {% endif %}
+        </td>
+        <td>{{ proposal.updated_at|date:"Y-m-d H:i" }}</td>
+        <td class="action-cell">
+          <form method="POST" action="{% url 'load_proposal' proposal.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-load">Load</button>
+          </form>
+          <form method="POST" action="{% url 'delete_proposal' proposal.id %}" style="display:inline;"
+                onsubmit="return confirm('Delete proposal &quot;{{ proposal.label|escapejs }}&quot;? This cannot be undone.');">
+            {% csrf_token %}
+            <button type="submit" class="btn-delete">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No saved proposals yet.</p>
+    <p>Go to <a href="{% url 'choose_myself' %}">Choose Myself</a> and use the <strong>Save Proposal</strong> button to save your current inputs.</p>
+  </div>
+  {% endif %}
+
+  <a href="{% url 'choose_myself' %}" class="back-link">&larr; Back to Choose Myself</a>
+</div>
+{% endblock %}

@@ -16,6 +16,12 @@
 </style>
 <h2>Choose Myself</h2>
 
+<p style="margin-bottom: 16px;">
+  <a href="{% url 'proposals_list' %}" style="color: #205098; font-size: 14px; text-decoration: none; font-weight: 500;">
+    &#128190; My Saved Proposals
+  </a>
+</p>
+
 <form id="strategy-selection-form" method="POST" action="{% url 'choose_myself_performance' %}">
   {% csrf_token %}
     
@@ -307,6 +313,22 @@
   </div>
 </div>
 <button type="submit" id="create-ips-button" style="display: none; background-color: #205098; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Create the IPS</button>
+</form>
+
+<!-- Save Proposal form -->
+<form id="save-proposal-form" method="POST" action="{% url 'save_proposal' %}" style="display: none; margin-top: 16px;">
+  {% csrf_token %}
+  <input type="hidden" id="sp-risk-profile-override" name="risk_profile_override" value="">
+  <input type="hidden" id="sp-portfolio-override" name="portfolio_override" value="">
+  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+    <input type="text" name="label" id="sp-label"
+           placeholder="e.g. John Smith — RRSP"
+           style="padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 280px;">
+    <button type="submit" id="save-proposal-button"
+            style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+      Save Proposal
+    </button>
+  </div>
 </form>
 
 
@@ -1434,6 +1456,34 @@ document.getElementById('generate-summary-button').addEventListener('click', fun
         alert('Error generating PDF summary. Please try again.');
     });
 });
+
+// ---------------------------------------------------------------------------
+// Save Proposal form — show/hide alongside create-ips-button, populate hidden
+// fields from the override dropdowns on submit.
+// ---------------------------------------------------------------------------
+(function () {
+  var saveForm = document.getElementById('save-proposal-form');
+  if (!saveForm) return;
+
+  // Mirror the visibility of create-ips-button for the save form.
+  var createBtn = document.getElementById('create-ips-button');
+  if (createBtn) {
+    var observer = new MutationObserver(function () {
+      saveForm.style.display = createBtn.style.display === 'block' ? 'block' : 'none';
+    });
+    observer.observe(createBtn, { attributes: true, attributeFilter: ['style'] });
+    // Set initial state
+    saveForm.style.display = createBtn.style.display === 'block' ? 'block' : 'none';
+  }
+
+  // On submit, copy override dropdown values into hidden inputs.
+  saveForm.addEventListener('submit', function () {
+    var riskSel = document.getElementById('risk-profile-override');
+    var portSel = document.getElementById('portfolio-override');
+    document.getElementById('sp-risk-profile-override').value = riskSel ? riskSel.value : '';
+    document.getElementById('sp-portfolio-override').value = portSel ? portSel.value : '';
+  });
+})();
 
 </script>
 {% endblock %}

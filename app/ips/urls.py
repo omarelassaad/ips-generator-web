@@ -15,6 +15,10 @@ from .views import (
     save_let_pm_choose_data,
     generate_ips_details_for_pm,
     generate_account_summary,
+    save_proposal,
+    proposals_list,
+    load_proposal,
+    delete_proposal,
 )
 
 urlpatterns = [
@@ -32,4 +36,8 @@ urlpatterns = [
     path('save_let_pm_choose_data/', save_let_pm_choose_data, name='save_let_pm_choose_data'),
     path('generate_ips_details_for_pm/', generate_ips_details_for_pm, name='generate_ips_details_for_pm'),
     path('generate_account_summary/', generate_account_summary, name='generate_account_summary'),
+    path('proposals/', proposals_list, name='proposals_list'),
+    path('proposals/save/', save_proposal, name='save_proposal'),
+    path('proposals/<int:proposal_id>/load/', load_proposal, name='load_proposal'),
+    path('proposals/<int:proposal_id>/delete/', delete_proposal, name='delete_proposal'),
 ]
