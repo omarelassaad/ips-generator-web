@@ -580,11 +580,24 @@ def generate_ips(request):
                 category_fee = category_min_fee + (category_fee_range * (1 - discount_percentage))
                 item['fee'] = f"{category_fee:.2f}%"
 
-        # Step 3: Calculate the natural blended fee, then apply override proportionally if active
-        natural_blended_fee = 0
+        # Step 3: Calculate blended fees separately for managed and CMS sleeves
+        managed_weighted_fee = 0
+        managed_weight_total = 0
+        cms_weighted_fee = 0
+
         for item in fee_transparency_data:
-            if item['fee'] != 'N/A':
-                natural_blended_fee += float(item['fee'].rstrip('%')) * (item['weight'] / 100)
+            if item['fee'] == 'N/A':
+                continue
+            fee_val = float(item['fee'].rstrip('%'))
+            w = item['weight']
+            if item['strategy'] == 'Client-directed Holdings ':
+                cms_weighted_fee += fee_val * w
+            else:
+                managed_weighted_fee += fee_val * w
+                managed_weight_total += w
+
+        # Natural managed blended fee (normalized to managed weight only)
+        natural_managed_fee = (managed_weighted_fee / managed_weight_total) if managed_weight_total > 0 else 0
 
         # Natural blended trailer — interpolated proportionally using the same discount as the fee
         if fee_range > 0:
@@ -595,17 +608,22 @@ def generate_ips(request):
         else:
             natural_blended_trailer = round(fee_data['max_trailer'], 2)
 
-        if override_active and natural_blended_fee > 0:
-            # Back-calculate a discount ratio so the weighted average hits the override target
-            discount_ratio = override_fee_amount / natural_blended_fee
+        if override_active and natural_managed_fee > 0:
+            # Scale managed sleeves proportionally so their blended rate hits the override target.
+            # CMS sleeve fee is untouched.
+            discount_ratio = override_fee_amount / natural_managed_fee
             for item in fee_transparency_data:
                 if item['fee'] != 'N/A' and item['strategy'] != 'Client-directed Holdings ':
                     adjusted = float(item['fee'].rstrip('%')) * discount_ratio
                     item['fee'] = f"{adjusted:.2f}%"
-            total_overall_fee = override_fee_amount
+            # Recalculate true overall blended fee (managed at override + CMS at original)
+            total_overall_fee = round(
+                (override_fee_amount * managed_weight_total + cms_weighted_fee) / 100,
+                2
+            )
             display_trailer = override_trailer_amount if override_trailer_amount is not None else natural_blended_trailer
         else:
-            total_overall_fee = round(natural_blended_fee, 2)
+            total_overall_fee = round((managed_weighted_fee + cms_weighted_fee) / 100, 2)
             display_trailer = natural_blended_trailer
 
         total_fee = sum(float(item['amount']) * float(item['fee'].rstrip('%')) / 100 for item in fee_transparency_data if item['fee'] != 'N/A')
