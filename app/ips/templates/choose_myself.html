@@ -1040,7 +1040,10 @@ document.getElementById('comments-box').addEventListener('input', function() {
   }
   if (special['CMS Fee']) {
     const cf = parseFloat(special['CMS Fee'].amount) || 0;
-    if (cf > 0) document.getElementById('cms_fee').value = cf;
+    if (cf > 0) {
+      document.getElementById('cms_fee').value = cf;
+      handleCmsFeeInput();
+    }
   }
   if (special['IPS Changes']) {
     document.getElementById('ips-changes-box').value = special['IPS Changes'].strategy || '';
