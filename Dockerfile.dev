@@ -1,0 +1,41 @@
+FROM python:3.12-slim-trixie
+
+WORKDIR /usr/src/app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV DEBIAN_FRONTEND noninteractive
+
+# Install GTK3 (needed for WeasyPrint PDF generation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgtk-3-0 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf-xlib-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies
+RUN pip install --upgrade pip
+COPY ./app/requirements.dev.txt .
+RUN pip install -r requirements.dev.txt
+
+# Create non-root user
+RUN useradd --user-group --system --create-home --no-log-init app
+
+# Copy project
+COPY ./app .
+COPY .env.dev /usr/src/app/ips_generator/.env
+
+# Pre-create media subdirectories
+RUN mkdir -p /usr/src/app/media/returns \
+    && mkdir -p /usr/src/app/media/fact_sheets \
+    && mkdir -p /usr/src/app/media/site_documents
+RUN chown app /usr/src/app/ -R
+
+RUN sed -i 's/\r//' /usr/src/app/start.sh && chmod +x /usr/src/app/start.sh
+
+USER app
+
+ENTRYPOINT ["/bin/sh", "-c", "/usr/src/app/start.sh"]
