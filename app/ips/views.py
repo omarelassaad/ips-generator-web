@@ -800,6 +800,8 @@ def generate_ips(request):
                     user=request.user, account_owner='Portfolio Override').first()
                 _portfolio_override = _po_rec.strategy if _po_rec and _po_rec.strategy else None
 
+            questionnaire_risk_rating = risk_rating  # preserve original before any override
+
             if _risk_profile_override:
                 risk_rating = _risk_profile_override
 
@@ -809,7 +811,41 @@ def generate_ips(request):
                 except Exception:
                     pass
 
-            risk_rating_paragraph = RISK_PROFILES.get(risk_rating, "")
+            # Detect override direction and build appropriate paragraph
+            RISK_ORDER = ['Low Risk', 'Low Medium Risk', 'Medium Risk', 'Medium High Risk', 'High Risk', 'Very High Risk']
+            RISK_TO_PORTFOLIO = {
+                'Low Risk': 'Income',
+                'Low Medium Risk': 'Income & Growth',
+                'Medium Risk': 'Balanced',
+                'Medium High Risk': 'Growth & Income',
+                'High Risk': 'Growth',
+                'Very High Risk': 'Maximum Growth',
+            }
+
+            risk_override_active = bool(_risk_profile_override and _risk_profile_override != questionnaire_risk_rating)
+            risk_override_direction = None
+
+            if risk_override_active:
+                q_idx = RISK_ORDER.index(questionnaire_risk_rating) if questionnaire_risk_rating in RISK_ORDER else -1
+                o_idx = RISK_ORDER.index(risk_rating) if risk_rating in RISK_ORDER else -1
+                if q_idx >= 0 and o_idx >= 0:
+                    risk_override_direction = 'downward' if o_idx < q_idx else 'upward'
+
+            if risk_override_direction:
+                category = f'risk_override_{risk_override_direction}'
+                override_block = IPSCopyBlock.objects.filter(category=category, key='default').first()
+                override_portfolio = _portfolio_override or RISK_TO_PORTFOLIO.get(risk_rating, '')
+                if override_block:
+                    risk_rating_paragraph = (
+                        override_block.body
+                        .replace('{questionnaire_result}', questionnaire_risk_rating)
+                        .replace('{override_result}', risk_rating)
+                        .replace('{override_portfolio}', override_portfolio)
+                    )
+                else:
+                    risk_rating_paragraph = RISK_PROFILES.get(risk_rating, "")
+            else:
+                risk_rating_paragraph = RISK_PROFILES.get(risk_rating, "")
 
             asset_mix_descriptions = {
                 "Income": "The Income asset mix is designed to generate steady returns through investments primarily in bonds and fixed-income securities, minimal equities.",
@@ -1024,6 +1060,9 @@ def generate_ips(request):
             'investment_advisor_name': investment_advisor_name,
             'logo_url': logo_url,
             'risk_rating': risk_rating,
+            'questionnaire_risk_rating': questionnaire_risk_rating,
+            'risk_override_active': risk_override_active,
+            'risk_override_direction': risk_override_direction,
             'risk_rating_paragraph': risk_rating_paragraph,
             'asset_mix_title': asset_mix_title,
             'recommended_asset_mix_paragraph': recommended_asset_mix_paragraph,

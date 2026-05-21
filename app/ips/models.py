@@ -169,6 +169,8 @@ class PortfolioProfile(models.Model):
 class IPSCopyBlock(models.Model):
     CATEGORY_CHOICES = [
         ('risk_profile',              'Risk Profile'),
+        ('risk_override_downward',    'Risk Override – Downward'),
+        ('risk_override_upward',      'Risk Override – Upward'),
         ('investment_goal',           'Investment Goal'),
         ('time_horizon',              'Time Horizon'),
         ('liquidity_needs',           'Liquidity Needs'),

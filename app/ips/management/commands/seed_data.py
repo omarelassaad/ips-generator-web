@@ -278,6 +278,37 @@ COPY_BLOCKS = [
         "title": "Emphasis on Responsible Investing",
         "body": "You have indicated a preference for an all responsible investing portfolio, if possible. This means that your investment strategy will prioritize selecting investments that meet certain environmental, social, and governance (ESG) criteria. The portfolio will aim to align with your values by investing in companies and funds that are committed to sustainable and ethical practices. This approach reflects your commitment to making a positive impact through your investment choices while pursuing your financial goals.",
     },
+
+    # ── Risk Override – Downward ──────────────────────────────────────────────
+    {
+        "category": "risk_override_downward", "key": "default", "order": 1,
+        "title": "Risk Profile Override – Downward Adjustment",
+        "body": (
+            "Based on your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is {questionnaire_result}. "
+            "However, following a review of your personal preferences and investment objectives, you have expressed a preference for a more conservative approach than your questionnaire result indicates. "
+            "As a result, your portfolio will be constructed in accordance with a {override_result} profile. "
+            "Investors with this profile prioritize the preservation of capital and are willing to accept lower potential returns in exchange for greater stability. "
+            "They are generally more comfortable with modest, stable returns and less comfortable with significant fluctuations in portfolio value.\n\n"
+            "This downward adjustment has been made at your request and with your full understanding that your assessed risk capacity and tolerance support a {questionnaire_result} profile. "
+            "A '{override_portfolio}' asset mix is therefore considered appropriate and will be applied to your portfolio accordingly.\n\n"
+            "<strong>Client Acknowledgment:</strong> By signing this IPS, you confirm that you have requested this adjustment, understand the implications of a more conservative investment approach, and agree to the investment strategy outlined above."
+        ),
+    },
+
+    # ── Risk Override – Upward ────────────────────────────────────────────────
+    {
+        "category": "risk_override_upward", "key": "default", "order": 1,
+        "title": "Risk Profile Override – Upward Adjustment",
+        "body": (
+            "Based on your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is {questionnaire_result}. "
+            "However, following a review of your personal preferences and investment objectives, you have expressed a preference for a more growth-oriented approach than your questionnaire result indicates. "
+            "After discussion with your advisor, and taking into consideration factors beyond the scope of the questionnaire — including your broader financial situation, investment experience, and long-term objectives — your portfolio will be constructed in accordance with a {override_result} profile. "
+            "Investors with this profile seek strong long-term capital growth and are comfortable accepting significant fluctuations in portfolio value in pursuit of higher returns.\n\n"
+            "This upward adjustment has been made at your request and with your full understanding that your portfolio may experience greater volatility than what your assessed risk profile would typically suggest. "
+            "A '{override_portfolio}' asset mix is therefore considered appropriate and will be applied to your portfolio accordingly.\n\n"
+            "<strong>Client Acknowledgment:</strong> By signing this IPS, you confirm that you have requested this adjustment, that your advisor has discussed the associated risks with you, that you understand your portfolio may experience a higher degree of volatility than your assessed risk profile would indicate, and that you agree to the investment approach outlined above."
+        ),
+    },
 ]
 
 
