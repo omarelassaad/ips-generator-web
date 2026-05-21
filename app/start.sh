@@ -4,8 +4,12 @@ mkdir -p /usr/src/app/media/returns
 mkdir -p /usr/src/app/media/fact_sheets
 mkdir -p /usr/src/app/media/site_documents
 
-# Fake migrations 0001-0004 (tables created by DBA via create_ips_tables.sql).
-# Migrations 0005+ run normally — the service account now has CREATE TABLE rights.
-python manage.py migrate ips 0004 --fake
-python manage.py migrate
+# For SQLite (local dev): run all migrations normally.
+# For Azure SQL (production): fake 0001-0004 since DBA created those tables via SQL script.
+if [ "$USE_SQLITE" = "True" ]; then
+    python manage.py migrate
+else
+    python manage.py migrate ips 0004 --fake
+    python manage.py migrate
+fi
 python manage.py runserver 0.0.0.0:8000

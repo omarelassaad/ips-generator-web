@@ -113,24 +113,34 @@ TEMPLATES = [
 WSGI_APPLICATION = "ips_generator.wsgi.application"
 
 # Database configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'mssql',
-        'NAME':  env('SQL_DATABASE_NAME'),
-        'HOST': env('SQL_SERVER_NAME'),
-        'USER':  env('SQL_USERNAME'),
-        'PASSWORD':  env('SQL_PASSWORD'),
-        'PORT': '1433',
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-        },
-    }
-}
+USE_SQLITE = os.getenv("USE_SQLITE", "False") == "True"
 
-if not DEBUG:
-    DATABASES['default']['OPTIONS'] = {
-        'sslmode': 'require'
+if USE_SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'mssql',
+            'NAME':  env('SQL_DATABASE_NAME'),
+            'HOST': env('SQL_SERVER_NAME'),
+            'USER':  env('SQL_USERNAME'),
+            'PASSWORD':  env('SQL_PASSWORD'),
+            'PORT': '1433',
+            'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',
+            },
+        }
+    }
+
+    if not DEBUG:
+        DATABASES['default']['OPTIONS'] = {
+            'sslmode': 'require'
+        }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
