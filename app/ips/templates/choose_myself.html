@@ -861,7 +861,8 @@ function updateFeeRangeAndTrailer() {
       const desiredRate = parseFloat(desiredRateInput.value);
 
       if (isDesiredRateValid()) {
-        const trailerRate = desiredRate - (max_fee - max_trailer);
+        const discount_pct = (max_fee - min_fee) > 0 ? (max_fee - desiredRate) / (max_fee - min_fee) : 0;
+        const trailerRate = max_trailer - (discount_pct * (max_trailer - min_trailer));
         trailerText.textContent = `The trailer will be approximately ${trailerRate.toFixed(2)}%.`;
         trailerText.style.display = 'block';
 
