@@ -567,12 +567,10 @@ def generate_ips(request):
                 'weight': (float(holding['amount']) / grand_total * 100) if grand_total else 0,
             })
 
-        # Step 2: Calculate fees for each item in fee_transparency_data
+        # Step 2: Calculate fees for each item in fee_transparency_data (always use normal logic first)
         for item in fee_transparency_data:
             if item['strategy'] == 'Client-directed Holdings ':
                 item['fee'] = f"{float(cms_fee.amount):.2f}%" if cms_fee else "N/A"
-            elif override_active:
-                item['fee'] = f"{override_fee_amount:.2f}%"
             else:
                 category = get_strategy_fee_map().get(item['strategy'], "Equity & Balanced")
                 category_fee_data = fee_data['category_fees'].get(category, {})
@@ -582,18 +580,22 @@ def generate_ips(request):
                 category_fee = category_min_fee + (category_fee_range * (1 - discount_percentage))
                 item['fee'] = f"{category_fee:.2f}%"
 
-        # Step 3: Calculate the total weighted fee
-        if override_active:
+        # Step 3: Calculate the natural blended fee, then apply override proportionally if active
+        natural_blended_fee = 0
+        for item in fee_transparency_data:
+            if item['fee'] != 'N/A':
+                natural_blended_fee += float(item['fee'].rstrip('%')) * (item['weight'] / 100)
+
+        if override_active and natural_blended_fee > 0:
+            # Back-calculate a discount ratio so the weighted average hits the override target
+            discount_ratio = override_fee_amount / natural_blended_fee
+            for item in fee_transparency_data:
+                if item['fee'] != 'N/A' and item['strategy'] != 'Client-directed Holdings ':
+                    adjusted = float(item['fee'].rstrip('%')) * discount_ratio
+                    item['fee'] = f"{adjusted:.2f}%"
             total_overall_fee = override_fee_amount
         else:
-            total_weighted_fee = 0
-            for item in fee_transparency_data:
-                if item['fee'] != 'N/A':
-                    fee_percentage = float(item['fee'].rstrip('%'))
-                    weight_percentage = item['weight'] / 100
-                    weighted_fee = fee_percentage * weight_percentage
-                    total_weighted_fee += weighted_fee
-            total_overall_fee = round(total_weighted_fee, 2)
+            total_overall_fee = round(natural_blended_fee, 2)
 
         total_fee = sum(float(item['amount']) * float(item['fee'].rstrip('%')) / 100 for item in fee_transparency_data if item['fee'] != 'N/A')
         total_fee_percentage = (total_fee / grand_total) * 100 if grand_total > 0 else 0
