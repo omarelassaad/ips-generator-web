@@ -980,14 +980,42 @@ document.getElementById('comments-box').addEventListener('input', function() {
         ? '$' + cmhAmt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
         : '';
     });
+  } else {
+    // Explicitly mark "No" so the CMH section stays collapsed
+    document.getElementById('cmh-no').checked = true;
   }
 
-  // Recalculate totals and show action buttons
+  // ── IPS type (New vs Existing) ────────────────────────────────────────────
+  // Infer from whether IPS changes text was saved. Not stored explicitly.
+  const hasIpsChanges = !!(special['IPS Changes'] && (special['IPS Changes'].strategy || '').trim());
+  if (hasIpsChanges) {
+    const ipsExisting = document.getElementById('ips-existing');
+    if (ipsExisting) ipsExisting.checked = true;
+    document.getElementById('ips-changes-section').style.display = 'block';
+  } else {
+    const ipsNew = document.getElementById('ips-new');
+    if (ipsNew) ipsNew.checked = true;
+  }
+
+  // ── Reveal the sections the user already completed ────────────────────────
+  // Do NOT call calculateWeights() here — it calls isDesiredRateValid() which
+  // parses the fee-range-text element; that text is empty until the async fee
+  // fetch completes, so the regex returns null and causes a crash that stops
+  // showCreateIpsButton() from ever running.
   calculatePercentages();
-  calculateWeights();
+
+  document.getElementById('ips-type-section').style.display = 'block';
+  document.getElementById('client-managed-holdings-section').style.display = 'block';
+  document.getElementById('proceed-button').style.display = 'block';
+
+  // Trigger the async fee calculation. The callback calls canProceed() — now
+  // that ips_type is set above, canProceed() will return true and the callback
+  // will leave the Create IPS button visible instead of hiding it.
   updateFeeRangeAndTrailer();
+
+  // Show Create IPS and Save Proposal buttons immediately so the user can act
+  // without having to re-click through every step.
   showCreateIpsButton();
-  document.getElementById('see-performance-button').style.display = 'block';
 })();
 
 document.addEventListener('DOMContentLoaded', function() {
