@@ -464,6 +464,9 @@ def generate_ips_questionnaire_responses(request):
 
 @login_required
 def generate_ips(request):
+    # Always load fresh (cached) performance data per request so uploads are
+    # picked up without requiring a container restart.
+    performance_data = load_performance_data()
     try:
         # Retrieve account details from the database
         account_details = list(ChooseMyselfData.objects.filter(user=request.user).exclude(
@@ -909,17 +912,20 @@ def generate_ips(request):
         # Prepare the calendar year returns table
         calendar_year_table = []
         years = ['2025', '2024', '2023', '2022', '2021', '2020', '2019']
-        for strategy, weight in strategy_weights.items():
-            if strategy in performance_data['Strategy'].values:
-                row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
-                row['Weight'] = f"{weight:.1f}%"
-                # Format the values with percentage signs and two decimal places
-                for year in years:
-                    row[year] = f"{float(row.get(f'{year}a', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}a')) and row.get(f'{year}a') != 'N/A' else 'N/A'
-                    row[f"{year}b"] = f"{float(row.get(f'{year}b', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}b')) and row.get(f'{year}b') != 'N/A' else 'N/A'
-                calendar_year_table.append(row)
-            else:
-                logger.warning(f"Strategy {strategy} not found in performance data.")
+        if performance_data is not None and not performance_data.empty:
+            for strategy, weight in strategy_weights.items():
+                if strategy in performance_data['Strategy'].values:
+                    row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
+                    row['Weight'] = f"{weight:.1f}%"
+                    # Format the values with percentage signs and two decimal places
+                    for year in years:
+                        row[year] = f"{float(row.get(f'{year}a', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}a')) and row.get(f'{year}a') != 'N/A' else 'N/A'
+                        row[f"{year}b"] = f"{float(row.get(f'{year}b', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}b')) and row.get(f'{year}b') != 'N/A' else 'N/A'
+                    calendar_year_table.append(row)
+                else:
+                    logger.warning(f"Strategy {strategy} not found in performance data.")
+        else:
+            logger.warning("No returns data uploaded — calendar year table will be empty.")
 
         # Calculate the portfolio and benchmark returns for calendar years
         calendar_year_portfolio_return = {year: 0 for year in years}
@@ -1246,6 +1252,9 @@ def get_target_weights(request):
 
 @login_required
 def choose_myself_performance(request):
+    # Always load fresh (cached) performance data per request so uploads are
+    # picked up without requiring a container restart.
+    performance_data = load_performance_data()
     if request.method == 'POST':
         amounts = request.POST.getlist('amount')
         strategies = request.POST.getlist('strategy')
@@ -1316,17 +1325,20 @@ def choose_myself_performance(request):
         # Prepare the calendar year returns table
         calendar_year_table = []
         years = ['2025', '2024', '2023', '2022', '2021', '2020', '2019']
-        for strategy, weight in strategy_weights.items():
-            if strategy in performance_data['Strategy'].values:
-                row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
-                row['Weight'] = f"{weight:.1f}%"
-                # Format the values with percentage signs and two decimal places
-                for year in years:
-                    row[year] = f"{float(row.get(f'{year}a', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}a')) and row.get(f'{year}a') != 'N/A' else 'N/A'
-                    row[f"{year}b"] = f"{float(row.get(f'{year}b', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}b')) and row.get(f'{year}b') != 'N/A' else 'N/A'
-                calendar_year_table.append(row)
-            else:
-                logger.warning(f"Strategy {strategy} not found in performance data.")
+        if performance_data is not None and not performance_data.empty:
+            for strategy, weight in strategy_weights.items():
+                if strategy in performance_data['Strategy'].values:
+                    row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
+                    row['Weight'] = f"{weight:.1f}%"
+                    # Format the values with percentage signs and two decimal places
+                    for year in years:
+                        row[year] = f"{float(row.get(f'{year}a', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}a')) and row.get(f'{year}a') != 'N/A' else 'N/A'
+                        row[f"{year}b"] = f"{float(row.get(f'{year}b', 0)) * 100:.2f}%" if pd.notnull(row.get(f'{year}b')) and row.get(f'{year}b') != 'N/A' else 'N/A'
+                    calendar_year_table.append(row)
+                else:
+                    logger.warning(f"Strategy {strategy} not found in performance data.")
+        else:
+            logger.warning("No returns data uploaded — calendar year table will be empty.")
 
         # Calculate the portfolio and benchmark returns for calendar years
         calendar_year_portfolio_return = {year: 0 for year in years}
