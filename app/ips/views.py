@@ -386,6 +386,12 @@ def questionnaire_view(request):
             risk_rating, portfolio_definition = get_risk_and_definition(portfolio_recommendation)
             user = request.user
             QuestionnaireResponse.objects.filter(user=user).delete()
+            # Fresh questionnaire → clear any previous Choose Myself data so
+            # the Choose Myself page starts blank instead of restoring the
+            # last saved proposal.
+            ChooseMyselfData.objects.filter(user=user).delete()
+            request.session.pop('loaded_proposal_id', None)
+            request.session.pop('loaded_proposal_label', None)
             for field, value in form.cleaned_data.items():
                 if field == 'investment_goals':
                     for goal in value:
@@ -470,7 +476,7 @@ def generate_ips(request):
     try:
         # Retrieve account details from the database
         account_details = list(ChooseMyselfData.objects.filter(user=request.user).exclude(
-            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes', 'Risk Profile Override', 'Portfolio Override']
+            account_owner__in=['Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes', 'Risk Profile Override', 'Portfolio Override', 'Fact Sheets']
         ).values(
             'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
         ))
@@ -1527,6 +1533,16 @@ def save_choose_myself_data(request):
             account_type='Override',
             amount=0,
             strategy=data.get('portfolio_override', ''),
+            version_number=version_number,
+        )
+
+        # Save fact-sheet attachment preference
+        ChooseMyselfData.objects.create(
+            user=request.user,
+            account_owner='Fact Sheets',
+            account_type='Fact Sheets',
+            amount=0,
+            strategy=data.get('attach_fact_sheets', 'No'),
             version_number=version_number,
         )
 

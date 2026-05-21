@@ -926,7 +926,8 @@ document.getElementById('comments-box').addEventListener('input', function() {
 
   const SPECIAL = new Set([
     'Comments', 'Desired Rate', 'CMS Fee', 'IPS Changes',
-    'Risk Profile Override', 'Portfolio Override', 'Client-directed Holdings '
+    'Risk Profile Override', 'Portfolio Override', 'Client-directed Holdings ',
+    'Fact Sheets'
   ]);
 
   const accountRows = rows.filter(r => !SPECIAL.has(r.account_owner));
@@ -983,6 +984,11 @@ document.getElementById('comments-box').addEventListener('input', function() {
   }
   if (special['IPS Changes']) {
     document.getElementById('ips-changes-box').value = special['IPS Changes'].strategy || '';
+  }
+  if (special['Fact Sheets']) {
+    const fsVal = special['Fact Sheets'].strategy || 'No';
+    const fsRadio = document.querySelector(`input[name="attach_fact_sheets"][value="${fsVal}"]`);
+    if (fsRadio) fsRadio.checked = true;
   }
   if (special['Risk Profile Override']) {
     const sel = document.getElementById('risk-profile-override');
