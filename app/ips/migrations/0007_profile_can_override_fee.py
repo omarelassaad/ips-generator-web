@@ -1,4 +1,4 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -8,12 +8,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='profile',
-            name='can_override_fee',
-            field=models.BooleanField(
-                default=False,
-                help_text='Allow this user to override the calculated fee and trailer',
-            ),
+        migrations.RunSQL(
+            sql="ALTER TABLE ips_profile ADD can_override_fee BIT NOT NULL DEFAULT 0;",
+            reverse_sql="ALTER TABLE ips_profile DROP COLUMN can_override_fee;",
         ),
     ]
