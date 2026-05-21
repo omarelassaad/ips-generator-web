@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from ips.models import FeeCategory, FeeTier, Mandate, PortfolioProfile
+from ips.models import FeeCategory, FeeTier, Mandate, PortfolioProfile, IPSCopyBlock
 
 
 FEE_DATA = {
@@ -119,13 +119,176 @@ PORTFOLIO_PROFILES = [
 ]
 
 
+COPY_BLOCKS = [
+    # ── Risk Profiles ────────────────────────────────────────────────────────
+    {
+        "category": "risk_profile", "key": "Low Risk", "order": 1,
+        "title": "Low Risk",
+        "body": (
+            "Based on your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is Low Risk. "
+            "Investors with this profile generally prioritize capital preservation and prefer to minimize the possibility of losses. They tend to seek stability and security, even if it means accepting lower returns. "
+            "This risk profile is ideal for those who are more risk-averse or have a shorter investment horizon. Therefore, an 'Income' asset mix is considered suitable for clients with this risk profile."
+        ),
+    },
+    {
+        "category": "risk_profile", "key": "Low Medium Risk", "order": 2,
+        "title": "Low Medium Risk",
+        "body": (
+            "After reviewing your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is Low Medium Risk. "
+            "This profile suits investors who are comfortable with a moderate level of risk in exchange for the potential of modest returns. They seek a balance between preserving capital and achieving some growth. "
+            "These investors are prepared for minor fluctuations in their portfolio value. As such, an 'Income & Growth' asset mix is considered appropriate for clients with this risk profile."
+        ),
+    },
+    {
+        "category": "risk_profile", "key": "Medium Risk", "order": 3,
+        "title": "Medium Risk",
+        "body": (
+            "Based on your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is Medium Risk. "
+            "Investors with this profile are open to accepting some risk to achieve better returns. They understand that their portfolio may experience occasional fluctuations in value but are comfortable with this in pursuit of higher gains. "
+            "This risk profile is suitable for investors with a moderate investment horizon. Therefore, a 'Balanced' asset mix is considered appropriate for clients with this risk profile."
+        ),
+    },
+    {
+        "category": "risk_profile", "key": "Medium High Risk", "order": 4,
+        "title": "Medium High Risk",
+        "body": (
+            "After carefully considering your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is Medium High Risk. "
+            "Investors with this profile are willing to accept some fluctuations in their portfolio value in exchange for the potential of higher returns. While they aim for capital appreciation, they also value some income from their investments. "
+            "This risk profile is suitable for those with a longer investment horizon. Consequently, a 'Growth & Income' asset mix is considered appropriate for clients with this risk profile."
+        ),
+    },
+    {
+        "category": "risk_profile", "key": "High Risk", "order": 5,
+        "title": "High Risk",
+        "body": (
+            "Based on your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is High Risk. "
+            "Investors with this profile are comfortable with more significant fluctuations in their portfolio value in pursuit of high returns. They are prepared to accept considerable risk in exchange for the potential of substantial gains. "
+            "This risk profile is appropriate for those with a long-term investment horizon and a strong appetite for risk. Therefore, a 'Growth' asset mix is considered suitable for clients with this risk profile."
+        ),
+    },
+    {
+        "category": "risk_profile", "key": "Very High Risk", "order": 6,
+        "title": "Very High Risk",
+        "body": (
+            "After reviewing your responses to the risk questionnaire, which helps us understand your ability to withstand losses (risk capacity) and your willingness to take on risk (risk tolerance), we have determined that your risk profile is Very High Risk. "
+            "Investors with this profile are willing to accept significant volatility and fluctuations in their portfolio value for the potential of maximum returns. They focus on high-growth opportunities and are comfortable with a high level of risk. "
+            "This risk profile is most appropriate for those with a long-term investment horizon and a strong focus on growth. As such, a 'Maximum Growth' asset mix is considered appropriate for clients with this risk profile."
+        ),
+    },
+
+    # ── Investment Goals ──────────────────────────────────────────────────────
+    {
+        "category": "investment_goal", "key": "Education", "order": 1,
+        "title": "Education",
+        "body": "Investing for education encompasses funding private schooling, higher education, and advanced degrees for children and grandchildren. It may also involve endowing educational institutions or creating scholarship funds.",
+    },
+    {
+        "category": "investment_goal", "key": "Health care", "order": 2,
+        "title": "Health care",
+        "body": "Planning for healthcare needs includes ensuring access to high-quality medical care, funding long-term care insurance, and creating healthcare trusts. This ensures that you can maintain your health and well-being without financial constraints.",
+    },
+    {
+        "category": "investment_goal", "key": "Legacy planning", "order": 3,
+        "title": "Legacy planning",
+        "body": "Legacy planning involves creating trusts, establishing family offices, and planning for wealth transfer to future generations. This goal ensures that your wealth supports not just immediate family but also future generations and philanthropic causes.",
+    },
+    {
+        "category": "investment_goal", "key": "Major asset purchase", "order": 4,
+        "title": "Major asset purchase",
+        "body": "Planning for major asset purchases includes setting aside funds for significant acquisitions such as primary residences, vacation homes, luxury vehicles, or valuable collectibles. This goal involves strategic financial planning to ensure these purchases are aligned with your overall wealth strategy and do not impact long-term financial goals.",
+    },
+    {
+        "category": "investment_goal", "key": "Other", "order": 5,
+        "title": "Other",
+        "body": "Custom financial goals unique to your personal situation. This might include investments in private businesses, art collections, or supporting entrepreneurial activities within the family, all aligned with your overall wealth management strategy.",
+    },
+    {
+        "category": "investment_goal", "key": "Philanthropy", "order": 6,
+        "title": "Philanthropy",
+        "body": "Charitable giving involves creating philanthropic foundations, making endowments, and engaging in impactful giving. This goal includes tax-efficient giving and ensuring long-term sustainability of charitable efforts.",
+    },
+    {
+        "category": "investment_goal", "key": "Retirement", "order": 7,
+        "title": "Retirement",
+        "body": "Ensuring a comfortable and financially secure retirement involves creating a portfolio that supports your desired lifestyle. This includes planning for living expenses, luxury travel, healthcare, and legacy planning.",
+    },
+    {
+        "category": "investment_goal", "key": "Travel", "order": 8,
+        "title": "Travel",
+        "body": "Planning for travel involves setting aside funds for luxury travel, owning vacation properties, and participating in exclusive experiences. This ensures financial flexibility for both planned and spontaneous trips.",
+    },
+    {
+        "category": "investment_goal", "key": "Wealth accumulation", "order": 9,
+        "title": "Wealth accumulation",
+        "body": "Growing your assets involves strategic investments in various asset classes, including stocks, bonds, real estate, and alternative investments. The goal is to maximize returns while managing risk and preserving wealth.",
+    },
+
+    # ── Time Horizon ──────────────────────────────────────────────────────────
+    {
+        "category": "time_horizon", "key": "1", "order": 1,
+        "title": "Less than 1 year",
+        "body": "Your investment portfolio is designed for a very short-term time horizon of less than one year. This means that the focus will be on preserving capital and maintaining liquidity. The strategy will prioritize investments that are stable and easily convertible to cash to meet your immediate financial needs.",
+    },
+    {
+        "category": "time_horizon", "key": "2", "order": 2,
+        "title": "1-3 years",
+        "body": "Your investment portfolio is designed with a short-to-medium term time horizon of 1 to 3 years. The strategy will balance between stability and modest growth, emphasizing relatively safe investments that offer some potential for appreciation while minimizing risk. The approach aims to achieve a balance of stability and growth to meet your investment goals within the specified time frame.",
+    },
+    {
+        "category": "time_horizon", "key": "3", "order": 3,
+        "title": "3-5 years",
+        "body": "Your investment portfolio is structured with a medium-term time horizon of 3 to 5 years. This allows for a more balanced approach to risk and return, with the objective of achieving moderate growth while preserving capital. The strategy aims to strike a balance between stability and growth, aligning with your financial goals over this period.",
+    },
+    {
+        "category": "time_horizon", "key": "4", "order": 4,
+        "title": "5-10 years",
+        "body": "Your investment portfolio is tailored for a long-term time horizon of 5 to 10 years. With a focus on growth and capital appreciation, the investment strategy will be more aggressive. The approach will aim to optimize growth potential and manage risk, achieving significant appreciation over the extended period.",
+    },
+    {
+        "category": "time_horizon", "key": "5", "order": 5,
+        "title": "More than 10 years",
+        "body": "Your investment portfolio is planned with a long-term time horizon of more than 10 years. This extended duration allows for a more aggressive growth strategy, focusing on maximizing capital appreciation over the long run. The approach will take advantage of the compounding growth potential over the long term, aligning with your long-term financial objectives and risk tolerance.",
+    },
+
+    # ── Liquidity Needs ───────────────────────────────────────────────────────
+    {
+        "category": "liquidity_needs", "key": "1", "order": 1,
+        "title": "Very Important",
+        "body": "You have indicated that having access to cash quickly is very important for your investment strategy. This suggests that you may need to respond rapidly to emergencies or opportunities. Therefore, your investment portfolio will prioritize liquidity to ensure that funds are readily available when needed, without significant delays or penalties. This approach will help you maintain the flexibility required to meet your short-term financial needs and unexpected expenses.",
+    },
+    {
+        "category": "liquidity_needs", "key": "2", "order": 2,
+        "title": "Somewhat Important",
+        "body": "You have indicated that having some access to cash is somewhat important, but you can afford to wait for a short period. This implies a balance between liquidity and potential returns. Your investment portfolio will be structured to provide moderate liquidity, allowing for access to funds within a reasonable timeframe while still aiming for growth. This approach will help you meet occasional cash needs without sacrificing long-term investment goals.",
+    },
+    {
+        "category": "liquidity_needs", "key": "3", "order": 3,
+        "title": "Not Important",
+        "body": "You have indicated that having access to cash quickly is not important for your investment strategy. This suggests that you are comfortable with long-term investments and do not anticipate needing quick access to cash. Therefore, your investment portfolio can focus on growth and capital appreciation, with less emphasis on liquidity. This approach allows for potentially higher returns over the long term, aligning with your comfort level and investment horizon.",
+    },
+
+    # ── Responsible Investing ─────────────────────────────────────────────────
+    {
+        "category": "responsible_investing", "key": "Neutral", "order": 1,
+        "title": "Neutral",
+        "body": "You have indicated a neutral stance with no specific bias towards responsible investing. This means that your investment strategy will focus on optimizing returns without particular consideration for environmental, social, and governance (ESG) criteria. The portfolio will be designed to achieve your financial objectives based on traditional investment principles, ensuring that performance and risk management are prioritized according to your overall investment goals.",
+    },
+    {
+        "category": "responsible_investing", "key": "RI", "order": 2,
+        "title": "Emphasis on Responsible Investing",
+        "body": "You have indicated a preference for an all responsible investing portfolio, if possible. This means that your investment strategy will prioritize selecting investments that meet certain environmental, social, and governance (ESG) criteria. The portfolio will aim to align with your values by investing in companies and funds that are committed to sustainable and ethical practices. This approach reflects your commitment to making a positive impact through your investment choices while pursuing your financial goals.",
+    },
+]
+
+
 class Command(BaseCommand):
-    help = 'Seed fee categories, fee tiers, mandates, and portfolio profiles'
+    help = 'Seed fee categories, fee tiers, mandates, portfolio profiles, and IPS copy blocks'
 
     def handle(self, *args, **kwargs):
         self.seed_fee_categories()
         self.seed_mandates()
         self.seed_portfolio_profiles()
+        self.seed_copy_blocks()
         self.stdout.write(self.style.SUCCESS('Seed data loaded successfully.'))
 
     def seed_fee_categories(self):
@@ -189,3 +352,16 @@ class Command(BaseCommand):
                 }
             )
         self.stdout.write('  Portfolio profiles: done')
+
+    def seed_copy_blocks(self):
+        for b in COPY_BLOCKS:
+            IPSCopyBlock.objects.update_or_create(
+                category=b['category'],
+                key=b['key'],
+                defaults={
+                    'title': b['title'],
+                    'body':  b['body'],
+                    'order': b['order'],
+                }
+            )
+        self.stdout.write('  IPS copy blocks: done')
