@@ -174,6 +174,29 @@ BEGIN
 END
 GO
 
+-- ── ips_savedproposal ────────────────────────────────────
+IF OBJECT_ID(N'ips_savedproposal', N'U') IS NULL
+BEGIN
+    CREATE TABLE ips_savedproposal (
+        id                    bigint        IDENTITY(1,1) NOT NULL,
+        user_id               bigint                      NOT NULL,
+        label                 nvarchar(200)               NOT NULL,
+        data                  nvarchar(max)               NOT NULL,
+        risk_profile_override nvarchar(100)               NOT NULL DEFAULT '',
+        portfolio_override    nvarchar(100)               NOT NULL DEFAULT '',
+        created_at            datetime2                   NOT NULL DEFAULT GETUTCDATE(),
+        updated_at            datetime2                   NOT NULL DEFAULT GETUTCDATE(),
+        CONSTRAINT PK_ips_savedproposal      PRIMARY KEY (id),
+        CONSTRAINT FK_ips_savedproposal_user FOREIGN KEY (user_id)
+            REFERENCES auth_user(id)
+    )
+    PRINT 'Created ips_savedproposal'
+END
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('ips_savedproposal') AND name = 'ips_savedproposal_user_id_idx')
+    CREATE INDEX ips_savedproposal_user_id_idx ON ips_savedproposal (user_id)
+GO
+
 -- ── django_migrations bookkeeping ────────────────────────
 -- Tell Django these migrations are done so it doesn't try to run them.
 -- Adjust the app column if your Django app label differs from 'ips'.
@@ -188,6 +211,9 @@ IF NOT EXISTS (SELECT 1 FROM django_migrations WHERE app='ips' AND name='0003_fi
 
 IF NOT EXISTS (SELECT 1 FROM django_migrations WHERE app='ips' AND name='0004_ensure_admin_tables')
     INSERT INTO django_migrations (app, name, applied) VALUES ('ips','0004_ensure_admin_tables', GETUTCDATE())
+
+IF NOT EXISTS (SELECT 1 FROM django_migrations WHERE app='ips' AND name='0005_savedproposal')
+    INSERT INTO django_migrations (app, name, applied) VALUES ('ips','0005_savedproposal', GETUTCDATE())
 
 PRINT 'django_migrations records inserted'
 GO
