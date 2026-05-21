@@ -1189,11 +1189,14 @@ def choose_myself_view(request):
     else:
         form = ChooseMyselfForm()
 
-    account_owners = QuestionnaireResponse.objects.filter(user=request.user, question='account_owner').values_list('answer', flat=True)
-    account_types = QuestionnaireResponse.objects.filter(user=request.user, question='account_type').values_list('answer', flat=True)
-
-    # Combine account owner and account type
-    combined_accounts = [f"{owner} - {atype}" for owner, atype in zip(account_owners, account_types)]
+    # Build combined account list from saved ChooseMyselfData rows (the actual accounts entered)
+    EXCLUDED = {'Client-directed Holdings ', 'Comments', 'Desired Rate', 'CMS Fee',
+                'IPS Changes', 'Risk Profile Override', 'Portfolio Override',
+                'Fact Sheets', 'Fee Override', 'Fee Override Trailer'}
+    saved_rows = ChooseMyselfData.objects.filter(user=request.user).exclude(account_owner__in=EXCLUDED)
+    combined_accounts = sorted(set(
+        f"{r.account_owner} - {r.account_type}" for r in saved_rows
+    ))
 
     # Load saved overrides for risk profile and portfolio
     rp_rec = ChooseMyselfData.objects.filter(user=request.user, account_owner='Risk Profile Override').first()
