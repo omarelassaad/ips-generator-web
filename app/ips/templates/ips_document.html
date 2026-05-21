@@ -447,7 +447,7 @@
             {% else %}
                 <h3 class="sub-heading">Risk rating: {{ risk_rating }}</h3>
             {% endif %}
-            <p>{{ risk_rating_paragraph }}</p>
+            <p>{{ risk_rating_paragraph|safe }}</p>
             <h3 class="sub-heading">Recommended asset mix: {{ asset_mix_title }}</h3>
             <p>{{ recommended_asset_mix_paragraph }}</p>
         

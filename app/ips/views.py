@@ -834,7 +834,7 @@ def generate_ips(request):
             if risk_override_direction:
                 category = f'risk_override_{risk_override_direction}'
                 override_block = IPSCopyBlock.objects.filter(category=category, key='default').first()
-                override_portfolio = _portfolio_override or RISK_TO_PORTFOLIO.get(risk_rating, '')
+                override_portfolio = RISK_TO_PORTFOLIO.get(risk_rating, _portfolio_override or '')
                 if override_block:
                     risk_rating_paragraph = (
                         override_block.body
