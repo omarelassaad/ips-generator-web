@@ -31,7 +31,7 @@ def create_savedproposal(apps, schema_editor):
             BEGIN
                 CREATE TABLE ips_savedproposal (
                     id                    bigint        IDENTITY(1,1) NOT NULL,
-                    user_id               bigint                      NOT NULL,
+                    user_id               int                         NOT NULL,
                     label                 nvarchar(200)               NOT NULL,
                     data                  nvarchar(max)               NOT NULL,
                     risk_profile_override nvarchar(100)               NOT NULL DEFAULT '',
