@@ -868,17 +868,20 @@ def generate_ips(request):
 
         # Prepare the performance table
         performance_table = []
-        for strategy, weight in strategy_weights.items():
-            if strategy in performance_data['Strategy'].values:
-                row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
-                row['Weight'] = f"{weight:.1f}%"
-                # Format the values with percentage signs and two decimal places
-                for period in ['1M', '3M', 'YTD', '1YR', '3YR', '5YR', '10YR', 'SI']:
-                    row[period] = f"{float(row[period]) * 100:.2f}%" if pd.notnull(row[period]) else 'N/A'
-                    row[f"{period}b"] = f"{float(row[f'{period}b']) * 100:.2f}%" if pd.notnull(row[f"{period}b"]) else 'N/A'
-                performance_table.append(row)
-            else:
-                logger.warning(f"Strategy {strategy} not found in performance data.")
+        if performance_data is not None and not performance_data.empty:
+            for strategy, weight in strategy_weights.items():
+                if strategy in performance_data['Strategy'].values:
+                    row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
+                    row['Weight'] = f"{weight:.1f}%"
+                    # Format the values with percentage signs and two decimal places
+                    for period in ['1M', '3M', 'YTD', '1YR', '3YR', '5YR', '10YR', 'SI']:
+                        row[period] = f"{float(row[period]) * 100:.2f}%" if pd.notnull(row[period]) else 'N/A'
+                        row[f"{period}b"] = f"{float(row[f'{period}b']) * 100:.2f}%" if pd.notnull(row[f"{period}b"]) else 'N/A'
+                    performance_table.append(row)
+                else:
+                    logger.warning(f"Strategy {strategy} not found in performance data.")
+        else:
+            logger.warning("No returns data uploaded — performance table will be empty.")
 
         # Calculate the portfolio and benchmark returns
         portfolio_return = {}
@@ -1272,17 +1275,20 @@ def choose_myself_performance(request):
 
         # Prepare the performance table
         performance_table = []
-        for strategy, weight in strategy_weights.items():
-            if strategy in performance_data['Strategy'].values:
-                row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
-                row['Weight'] = f"{weight:.1f}%"
-                # Format the values with percentage signs and two decimal places
-                for period in ['1M', '3M', 'YTD', '1YR', '3YR', '5YR', '10YR', 'SI']:
-                    row[period] = f"{float(row[period]) * 100:.2f}%" if pd.notnull(row[period]) else 'N/A'
-                    row[f"{period}b"] = f"{float(row[f'{period}b']) * 100:.2f}%" if pd.notnull(row[f"{period}b"]) else 'N/A'
-                performance_table.append(row)
-            else:
-                logger.warning(f"Strategy {strategy} not found in performance data.")
+        if performance_data is not None and not performance_data.empty:
+            for strategy, weight in strategy_weights.items():
+                if strategy in performance_data['Strategy'].values:
+                    row = performance_data[performance_data['Strategy'] == strategy].iloc[0].to_dict()
+                    row['Weight'] = f"{weight:.1f}%"
+                    # Format the values with percentage signs and two decimal places
+                    for period in ['1M', '3M', 'YTD', '1YR', '3YR', '5YR', '10YR', 'SI']:
+                        row[period] = f"{float(row[period]) * 100:.2f}%" if pd.notnull(row[period]) else 'N/A'
+                        row[f"{period}b"] = f"{float(row[f'{period}b']) * 100:.2f}%" if pd.notnull(row[f"{period}b"]) else 'N/A'
+                    performance_table.append(row)
+                else:
+                    logger.warning(f"Strategy {strategy} not found in performance data.")
+        else:
+            logger.warning("No returns data uploaded — performance table will be empty.")
 
         # Calculate the portfolio and benchmark returns
         portfolio_return = {}
