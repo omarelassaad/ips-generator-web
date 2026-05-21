@@ -10,8 +10,5 @@ services:
     volumes:
       - media_files:/usr/src/app/media
 
-  redis:
-    image: redis:7-alpine
-
 volumes:
   media_files:
