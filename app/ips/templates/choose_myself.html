@@ -16,12 +16,6 @@
 </style>
 <h2>Choose Myself</h2>
 
-<p style="margin-bottom: 16px;">
-  <a href="{% url 'proposals_list' %}" style="color: #205098; font-size: 14px; text-decoration: none; font-weight: 500;">
-    &#128190; My Saved Proposals
-  </a>
-</p>
-
 <form id="strategy-selection-form" method="POST" action="{% url 'choose_myself_performance' %}">
   {% csrf_token %}
     

@@ -23,12 +23,13 @@
             <ul>
                 <li><a href="{% url 'questionnaire' %}"> | New Questionnaire | </a></li>
                 <li><a href="{% url 'generate_ips_questionnaire_responses' %}" target="_blank" id="questionnaire-summary-link">| Last Completed Questionnaire Summary |</a></li>
-                <li><a href="{% url 'register' %}">| Register |</a></li>
                 {% if user.is_authenticated %}
+                    <li><a href="{% url 'proposals_list' %}">| My Saved Proposals |</a></li>
                     <li><a href="{% url 'logout' %}">| Logout |</a></li>
                 {% else %}
                     <li><a href="{% url 'login' %}">| Login |</a></li>
                 {% endif %}
+                <li><a href="{% url 'register' %}">| Register |</a></li>
             </ul>
         </nav>
     </header>
