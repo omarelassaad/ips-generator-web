@@ -423,8 +423,12 @@ function isDesiredRateValid() {
   const desiredRateInput = document.getElementById('desired-rate');
   const desiredRate = parseFloat(desiredRateInput.value);
   const feeRangeText = document.getElementById('fee-range-text').textContent;
-  const min_fee = parseFloat(feeRangeText.match(/(\d+(\.\d+)?)%/)[1]);
-  const max_fee = parseFloat(feeRangeText.match(/to (\d+(\.\d+)?)%/)[1]);
+  const minMatch = feeRangeText.match(/(\d+(\.\d+)?)%/);
+  const maxMatch = feeRangeText.match(/to (\d+(\.\d+)?)%/);
+  // Fee range text not yet loaded — treat as invalid without crashing
+  if (!minMatch || !maxMatch) return false;
+  const min_fee = parseFloat(minMatch[1]);
+  const max_fee = parseFloat(maxMatch[1]);
 
   return !isNaN(desiredRate) && desiredRate >= min_fee && desiredRate <= max_fee;
 }
@@ -997,12 +1001,18 @@ document.getElementById('comments-box').addEventListener('input', function() {
     if (ipsNew) ipsNew.checked = true;
   }
 
-  // ── Reveal the sections the user already completed ────────────────────────
-  // Do NOT call calculateWeights() here — it calls isDesiredRateValid() which
-  // parses the fee-range-text element; that text is empty until the async fee
-  // fetch completes, so the regex returns null and causes a crash that stops
-  // showCreateIpsButton() from ever running.
+  // ── Apply portfolio override target weights ───────────────────────────────
+  // applyPortfolioTargetWeights() is only called on select 'change' events,
+  // so we must call it explicitly when restoring a portfolio override value.
+  if (special['Portfolio Override'] && special['Portfolio Override'].strategy) {
+    applyPortfolioTargetWeights(special['Portfolio Override'].strategy);
+  }
+
+  // ── Recalculate weights and percentages ───────────────────────────────────
+  // isDesiredRateValid() is now null-safe (returns false if fee range text
+  // isn't loaded yet), so calculateWeights() no longer crashes here.
   calculatePercentages();
+  calculateWeights();
 
   document.getElementById('ips-type-section').style.display = 'block';
   document.getElementById('client-managed-holdings-section').style.display = 'block';
