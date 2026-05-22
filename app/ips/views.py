@@ -1200,6 +1200,58 @@ def generate_ips(request):
         merger.close()
         response.write(merged_pdf.getvalue())
 
+        # ── Auto-save the proposal when the IPS is generated ─────────────────
+        try:
+            all_rows = list(
+                ChooseMyselfData.objects.filter(user=request.user).values(
+                    'account_owner', 'account_type', 'amount', 'strategy', 'version_number'
+                )
+            )
+            for r in all_rows:
+                if hasattr(r['amount'], '__float__'):
+                    r['amount'] = str(r['amount'])
+            data_json = json.dumps(all_rows)
+
+            household_name_auto = (
+                QuestionnaireResponse.objects
+                .filter(user=request.user, question='client_identifier')
+                .values_list('answer', flat=True)
+                .first() or 'Draft'
+            )
+            vn_auto = all_rows[0].get('version_number', '1') if all_rows else '1'
+            auto_label = f"{household_name_auto} {datetime.now().strftime('%Y-%m-%d')} V{vn_auto}"
+
+            _risk_ov  = request.POST.get('risk_profile_override', '')
+            _port_ov  = request.POST.get('portfolio_override', '')
+
+            loaded_id = request.session.get('loaded_proposal_id')
+            existing_sp = None
+            if loaded_id:
+                try:
+                    existing_sp = SavedProposal.objects.get(id=loaded_id, user=request.user)
+                except SavedProposal.DoesNotExist:
+                    existing_sp = None
+
+            if existing_sp and existing_sp.label == auto_label:
+                # Same label — update in place
+                existing_sp.data                 = data_json
+                existing_sp.risk_profile_override = _risk_ov
+                existing_sp.portfolio_override    = _port_ov
+                existing_sp.save()
+                request.session['loaded_proposal_label'] = existing_sp.label
+            else:
+                # New label (version bump, date change, or no prior save) — create new entry
+                sp = SavedProposal.objects.create(
+                    user=request.user, label=auto_label,
+                    data=data_json,
+                    risk_profile_override=_risk_ov,
+                    portfolio_override=_port_ov,
+                )
+                request.session['loaded_proposal_id']    = sp.id
+                request.session['loaded_proposal_label'] = sp.label
+        except Exception as auto_save_err:
+            logger.warning(f"Auto-save on IPS generation failed (non-fatal): {auto_save_err}")
+
         return response
 
     except Exception as e:
@@ -1266,10 +1318,12 @@ def choose_myself_view(request):
     questionnaire_risk_profile = ''
     questionnaire_portfolio = ''
     effective_portfolio = ''
+    client_household_name = ''
     if questionnaire_qs:
         responses = QuestionnaireResponse.objects.filter(user=request.user)
         q_data = {response.question: response.answer for response in responses}
         q_data['investment_goals'] = [response.answer for response in responses.filter(question='investment_goals')]
+        client_household_name = q_data.get('client_identifier', '')
         q_form = QuestionnaireForm(q_data)
         if q_form.is_valid():
             questionnaire_risk_profile = q_form.get_risk_profile()
@@ -1314,6 +1368,7 @@ def choose_myself_view(request):
         'loaded_proposal_id': request.session.get('loaded_proposal_id'),
         'loaded_proposal_label': request.session.get('loaded_proposal_label', ''),
         'can_override_fee': getattr(request.user, 'profile', None) and request.user.profile.can_override_fee,
+        'client_household_name': client_household_name,
     })
 
 @login_required
@@ -2138,6 +2193,7 @@ def save_proposal(request):
     - If proposal_id is posted (Save): overwrite the existing proposal.
     - Otherwise (Save As): create a new proposal with the given label.
     """
+    import decimal as _decimal
     try:
         rows = list(
             ChooseMyselfData.objects.filter(user=request.user).values(
@@ -2150,52 +2206,69 @@ def save_proposal(request):
 
         # Convert Decimal to str for JSON serialisation
         for r in rows:
-            if hasattr(r['amount'], '__float__'):
+            if isinstance(r.get('amount'), _decimal.Decimal):
                 r['amount'] = str(r['amount'])
 
         data_json = json.dumps(rows)
         proposal_id = request.POST.get('proposal_id', '').strip()
 
-        if proposal_id:
-            # ── Save: overwrite the loaded proposal ──────────────────────────
-            proposal = get_object_or_404(SavedProposal, id=proposal_id, user=request.user)
-            proposal.data = data_json
-            proposal.risk_profile_override = risk_profile_override
-            proposal.portfolio_override = portfolio_override
-            proposal.updated_at = timezone.now()
-            proposal.save()
-            # Keep session pointing to same proposal
-            request.session['loaded_proposal_id'] = proposal.id
-            request.session['loaded_proposal_label'] = proposal.label
-        else:
-            # ── Save As: create a new proposal ───────────────────────────────
-            label = request.POST.get('label', '').strip()
-            if not label:
-                special = {'CMS Fee', 'Desired Rate', 'Risk Profile Override',
-                           'Portfolio Override', 'Comments', 'IPS Changes', 'Client-directed Holdings ',
-                           'Fee Override', 'Fee Override Trailer'}
-                first_owner = next(
-                    (r['account_owner'] for r in rows if r['account_owner'] not in special),
-                    None
-                )
-                date_str = timezone.now().strftime('%Y-%m-%d')
-                label = f"{first_owner} — {date_str}" if first_owner else f"Proposal — {date_str}"
+        # ── Build auto-generated label ────────────────────────────────────────
+        household_name = (
+            QuestionnaireResponse.objects
+            .filter(user=request.user, question='client_identifier')
+            .values_list('answer', flat=True)
+            .first() or 'Draft'
+        )
+        version = rows[0].get('version_number', '1') if rows else '1'
+        date_str = timezone.now().strftime('%Y-%m-%d')
+        auto_label = f"{household_name} {date_str} V{version}"
 
+        if proposal_id:
+            # ── Save: overwrite OR branch into a new record ───────────────────
+            try:
+                proposal = SavedProposal.objects.get(id=proposal_id, user=request.user)
+            except SavedProposal.DoesNotExist:
+                proposal = None
+
+            if proposal and proposal.label == auto_label:
+                # Same label — just update the existing record
+                proposal.data = data_json
+                proposal.risk_profile_override = risk_profile_override
+                proposal.portfolio_override = portfolio_override
+                proposal.save()
+                request.session['loaded_proposal_id'] = proposal.id
+                request.session['loaded_proposal_label'] = proposal.label
+                messages.success(request, f'Proposal "{proposal.label}" updated.')
+            else:
+                # Label changed (e.g. version bump or date rolled over) — create new
+                new_proposal = SavedProposal.objects.create(
+                    user=request.user,
+                    label=auto_label,
+                    data=data_json,
+                    risk_profile_override=risk_profile_override,
+                    portfolio_override=portfolio_override,
+                )
+                request.session['loaded_proposal_id'] = new_proposal.id
+                request.session['loaded_proposal_label'] = new_proposal.label
+                messages.success(request, f'New proposal "{new_proposal.label}" saved.')
+        else:
+            # ── Fresh save: create a new proposal ────────────────────────────
             new_proposal = SavedProposal.objects.create(
                 user=request.user,
-                label=label,
+                label=auto_label,
                 data=data_json,
                 risk_profile_override=risk_profile_override,
                 portfolio_override=portfolio_override,
             )
-            # Point session to the newly created proposal
             request.session['loaded_proposal_id'] = new_proposal.id
             request.session['loaded_proposal_label'] = new_proposal.label
+            messages.success(request, f'Proposal "{new_proposal.label}" saved.')
 
     except Exception as e:
-        logger.error(f"save_proposal error: {e}")
+        logger.error(f"save_proposal error: {e}", exc_info=True)
+        messages.error(request, f'Could not save proposal: {e}')
 
-    return redirect('proposals_list')
+    return redirect('choose_myself')
 
 
 @login_required

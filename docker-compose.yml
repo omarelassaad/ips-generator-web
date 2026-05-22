@@ -10,6 +10,7 @@ services:
     env_file:
       - ./.env.dev
     volumes:
+      - ./app:/usr/src/app
       - media_files:/usr/src/app/media
 
 volumes:

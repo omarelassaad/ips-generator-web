@@ -3,18 +3,38 @@
 {% block content %}
 <style>
   .proposals-container {
-    max-width: 900px;
+    max-width: 960px;
     margin: 30px auto;
   }
   .proposals-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .proposals-header h2 {
     margin: 0;
   }
+
+  /* ── Search bar ── */
+  .proposals-search {
+    margin-bottom: 16px;
+  }
+  .proposals-search input {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  .proposals-search input:focus {
+    outline: none;
+    border-color: #205098;
+    box-shadow: 0 0 0 2px rgba(32,80,152,0.15);
+  }
+
+  /* ── Table ── */
   .proposals-table {
     width: 100%;
     border-collapse: collapse;
@@ -43,49 +63,62 @@
   .proposals-table tr:hover td {
     background-color: #f5f8ff;
   }
+  .proposals-table tr.hidden-row {
+    display: none;
+  }
+
+  /* ── Action buttons ── */
   .action-cell {
     white-space: nowrap;
+    text-align: right;
+    width: 1%;          /* shrink column to fit content */
+  }
+  /* Override global styles.css rule: form button { width: 100% } */
+  .action-cell form {
+    display: inline !important;
+    width: auto !important;
+  }
+  .action-cell form button {
+    width: auto !important;
+    display: inline-block !important;
+  }
+  .btn-load,
+  .btn-delete {
+    display: inline-block !important;
+    width: auto !important;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    vertical-align: middle;
   }
   .btn-load {
     background-color: #205098;
     color: white;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
     margin-right: 6px;
   }
-  .btn-load:hover {
-    background-color: #174080;
-  }
+  .btn-load:hover  { background-color: #174080; }
   .btn-delete {
     background-color: #dc3545;
     color: white;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
   }
-  .btn-delete:hover {
-    background-color: #b02a37;
-  }
+  .btn-delete:hover { background-color: #b02a37; }
+
+  /* ── Misc ── */
   .empty-state {
     text-align: center;
     padding: 40px;
     color: #666;
     font-size: 15px;
   }
-  .back-link {
-    display: inline-block;
-    margin-top: 20px;
-    color: #205098;
-    text-decoration: none;
+  .no-results {
+    text-align: center;
+    padding: 24px;
+    color: #888;
     font-size: 14px;
-  }
-  .back-link:hover {
-    text-decoration: underline;
+    display: none;
   }
   .override-badge {
     display: inline-block;
@@ -101,13 +134,16 @@
 <div class="proposals-container">
   <div class="proposals-header">
     <h2>My Saved Proposals</h2>
-    <a href="{% url 'choose_myself' %}" style="background-color: #205098; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px;">
-      &larr; Back to Choose Myself
-    </a>
   </div>
 
   {% if proposals %}
-  <table class="proposals-table">
+
+  {# ── Search bar ── #}
+  <div class="proposals-search">
+    <input type="text" id="proposal-search" placeholder="&#128269; Search proposals…" autocomplete="off">
+  </div>
+
+  <table class="proposals-table" id="proposals-table">
     <thead>
       <tr>
         <th>Label</th>
@@ -116,9 +152,9 @@
         <th>Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="proposals-tbody">
       {% for proposal in proposals %}
-      <tr>
+      <tr data-label="{{ proposal.label|lower }}">
         <td>{{ proposal.label }}</td>
         <td>
           {% if proposal.risk_profile_override %}
@@ -138,7 +174,7 @@
             <button type="submit" class="btn-load">Load</button>
           </form>
           <form method="POST" action="{% url 'delete_proposal' proposal.id %}" style="display:inline;"
-                onsubmit="return confirm('Delete proposal &quot;{{ proposal.label|escapejs }}&quot;? This cannot be undone.');">
+                onsubmit="return confirm('Delete “{{ proposal.label|escapejs }}”? This cannot be undone.');">
             {% csrf_token %}
             <button type="submit" class="btn-delete">Delete</button>
           </form>
@@ -147,6 +183,9 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <p class="no-results" id="no-results">No proposals match your search.</p>
+
   {% else %}
   <div class="empty-state">
     <p>No saved proposals yet.</p>
@@ -154,6 +193,37 @@
   </div>
   {% endif %}
 
-  <a href="{% url 'choose_myself' %}" class="back-link">&larr; Back to Choose Myself</a>
 </div>
+
+{% if proposals %}
+<script>
+(function () {
+  var searchInput = document.getElementById('proposal-search');
+  var rows        = document.querySelectorAll('#proposals-tbody tr');
+  var noResults   = document.getElementById('no-results');
+
+  searchInput.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    var visibleCount = 0;
+
+    rows.forEach(function (row) {
+      // Search across the entire row text (label + overrides + date)
+      var text = row.textContent.toLowerCase();
+      if (!q || text.indexOf(q) !== -1) {
+        row.classList.remove('hidden-row');
+        visibleCount++;
+      } else {
+        row.classList.add('hidden-row');
+      }
+    });
+
+    noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+  });
+
+  // Focus search on page load for quick filtering
+  searchInput.focus();
+})();
+</script>
+{% endif %}
+
 {% endblock %}
