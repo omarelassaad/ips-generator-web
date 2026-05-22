@@ -442,11 +442,7 @@
         </div>
         <div class="content page">
             <h2 class="section-title">Risk profile and recommended asset mix</h2>
-            {% if risk_override_active %}
-                <h3 class="sub-heading">Risk rating: {{ questionnaire_risk_rating }} <span style="font-weight:normal; color:#666;">(Questionnaire result)</span> → {{ risk_rating }} <span style="font-weight:normal; color:#666;">(Client-directed override)</span></h3>
-            {% else %}
-                <h3 class="sub-heading">Risk rating: {{ risk_rating }}</h3>
-            {% endif %}
+            <h3 class="sub-heading">Risk rating: {{ risk_rating }}</h3>
             <p>{{ risk_rating_paragraph|safe }}</p>
             <h3 class="sub-heading">Recommended asset mix: {{ asset_mix_title }}</h3>
             <p>{{ recommended_asset_mix_paragraph }}</p>
