@@ -1227,6 +1227,19 @@ def generate_ips(request):
                     else:
                         logger.warning(f"Fact sheet not found: {fact_sheet_path}")
 
+        # If a CMS (Client-directed Sleeve) fee is configured, append the CDS Form 3
+        if cms_fee and cms_fee.amount > 0:
+            cds_form_path = get_site_document_path(
+                'cds_form_3',
+                os.path.join(settings.BASE_DIR, 'static', 'intro', 'CDS_Form_3.pdf'),
+            )
+            if os.path.exists(cds_form_path):
+                logger.info("Appending CDS Form 3 to IPS")
+                with open(cds_form_path, 'rb') as cds_file:
+                    merger.append(PdfReader(cds_file))
+            else:
+                logger.warning(f"CDS Form 3 not found at: {cds_form_path}")
+
         # Create the HTTP response with the merged PDF
         response = HttpResponse(content_type='application/pdf')
 
@@ -1422,7 +1435,7 @@ def choose_myself_view(request):
     if _hm_secondary:
         household_members.append(_hm_secondary)
     if _hm_primary and _hm_secondary:
-        household_members.append('Joint')
+        household_members.append(f"{_hm_primary} & {_hm_secondary}")
     if _hm_entity:
         household_members.append(_hm_entity)
 

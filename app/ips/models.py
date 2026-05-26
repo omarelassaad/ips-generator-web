@@ -203,6 +203,7 @@ class SiteDocument(models.Model):
     KEY_CHOICES = [
         ('ips_first_page', 'IPS Cover Page'),
         ('ips_last_page',  'IPS Back Page'),
+        ('cds_form_3',     'CDS Form 3 (Client-directed Sleeve Request)'),
     ]
     key         = models.CharField(max_length=50, unique=True, choices=KEY_CHOICES)
     label       = models.CharField(max_length=100)
