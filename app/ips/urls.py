@@ -19,6 +19,7 @@ from .views import (
     proposals_list,
     load_proposal,
     delete_proposal,
+    import_pcq_pdf,
 )
 
 urlpatterns = [
@@ -40,4 +41,5 @@ urlpatterns = [
     path('proposals/save/', save_proposal, name='save_proposal'),
     path('proposals/<int:proposal_id>/load/', load_proposal, name='load_proposal'),
     path('proposals/<int:proposal_id>/delete/', delete_proposal, name='delete_proposal'),
+    path('import-pcq/', import_pcq_pdf, name='import_pcq_pdf'),
 ]

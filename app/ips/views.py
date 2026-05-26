@@ -265,6 +265,153 @@ def build_liq_asset_mix_from_db():
     return {name: profile.to_form_dict(liquidity_adjusted=True) for name, profile in profiles.items()}
 
 
+def _parse_pcq_fields(fields):
+    """Map PyPDF2 AcroForm fields from the CMP PCQ PDF to web questionnaire values.
+
+    Returns a dict keyed by web form field names, values ready to pre-fill the form.
+    Any field not found or not selected is omitted (None values are dropped).
+    """
+
+    def _get_text(prefix):
+        """First text field whose name starts with prefix."""
+        key = next((k for k in fields if k.strip().startswith(prefix[:40])), None)
+        return str(fields[key].get('/V', '')).strip() if key else ''
+
+    def _get_radio_score(prefix, score_map=None):
+        """Return score string for a radio/list field matched by prefix.
+
+        score_map: optional list of web-form values indexed by PDF option index,
+                   e.g. ['1','3','5'] for reaction_to_drop.
+                   When None, (PDF_index + 1) is used directly.
+        """
+        key = next((k for k in fields if k.strip().startswith(prefix[:50])), None)
+        if not key:
+            return None
+        field = fields[key]
+        val   = field.get('/V', '')
+        opts  = field.get('/Opt', [])
+        if not val or str(val).strip('/') in ('', 'Off'):
+            return None
+        val_str = str(val).lstrip('/')
+        # Try: value is an integer index
+        try:
+            idx = int(val_str)
+            if score_map:
+                return score_map[idx] if idx < len(score_map) else None
+            return str(idx + 1)
+        except (ValueError, IndexError):
+            pass
+        # Try: value is the option text (prefix match)
+        for i, opt in enumerate(opts):
+            if str(opt).strip().startswith(val_str[:30]):
+                if score_map:
+                    return score_map[i] if i < len(score_map) else None
+                return str(i + 1)
+        return None
+
+    def _get_radio_export(prefix, mapping):
+        """Return a mapped export value (e.g. 'RI' / 'Neutral') for a radio field."""
+        key = next((k for k in fields if k.strip().startswith(prefix[:50])), None)
+        if not key:
+            return None
+        field = fields[key]
+        val   = field.get('/V', '')
+        opts  = field.get('/Opt', [])
+        if not val or str(val).strip('/') in ('', 'Off'):
+            return None
+        val_str = str(val).lstrip('/')
+        try:
+            idx = int(val_str)
+            if idx < len(opts):
+                opt_text = str(opts[idx]).strip()
+                for k, v in mapping.items():
+                    if opt_text.startswith(k[:20]):
+                        return v
+        except (ValueError, IndexError):
+            pass
+        for k, v in mapping.items():
+            if val_str.startswith(k[:20]):
+                return v
+        return None
+
+    def _is_checked(exact_name):
+        """True if a checkbox (exact field name) is checked."""
+        field = fields.get(exact_name)
+        if not field:
+            return False
+        val = str(field.get('/V', '')).strip('/').lower()
+        return val not in ('', 'off')
+
+    # ── Investment Goals (9 independent checkboxes) ──────────────────────────
+    GOAL_CHECKBOX_MAP = [
+        (' Investment Goals Primary Investment Goals (Check all that apply)',    'Retirement'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 2', 'Wealth accumulation'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 3', 'Legacy planning'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 4', 'Philanthropy'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 5', 'Major asset purchase'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 6', 'Education'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 7', 'Health care'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 8', 'Travel'),
+        (' Investment Goals Primary Investment Goals (Check all that apply) 9', 'Other'),
+    ]
+    investment_goals = [goal for fname, goal in GOAL_CHECKBOX_MAP if _is_checked(fname)]
+
+    ri_map = {
+        'An all responsible investing portfolio': 'RI',
+        'Neutral, no bias':                       'Neutral',
+    }
+
+    # reaction_to_drop scores are non-sequential: Sell=1, Hold=3, BuyMore=5
+    reaction_scores = ['1', '3', '5']
+
+    result = {
+        'advisor_name':           _get_text('Advisor name (please print)'),
+        'investment_goals':       investment_goals,
+        'annual_income':          _get_radio_score('What is your current annual income'),
+        'income_savings':         _get_radio_score('What percentage of your income do you currently save'),
+        'spending_needs':         _get_radio_score('What are your monthly spending needs'),
+        'emergency_fund':         _get_radio_score('How many months of living expenses'),
+        'risk_tolerance':         _get_radio_score('How would you describe your risk tolerance'),
+        'investment_loss':        _get_radio_score('What level of investment loss'),
+        'recovery_period':        _get_radio_score('How long are you willing to wait'),
+        'reaction_to_drop':       _get_radio_score('How would you react to a significant drop', reaction_scores),
+        'high_risk_opportunities':_get_radio_score('How comfortable are you with investing in high-risk'),
+        'volatility':             _get_radio_score('How do you feel about the volatility'),
+        'investment_knowledge':   _get_radio_score('How would you rate your knowledge'),
+        'time_horizon':           _get_radio_score('For your primary investment goal, indicate'),
+        'liquidity_needs':        _get_radio_score('Importance of having access to cash'),
+        'responsible_investing':  _get_radio_export('In the construction of your portfolio, you would like', ri_map),
+        'annual_withdrawal':      _get_text('Considering your financial needs, how much'),
+    }
+    # Drop None / empty values — let JS skip missing fields gracefully
+    return {k: v for k, v in result.items() if v is not None and v != '' and v != []}
+
+
+@login_required
+@require_POST
+def import_pcq_pdf(request):
+    """Upload a filled CMP PCQ PDF and return mapped questionnaire answers as JSON."""
+    if 'pcq_file' not in request.FILES:
+        return JsonResponse({'error': 'No file provided.'}, status=400)
+    pdf_file = request.FILES['pcq_file']
+    if not pdf_file.name.lower().endswith('.pdf'):
+        return JsonResponse({'error': 'Please upload a PDF file.'}, status=400)
+    try:
+        from PyPDF2 import PdfReader
+        reader = PdfReader(io.BytesIO(pdf_file.read()))
+        fields = reader.get_fields()
+        if not fields:
+            return JsonResponse(
+                {'error': 'This PDF has no fillable fields. Please use the digital (fillable) version of the PCQ.'},
+                status=400,
+            )
+        data = _parse_pcq_fields(fields)
+        return JsonResponse({'success': True, 'data': data})
+    except Exception as exc:
+        logger.error('PCQ import error: %s', exc, exc_info=True)
+        return JsonResponse({'error': f'Could not read PDF: {exc}'}, status=400)
+
+
 def get_calendar_years():
     """Return list of calendar year strings from the active ReturnsUpload."""
     try:

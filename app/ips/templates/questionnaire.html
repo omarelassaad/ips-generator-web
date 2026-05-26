@@ -32,6 +32,28 @@
 </style>
 
 <h2 style="text-align: center;">Private Client Investment Questionnaire</h2>
+
+<!-- ── PCQ Import ──────────────────────────────────────────────────────── -->
+<div style="max-width:680px; margin:0 auto 24px; padding:16px 20px;
+            background:#f0f4ff; border:1px solid #c5d0f0; border-radius:6px;">
+  <p style="margin:0 0 10px; font-weight:600; font-size:14px;">
+    Import from filled PCQ PDF
+  </p>
+  <p style="margin:0 0 12px; font-size:13px; color:#555;">
+    Upload the signed digital PCQ to auto-fill the form below. You can review and edit any field before submitting.
+  </p>
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <input type="file" id="pcq-file-input" accept=".pdf"
+           style="font-size:13px; flex:1; min-width:0;">
+    <button type="button" id="pcq-import-btn"
+            style="padding:8px 18px; background:#1a3a6e; color:#fff;
+                   border:none; border-radius:4px; cursor:pointer; font-size:13px; white-space:nowrap;">
+      Import Answers
+    </button>
+  </div>
+  <div id="pcq-import-status" style="margin-top:10px; font-size:13px; display:none;"></div>
+</div>
+
 <form id="questionnaire-form" method="POST" action="{% url 'questionnaire' %}">
     {% csrf_token %}
     <div>
@@ -536,5 +558,89 @@ document.getElementById('questionnaire-form').addEventListener('submit', functio
         console.error('Error:', error);
     });
 });
+
+// ── PCQ PDF Import ────────────────────────────────────────────────────────────
+document.getElementById('pcq-import-btn').addEventListener('click', function () {
+  const fileInput  = document.getElementById('pcq-file-input');
+  const statusDiv  = document.getElementById('pcq-import-status');
+  const btn        = this;
+
+  if (!fileInput.files.length) {
+    showStatus('Please select a PDF file first.', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('pcq_file', fileInput.files[0]);
+  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  showStatus('Reading PDF…', 'info');
+
+  fetch('{% url "import_pcq_pdf" %}', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => {
+      btn.disabled = false;
+      btn.textContent = 'Import Answers';
+      if (res.error) {
+        showStatus('Error: ' + res.error, 'error');
+        return;
+      }
+      populateFromPCQ(res.data);
+      const filled = Object.keys(res.data).length;
+      showStatus('✓ Imported ' + filled + ' answer' + (filled !== 1 ? 's' : '') + '. Please review and submit.', 'success');
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = 'Import Answers';
+      showStatus('Network error: ' + err, 'error');
+    });
+
+  function showStatus(msg, type) {
+    statusDiv.style.display = 'block';
+    statusDiv.style.color = type === 'error' ? '#c0392b' : type === 'success' ? '#27ae60' : '#555';
+    statusDiv.textContent = msg;
+  }
+});
+
+function populateFromPCQ(data) {
+  // ── Text fields ──────────────────────────────────────────────────────────
+  if (data.advisor_name) setInput('advisor_name', data.advisor_name);
+  if (data.annual_withdrawal) setInput('annual_withdrawal', data.annual_withdrawal);
+
+  // ── Investment goals (checkboxes) ────────────────────────────────────────
+  if (data.investment_goals && data.investment_goals.length) {
+    document.querySelectorAll('[name="investment_goals"]').forEach(cb => cb.checked = false);
+    data.investment_goals.forEach(function (goal) {
+      var cb = document.querySelector('[name="investment_goals"][value="' + goal + '"]');
+      if (cb) cb.checked = true;
+    });
+  }
+
+  // ── Single-choice scored fields (radio buttons) ──────────────────────────
+  var radioFields = [
+    'annual_income', 'income_savings', 'spending_needs', 'emergency_fund',
+    'risk_tolerance', 'investment_loss', 'recovery_period', 'reaction_to_drop',
+    'high_risk_opportunities', 'volatility', 'investment_knowledge',
+    'time_horizon', 'liquidity_needs'
+  ];
+  radioFields.forEach(function (field) {
+    if (data[field]) setRadio(field, data[field]);
+  });
+
+  // ── Responsible investing ────────────────────────────────────────────────
+  if (data.responsible_investing) setRadio('responsible_investing', data.responsible_investing);
+}
+
+function setInput(name, value) {
+  var el = document.querySelector('[name="' + name + '"]');
+  if (el) el.value = value;
+}
+
+function setRadio(name, value) {
+  var el = document.querySelector('[name="' + name + '"][value="' + value + '"]');
+  if (el) el.checked = true;
+}
 </script>
 {% endblock %}
