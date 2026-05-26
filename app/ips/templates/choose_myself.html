@@ -1051,8 +1051,9 @@ document.getElementById('comments-box').addEventListener('input', function() {
 });
 
 // ── Restore saved / loaded proposal data ─────────────────────────────────────
+{{ existing_rows_json|json_script:"existing-rows-data" }}
 (function restoreFormFromData() {
-  const rows = {{ existing_rows_json|safe }};
+  const rows = JSON.parse(document.getElementById('existing-rows-data').textContent);
   if (!rows || rows.length === 0) return;
 
   const SPECIAL = new Set([

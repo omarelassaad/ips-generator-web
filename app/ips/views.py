@@ -1351,7 +1351,7 @@ def choose_myself_view(request):
     )
     for r in existing_rows:
         r['amount'] = str(r['amount'])  # Decimal → str for JSON serialisation
-    existing_rows_json = json.dumps(existing_rows) if existing_rows else 'null'
+    existing_rows_json = existing_rows  # passed as a list; template uses json_script for safe serialisation
 
     return render(request, 'choose_myself.html', {
         'form': form,
