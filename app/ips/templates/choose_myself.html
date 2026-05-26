@@ -439,6 +439,8 @@
   </div>
 </div>
 
+{{ existing_rows_json|json_script:"existing-rows-data" }}
+
 <script>
 // Page-scoped navigation guard flag — must be declared first so all handlers can reach it
 var _allowLeave = false;
@@ -1051,7 +1053,6 @@ document.getElementById('comments-box').addEventListener('input', function() {
 });
 
 // ── Restore saved / loaded proposal data ─────────────────────────────────────
-{{ existing_rows_json|json_script:"existing-rows-data" }}
 (function restoreFormFromData() {
   const rows = JSON.parse(document.getElementById('existing-rows-data').textContent);
   if (!rows || rows.length === 0) return;
