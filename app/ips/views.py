@@ -249,6 +249,7 @@ def get_calendar_years():
     except Exception:
         return ['2025', '2024', '2023', '2022', '2021', '2020', '2019']
 
+@login_required
 @require_POST
 def calculate_fees(request):
     try:
@@ -1564,6 +1565,7 @@ def get_disclaimer(strategy_weights):
     return "\n".join(relevant_disclaimers)
 
 
+@login_required
 @transaction.atomic
 @require_POST
 def save_choose_myself_data(request):
@@ -2009,6 +2011,7 @@ def choose_myself_risk_analytics(request):
 
     return render(request, 'choose_myself.html')
 
+@login_required
 @require_POST
 def generate_account_summary(request):
     try:
