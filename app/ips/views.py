@@ -1354,8 +1354,22 @@ def choose_myself_view(request):
             questionnaire_risk_profile = q_form.get_risk_profile()
             portfolio_rec = q_form.get_portfolio_recommendation()
             questionnaire_portfolio = portfolio_rec.replace(' (RI)', '')
-    _db_asset_mix = build_asset_mix_from_db()
-    portfolio_override_choices = list(_db_asset_mix.keys())
+    # Determine which allocation set to show as target weights on the Choose Myself page:
+    # liquidity_needs == 3 (Not Important) → liq_* profile (the "liquidity profile")
+    # liquidity_needs != 3 (Important/Somewhat) → standard fields
+    _q_liquidity = None
+    if questionnaire_qs:
+        _liq_resp = QuestionnaireResponse.objects.filter(user=request.user, question='liquidity_needs').first()
+        if _liq_resp:
+            try:
+                _q_liquidity = int(_liq_resp.answer)
+            except (ValueError, TypeError):
+                _q_liquidity = None
+    if _q_liquidity == 3:
+        _db_asset_mix = build_liq_asset_mix_from_db() or build_asset_mix_from_db()
+    else:
+        _db_asset_mix = build_asset_mix_from_db()
+    portfolio_override_choices = list(build_asset_mix_from_db().keys())  # always show all choices
     portfolio_allocations_json = json.dumps(_db_asset_mix)
 
     # Compute single selected values for template — avoids |default: filter edge cases

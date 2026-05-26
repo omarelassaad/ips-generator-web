@@ -304,9 +304,14 @@ class QuestionnaireForm(forms.Form):
         liquidity_needs = int(self.cleaned_data.get('liquidity_needs'))
         key = portfolio_recommendation.replace(" (RI)", "")
 
-        if liquidity_needs != 3:  # if liquidity needs are important or somewhat important
+        if liquidity_needs == 3:  # Not important: use the liquidity profile (liq_* fields) from the DB
             if liq_asset_mix_db:
                 return liq_asset_mix_db.get(key, {})
+            # Hardcoded fallback (used only when DB has no PortfolioProfile records)
+            return self.ASSET_MIX.get(key, {})
+        else:  # Important or somewhat important: use the standard (liquidity-adjusted) fields from DB
+            if asset_mix_db:
+                return asset_mix_db.get(key, {})
             # Hardcoded fallback (used only when DB has no PortfolioProfile records)
             return {
                 'Income': {'Cash': '2%', 'Fixed Income': '78%', 'Canadian Equity': '10%', 'U.S. Equity': '5%', 'International Equity': '5%', 'Alternatives': '0%', 'Total': '100%'},
@@ -316,10 +321,6 @@ class QuestionnaireForm(forms.Form):
                 'Growth': {'Cash': '2%', 'Fixed Income': '18%', 'Canadian Equity': '32%', 'U.S. Equity': '26%', 'International Equity': '22%', 'Alternatives': '0%', 'Total': '100%'},
                 'Maximum Growth': {'Cash': '2%', 'Fixed Income': '0%', 'Canadian Equity': '35%', 'U.S. Equity': '35%', 'International Equity': '28%', 'Alternatives': '0%', 'Total': '100%'}
             }.get(key, {})
-        else:  # if liquidity needs are not important
-            if asset_mix_db:
-                return asset_mix_db.get(key, {})
-            return self.ASSET_MIX.get(key, {})
         
     def get_risk_profile(self):
         total_score = self.calculate_total_score()
