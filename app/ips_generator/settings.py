@@ -16,13 +16,15 @@ env = environ.Env()
 env.read_env(os.path.join(ENV_PATH, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-!ycct3=ds7t)02*j+!u^0rqx65e69_&pklfad&zzmfpiq+qd!d")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY environment variable is not set. Refusing to start.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
 # Update ALLOWED_HOSTS to include localhost for development
-ALLOWED_HOSTS = ['*']  # Configure this based on your Render URL
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 [::1]").split()
 
 CSRF_TRUSTED_ORIGINS = ['https://ipsgenerator-web.nxgcae.dev.cg.net']
 
