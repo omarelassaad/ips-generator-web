@@ -43,6 +43,4 @@ RUN chown app /usr/src/app/ -R
 
 RUN sed -i 's/\r//' /usr/src/app/start.sh && chmod +x /usr/src/app/start.sh
 
-USER app
-
-ENTRYPOINT ["/bin/sh", "-c", "/usr/src/app/start.sh"]
+ENTRYPOINT ["/bin/sh", "-c", "chown -R app:app /usr/src/app/media && su app -s /bin/sh -c /usr/src/app/start.sh"]
