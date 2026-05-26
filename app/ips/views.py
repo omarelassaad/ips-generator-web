@@ -241,6 +241,30 @@ def get_portfolio_profiles():
     return data
 
 
+def build_asset_mix_from_db():
+    """Return ASSET_MIX-format dict driven by PortfolioProfile DB records.
+
+    Falls back to the hardcoded QuestionnaireForm.ASSET_MIX if the DB has no
+    portfolio profiles yet (e.g. fresh install before fixtures are loaded).
+    """
+    profiles = get_portfolio_profiles()
+    if not profiles:
+        return QuestionnaireForm.ASSET_MIX
+    return {name: profile.to_form_dict(liquidity_adjusted=False) for name, profile in profiles.items()}
+
+
+def build_liq_asset_mix_from_db():
+    """Return liquidity-adjusted ASSET_MIX-format dict from PortfolioProfile DB.
+
+    Returns None if the DB has no profiles, causing get_asset_mix() to use its
+    built-in hardcoded liquidity fallback.
+    """
+    profiles = get_portfolio_profiles()
+    if not profiles:
+        return None
+    return {name: profile.to_form_dict(liquidity_adjusted=True) for name, profile in profiles.items()}
+
+
 def get_calendar_years():
     """Return list of calendar year strings from the active ReturnsUpload."""
     try:
@@ -383,7 +407,7 @@ def questionnaire_view(request):
         if form.is_valid():
             total_score = form.calculate_total_score()
             portfolio_recommendation = form.get_portfolio_recommendation()
-            asset_mix = form.get_asset_mix(portfolio_recommendation)
+            asset_mix = form.get_asset_mix(portfolio_recommendation, asset_mix_db=build_asset_mix_from_db(), liq_asset_mix_db=build_liq_asset_mix_from_db())
             risk_rating, portfolio_definition = get_risk_and_definition(portfolio_recommendation)
             user = request.user
             QuestionnaireResponse.objects.filter(user=user).delete()
@@ -438,7 +462,7 @@ def generate_ips_questionnaire_responses(request):
 
         if form.is_valid():
             portfolio_recommendation = form.get_portfolio_recommendation()
-            asset_mix = form.get_asset_mix(portfolio_recommendation)
+            asset_mix = form.get_asset_mix(portfolio_recommendation, asset_mix_db=build_asset_mix_from_db(), liq_asset_mix_db=build_liq_asset_mix_from_db())
             risk_rating, portfolio_definition = get_risk_and_definition(portfolio_recommendation)
         else:
             portfolio_recommendation = "Invalid data"
@@ -744,7 +768,7 @@ def generate_ips(request):
         form = QuestionnaireForm(data=form_data)
         if form.is_valid():
             portfolio_recommendation = form.get_portfolio_recommendation()
-            asset_mix = form.get_asset_mix(portfolio_recommendation)
+            asset_mix = form.get_asset_mix(portfolio_recommendation, asset_mix_db=build_asset_mix_from_db(), liq_asset_mix_db=build_liq_asset_mix_from_db())
             risk_rating, portfolio_definition = get_risk_and_definition(portfolio_recommendation)
 
 
@@ -808,7 +832,7 @@ def generate_ips(request):
 
             if _portfolio_override:
                 try:
-                    asset_mix = QuestionnaireForm.ASSET_MIX.get(_portfolio_override, asset_mix)
+                    asset_mix = build_asset_mix_from_db().get(_portfolio_override, asset_mix)
                 except Exception:
                     pass
 
@@ -1330,8 +1354,9 @@ def choose_myself_view(request):
             questionnaire_risk_profile = q_form.get_risk_profile()
             portfolio_rec = q_form.get_portfolio_recommendation()
             questionnaire_portfolio = portfolio_rec.replace(' (RI)', '')
-    portfolio_override_choices = list(QuestionnaireForm.ASSET_MIX.keys())
-    portfolio_allocations_json = json.dumps(QuestionnaireForm.ASSET_MIX)
+    _db_asset_mix = build_asset_mix_from_db()
+    portfolio_override_choices = list(_db_asset_mix.keys())
+    portfolio_allocations_json = json.dumps(_db_asset_mix)
 
     # Compute single selected values for template — avoids |default: filter edge cases
     selected_risk_profile = risk_profile_override if risk_profile_override else questionnaire_risk_profile
@@ -1405,7 +1430,7 @@ def get_target_weights(request):
     form = QuestionnaireForm(data=form_data)
     if form.is_valid():
         portfolio_recommendation = form.get_portfolio_recommendation()
-        asset_mix = form.get_asset_mix(portfolio_recommendation)
+        asset_mix = form.get_asset_mix(portfolio_recommendation, asset_mix_db=build_asset_mix_from_db(), liq_asset_mix_db=build_liq_asset_mix_from_db())
         risk_rating, portfolio_definition = get_risk_and_definition(portfolio_recommendation)
         return JsonResponse({
             'target_weights': asset_mix,
@@ -1837,7 +1862,7 @@ def generate_ips_details_for_pm(request):
 
         if form.is_valid():
             portfolio_recommendation = form.get_portfolio_recommendation()
-            asset_mix = form.get_asset_mix(portfolio_recommendation)
+            asset_mix = form.get_asset_mix(portfolio_recommendation, asset_mix_db=build_asset_mix_from_db(), liq_asset_mix_db=build_liq_asset_mix_from_db())
             risk_rating, portfolio_definition = get_risk_and_definition(portfolio_recommendation)
         else:
             portfolio_recommendation = "Invalid data"

@@ -293,9 +293,21 @@ class QuestionnaireForm(forms.Form):
 
 
 
-    def get_asset_mix(self, portfolio_recommendation):
+    def get_asset_mix(self, portfolio_recommendation, asset_mix_db=None, liq_asset_mix_db=None):
+        """Return the asset allocation dict for a given portfolio recommendation.
+
+        When asset_mix_db / liq_asset_mix_db are provided (built from
+        PortfolioProfile DB records) those take precedence over the hardcoded
+        fallbacks below.  Views should pass these in so that the admin-managed
+        PortfolioProfile table is the single source of truth.
+        """
         liquidity_needs = int(self.cleaned_data.get('liquidity_needs'))
+        key = portfolio_recommendation.replace(" (RI)", "")
+
         if liquidity_needs != 3:  # if liquidity needs are important or somewhat important
+            if liq_asset_mix_db:
+                return liq_asset_mix_db.get(key, {})
+            # Hardcoded fallback (used only when DB has no PortfolioProfile records)
             return {
                 'Income': {'Cash': '2%', 'Fixed Income': '78%', 'Canadian Equity': '10%', 'U.S. Equity': '5%', 'International Equity': '5%', 'Alternatives': '0%', 'Total': '100%'},
                 'Income & Growth': {'Cash': '2%', 'Fixed Income': '63%', 'Canadian Equity': '16%', 'U.S. Equity': '11%', 'International Equity': '8%', 'Alternatives': '0%', 'Total': '100%'},
@@ -303,9 +315,11 @@ class QuestionnaireForm(forms.Form):
                 'Growth & Income': {'Cash': '2%', 'Fixed Income': '33%', 'Canadian Equity': '27%', 'U.S. Equity': '20%', 'International Equity': '18%', 'Alternatives': '0%', 'Total': '100%'},
                 'Growth': {'Cash': '2%', 'Fixed Income': '18%', 'Canadian Equity': '32%', 'U.S. Equity': '26%', 'International Equity': '22%', 'Alternatives': '0%', 'Total': '100%'},
                 'Maximum Growth': {'Cash': '2%', 'Fixed Income': '0%', 'Canadian Equity': '35%', 'U.S. Equity': '35%', 'International Equity': '28%', 'Alternatives': '0%', 'Total': '100%'}
-            }.get(portfolio_recommendation.replace(" (RI)", ""), {})
+            }.get(key, {})
         else:  # if liquidity needs are not important
-            return self.ASSET_MIX.get(portfolio_recommendation.replace(" (RI)", ""), {})
+            if asset_mix_db:
+                return asset_mix_db.get(key, {})
+            return self.ASSET_MIX.get(key, {})
         
     def get_risk_profile(self):
         total_score = self.calculate_total_score()
