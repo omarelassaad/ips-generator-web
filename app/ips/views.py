@@ -417,18 +417,38 @@ def questionnaire_view(request):
             ChooseMyselfData.objects.filter(user=user).delete()
             request.session.pop('loaded_proposal_id', None)
             request.session.pop('loaded_proposal_label', None)
+            # Derive the household name from primary + optional secondary client
+            _primary  = form.cleaned_data.get('primary_client_name', '').strip()
+            _secondary = form.cleaned_data.get('secondary_client_name', '').strip()
+            _entity   = form.cleaned_data.get('entity_name', '').strip()
+            _client_id = f"{_primary} & {_secondary}" if _primary and _secondary else _primary
+
+            NUMERIC_FIELDS = {
+                'annual_income', 'income_savings', 'spending_needs',
+                'risk_tolerance', 'investment_loss', 'recovery_period',
+                'reaction_to_drop', 'high_risk_opportunities', 'volatility',
+                'investment_knowledge', 'time_horizon', 'liquidity_needs',
+            }
+            # Skip the new name fields from the generic loop — we handle them explicitly
+            SKIP_FIELDS = {'primary_client_name', 'secondary_client_name', 'entity_name'}
+
             for field, value in form.cleaned_data.items():
+                if field in SKIP_FIELDS:
+                    continue
                 if field == 'investment_goals':
                     for goal in value:
                         QuestionnaireResponse.objects.create(user=user, question=field, answer=goal, score=0)
                 else:
-                    score = int(value) if field in [
-                        'annual_income', 'income_savings', 'spending_needs',
-                        'risk_tolerance', 'investment_loss', 'recovery_period',
-                        'reaction_to_drop', 'high_risk_opportunities', 'volatility',
-                        'investment_knowledge', 'time_horizon', 'liquidity_needs'
-                    ] else 0
+                    score = int(value) if field in NUMERIC_FIELDS else 0
                     QuestionnaireResponse.objects.create(user=user, question=field, answer=value, score=score)
+
+            # Store derived client_identifier and the individual member names
+            QuestionnaireResponse.objects.create(user=user, question='client_identifier', answer=_client_id, score=0)
+            QuestionnaireResponse.objects.create(user=user, question='primary_client_name', answer=_primary, score=0)
+            if _secondary:
+                QuestionnaireResponse.objects.create(user=user, question='secondary_client_name', answer=_secondary, score=0)
+            if _entity:
+                QuestionnaireResponse.objects.create(user=user, question='entity_name', answer=_entity, score=0)
             return JsonResponse({
                 'total_score': total_score,
                 'portfolio_recommendation': portfolio_recommendation,
@@ -1392,6 +1412,20 @@ def choose_myself_view(request):
         r['amount'] = str(r['amount'])  # Decimal → str for JSON serialisation
     existing_rows_json = existing_rows  # passed as a list; template uses json_script for safe serialisation
 
+    # Build household member list for the account-owner dropdown
+    _hm_primary   = QuestionnaireResponse.objects.filter(user=request.user, question='primary_client_name').values_list('answer', flat=True).first() or ''
+    _hm_secondary = QuestionnaireResponse.objects.filter(user=request.user, question='secondary_client_name').values_list('answer', flat=True).first() or ''
+    _hm_entity    = QuestionnaireResponse.objects.filter(user=request.user, question='entity_name').values_list('answer', flat=True).first() or ''
+    household_members = []
+    if _hm_primary:
+        household_members.append(_hm_primary)
+    if _hm_secondary:
+        household_members.append(_hm_secondary)
+    if _hm_primary and _hm_secondary:
+        household_members.append('Joint')
+    if _hm_entity:
+        household_members.append(_hm_entity)
+
     return render(request, 'choose_myself.html', {
         'form': form,
         'combined_accounts': combined_accounts,
@@ -1409,6 +1443,7 @@ def choose_myself_view(request):
         'loaded_proposal_label': request.session.get('loaded_proposal_label', ''),
         'can_override_fee': getattr(request.user, 'profile', None) and request.user.profile.can_override_fee,
         'client_household_name': client_household_name,
+        'household_members': household_members,
     })
 
 @login_required

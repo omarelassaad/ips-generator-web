@@ -13,7 +13,9 @@ class RegisterForm(UserCreationForm):
 
 class QuestionnaireForm(forms.Form):
     advisor_name = forms.CharField(max_length=100, required=True, label='Investment Advisor Name')
-    client_identifier = forms.CharField(max_length=100, required=True, label='Client Identifier')
+    primary_client_name = forms.CharField(max_length=100, required=True, label='Primary Client Name')
+    secondary_client_name = forms.CharField(max_length=100, required=False, label='Spouse / Secondary Client Name')
+    entity_name = forms.CharField(max_length=100, required=False, label='Corporation / Trust / Entity Name')
 
     INVESTMENT_GOALS = [
         ('Retirement', 'Retirement'),

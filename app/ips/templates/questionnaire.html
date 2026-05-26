@@ -40,9 +40,19 @@
         <div id="error-advisor_name" class="error-message"></div>
     </div>
     <div>
-        <label for="client_identifier">Client Household Name:</label>
-        <input type="text" name="client_identifier" id="client_identifier" required>
-        <div id="error-client_identifier" class="error-message"></div>
+        <label for="primary_client_name">Primary Client Name:</label>
+        <input type="text" name="primary_client_name" id="primary_client_name" required placeholder="e.g. Jack Daniels">
+        <div id="error-primary_client_name" class="error-message"></div>
+    </div>
+    <div>
+        <label for="secondary_client_name">Spouse / Secondary Client Name <span style="font-weight:normal; color:#666;">(optional)</span>:</label>
+        <input type="text" name="secondary_client_name" id="secondary_client_name" placeholder="e.g. Diane Daniels">
+        <div id="error-secondary_client_name" class="error-message"></div>
+    </div>
+    <div>
+        <label for="entity_name">Corporation / Trust / Entity Name <span style="font-weight:normal; color:#666;">(optional)</span>:</label>
+        <input type="text" name="entity_name" id="entity_name" placeholder="e.g. 1234567 Ontario Inc.">
+        <div id="error-entity_name" class="error-message"></div>
     </div>
 
     <fieldset>

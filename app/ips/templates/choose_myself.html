@@ -34,6 +34,14 @@
   {% csrf_token %}
     
     <h3 style="text-align: left;">Account Selection</h3>
+
+    <!-- Datalist of household members — shared by every account-owner input on this page -->
+    <datalist id="household-members-list">
+      {% for member in household_members %}
+      <option value="{{ member }}">
+      {% endfor %}
+    </datalist>
+
     <div id="version-section" style="margin-top: 20px; margin-bottom: 20px;">
       <label for="version-number" style="display: block;">Please enter the version number: (this is the version referenced in the footer of the IPS) </label>
       <input type="text" id="version-number" style="width: 100%; margin-top: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" inputmode="numeric" pattern="\d*" />
@@ -54,7 +62,7 @@
         </thead>
         <tbody id="account-strategy-body">
           <tr>
-            <td><input type="text" name="account_owner" style="width: 100%; text-align: left;"></td>
+            <td><input type="text" name="account_owner" list="household-members-list" style="width: 100%; text-align: left;" autocomplete="off" placeholder="Select or type name"></td>
             <td>
               <select name="account_type" style="width: 100%; text-align: left;">
                 <option value="Cash">Cash</option>
