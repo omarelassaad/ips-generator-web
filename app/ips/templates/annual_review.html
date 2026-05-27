@@ -89,6 +89,50 @@
     cursor: pointer; width: auto;
   }
   .btn-gen:hover { background: #174080; }
+
+  /* IFMS import panel */
+  .ifms-panel {
+    background: #f0f4ff;
+    border: 1px solid #b8c8f0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .ifms-panel h3 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #205098;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    border-bottom: 1px solid #c5d4f0;
+    padding-bottom: 5px;
+  }
+  .ifms-search-row { display: flex; gap: 8px; align-items: center; }
+  .ifms-search-row input {
+    flex: 1; padding: 6px 10px; border: 1px solid #aabce0;
+    border-radius: 4px; font-size: 13px; font-family: inherit;
+  }
+  .btn-ifms-search {
+    background: #205098; color: #fff; border: none;
+    padding: 6px 16px; border-radius: 4px; font-size: 13px;
+    cursor: pointer; white-space: nowrap; width: auto;
+  }
+  .btn-ifms-search:hover { background: #174080; }
+  .ifms-results { margin-top: 10px; display: none; }
+  .ifms-results select {
+    width: 100%; padding: 6px 9px; border: 1px solid #aabce0;
+    border-radius: 4px; font-size: 13px; font-family: inherit; background: #fff;
+  }
+  .btn-ifms-load {
+    margin-top: 8px; background: #28a745; color: #fff; border: none;
+    padding: 6px 18px; border-radius: 4px; font-size: 13px;
+    cursor: pointer; width: auto;
+  }
+  .btn-ifms-load:hover { background: #218838; }
+  .ifms-msg { font-size: 12px; margin-top: 6px; }
+  .ifms-msg.error { color: #c0392b; }
+  .ifms-msg.info  { color: #205098; }
 </style>
 
 <div class="ar-wrap">
@@ -229,6 +273,24 @@
       </div>
     </div>
 
+    <!-- IFMS Import (permitted users only) -->
+    {% if can_import_ifms %}
+    <div class="ifms-panel">
+      <h3>&#128196; Import from IFMS</h3>
+      <div class="ifms-search-row">
+        <input type="text" id="ifms-q" placeholder="Type composite code (e.g. 2302DB) or client name…" autocomplete="off">
+        <button type="button" class="btn-ifms-search" id="ifms-search-btn">Search</button>
+      </div>
+      <div class="ifms-results" id="ifms-results">
+        <select id="ifms-select" size="1">
+          <option value="">— select a client —</option>
+        </select>
+        <button type="button" class="btn-ifms-load" id="ifms-load-btn">&#10003; Load into Strategy Table</button>
+      </div>
+      <div class="ifms-msg" id="ifms-msg"></div>
+    </div>
+    {% endif %}
+
     <!-- Current Portfolio Mix -->
     <div class="ar-card">
       <h3>Current Portfolio Mix</h3>
@@ -343,6 +405,101 @@
       if (rows.length > 1) e.target.closest('tr').remove();
     }
   });
+
+  // ── IFMS import ──────────────────────────────────────────────────────────
+  var ifmsResults = [];   // cache of API results
+
+  var ifmsSearchBtn = document.getElementById('ifms-search-btn');
+  var ifmsLoadBtn   = document.getElementById('ifms-load-btn');
+  var ifmsQ         = document.getElementById('ifms-q');
+  var ifmsResultsEl = document.getElementById('ifms-results');
+  var ifmsSelect    = document.getElementById('ifms-select');
+  var ifmsMsg       = document.getElementById('ifms-msg');
+
+  if (ifmsSearchBtn) {
+    // Search on button click or Enter key
+    ifmsSearchBtn.addEventListener('click', doIfmsSearch);
+    ifmsQ.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); doIfmsSearch(); }
+    });
+
+    function setMsg(text, type) {
+      ifmsMsg.textContent = text;
+      ifmsMsg.className = 'ifms-msg ' + (type || '');
+    }
+
+    function doIfmsSearch() {
+      var q = ifmsQ.value.trim();
+      if (!q) return;
+      setMsg('Searching…', 'info');
+      ifmsResultsEl.style.display = 'none';
+      fetch('{% url "search_ifms" %}?q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { setMsg(data.error, 'error'); return; }
+          ifmsResults = data.results || [];
+          if (!ifmsResults.length) { setMsg('No CMA clients found matching "' + q + '".', 'info'); return; }
+          // Populate select
+          ifmsSelect.innerHTML = ifmsResults.length === 1
+            ? '' : '<option value="">— select a client —</option>';
+          ifmsResults.forEach(function(r, i) {
+            var opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = r.composite_code + ' — ' + r.composite_desc;
+            ifmsSelect.appendChild(opt);
+          });
+          if (ifmsResults.length === 1) ifmsSelect.value = 0;
+          ifmsResultsEl.style.display = 'block';
+          setMsg(ifmsResults.length + ' client(s) found. Select one and click Load.', 'info');
+        })
+        .catch(function(err) { setMsg('Search failed: ' + err, 'error'); });
+    }
+
+    ifmsLoadBtn.addEventListener('click', function() {
+      var idx = ifmsSelect.value;
+      if (idx === '' || idx === null) { setMsg('Please select a client first.', 'error'); return; }
+      var composite = ifmsResults[parseInt(idx)];
+      if (!composite) return;
+
+      // Clear existing strategy rows and replace with IFMS data
+      var tbody = document.getElementById('strat-tbody');
+      tbody.innerHTML = '';
+      var tmpl = document.getElementById('strat-options-tmpl');
+      var optionsHtml = tmpl ? tmpl.innerHTML : '<option value="">— select strategy —</option>';
+
+      composite.strategies.forEach(function(s) {
+        var tr = document.createElement('tr');
+        // Build the select with the IFMS name pre-selected (or as a free-text fallback)
+        var selHtml = '<select name="strategy_name[]">' + optionsHtml + '</select>';
+        tr.innerHTML = '<td>' + selHtml + '</td>'
+          + '<td><input type="number" name="current_weight[]" step="0.01" min="0" max="100" value="' + s.current_weight + '"></td>'
+          + '<td><input type="number" name="ips_weight[]"     step="0.01" min="0" max="100" value="' + s.ips_weight + '"></td>'
+          + '<td class="col-action"><button type="button" class="btn-rm" title="Remove">&#215;</button></td>';
+        tbody.appendChild(tr);
+
+        // Try to match IFMS Name to an option in the dropdown
+        var sel = tr.querySelector('select[name="strategy_name[]"]');
+        var matched = false;
+        Array.from(sel.options).forEach(function(opt) {
+          if (opt.value.trim().toLowerCase() === s.name.trim().toLowerCase()) {
+            sel.value = opt.value;
+            matched = true;
+          }
+        });
+        // If no exact match, add the IFMS name as a new option and select it
+        if (!matched) {
+          var newOpt = document.createElement('option');
+          newOpt.value = s.name;
+          newOpt.textContent = s.name;
+          sel.appendChild(newOpt);
+          sel.value = s.name;
+        }
+      });
+
+      setMsg('Loaded ' + composite.strategies.length + ' strategies for ' + composite.composite_desc + '.', 'info');
+      ifmsResultsEl.style.display = 'none';
+    });
+  }
 })();
 </script>
 {% endblock %}

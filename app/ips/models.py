@@ -232,6 +232,7 @@ class Profile(models.Model):
     is_approved = models.BooleanField(default=False)
     can_override_fee = models.BooleanField(default=False, help_text="Allow this user to override the calculated fee and trailer")
     can_use_master_proposals = models.BooleanField(default=False, help_text="Allow this user to load master/template proposals defined in the admin portal")
+    can_import_ifms = models.BooleanField(default=False, help_text="Allow this user to import client data from the IFMS upload into Annual Review")
 
     def __str__(self):
         return f"{self.user.username} - {'Approved' if self.is_approved else 'Not Approved'}"
@@ -304,6 +305,32 @@ class ReturnsUpload(models.Model):
 
     def __str__(self):
         return f"Returns as of {self.as_of_date} (uploaded {self.uploaded_at.strftime('%Y-%m-%d') if self.uploaded_at else '—'})"
+
+
+class IFMSUpload(models.Model):
+    """Monthly IFMS Excel export uploaded by admin. Advisors with permission can
+    search it from the Annual Review form to pre-fill the strategy table."""
+    file       = models.FileField(upload_to='ifms/', help_text="Excel file (.xlsx) exported from IFMS")
+    label      = models.CharField(max_length=100, help_text='Descriptive label, e.g. "IFMS 05-21-2026"')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active  = models.BooleanField(
+        default=True,
+        help_text="Only one upload should be active at a time. "
+                  "Saving a new active upload automatically deactivates the previous one."
+    )
+
+    class Meta:
+        verbose_name = "IFMS Upload"
+        verbose_name_plural = "IFMS Uploads"
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.label} (uploaded {self.uploaded_at.strftime('%Y-%m-%d') if self.uploaded_at else '—'})"
+
+    def save(self, *args, **kwargs):
+        if self.is_active:
+            IFMSUpload.objects.exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
 
 
 class MasterProposal(models.Model):

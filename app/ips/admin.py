@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.core.cache import cache
 from .models import (
     Profile, QuestionnaireResponse, ChooseMyselfData, LetPmChooseData,
-    FeeCategory, FeeTier, Mandate, ReturnsUpload,
+    FeeCategory, FeeTier, Mandate, ReturnsUpload, IFMSUpload,
     PortfolioProfile, IPSCopyBlock, SiteDocument, MasterProposal,
 )
 
@@ -13,10 +13,10 @@ from .models import (
 # ---------------------------------------------------------------------------
 
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'is_approved', 'can_override_fee', 'can_use_master_proposals')
-    list_filter = ('is_approved', 'can_override_fee', 'can_use_master_proposals')
+    list_display = ('user', 'is_approved', 'can_override_fee', 'can_use_master_proposals', 'can_import_ifms')
+    list_filter = ('is_approved', 'can_override_fee', 'can_use_master_proposals', 'can_import_ifms')
     search_fields = ('user__username', 'user__email')
-    list_editable = ('can_override_fee', 'can_use_master_proposals')
+    list_editable = ('can_override_fee', 'can_use_master_proposals', 'can_import_ifms')
 
 class QuestionnaireResponseAdmin(admin.ModelAdmin):
     list_display = ('user', 'question', 'answer', 'score')
@@ -280,3 +280,28 @@ class MasterProposalAdmin(admin.ModelAdmin):
             parts.append(f"Portfolio: {obj.portfolio_override}")
         return ', '.join(parts) if parts else '—'
     overrides_summary.short_description = "Overrides"
+
+
+# ---------------------------------------------------------------------------
+# IFMS Uploads
+# ---------------------------------------------------------------------------
+
+@admin.register(IFMSUpload)
+class IFMSUploadAdmin(admin.ModelAdmin):
+    list_display    = ('label', 'uploaded_at', 'is_active', 'file_link')
+    list_filter     = ('is_active',)
+    readonly_fields = ('uploaded_at',)
+    ordering        = ('-uploaded_at',)
+
+    def file_link(self, obj):
+        if obj.file:
+            return format_html('<a href="{}" target="_blank">Download</a>', obj.file.url)
+        return '—'
+    file_link.short_description = "File"
+
+    def save_model(self, request, obj, form, change):
+        # Deactivate others when saving a new active upload
+        if obj.is_active:
+            IFMSUpload.objects.exclude(pk=obj.pk).update(is_active=False)
+        super().save_model(request, obj, form, change)
+        cache.delete('ifms_data')

@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.core.cache import cache
-from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload, Mandate, FeeCategory, FeeTier, PortfolioProfile, IPSCopyBlock, SiteDocument, SavedProposal, MasterProposal
+from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload, IFMSUpload, Mandate, FeeCategory, FeeTier, PortfolioProfile, IPSCopyBlock, SiteDocument, SavedProposal, MasterProposal
 from .forms import QuestionnaireForm, ChooseMyselfForm, LetPmChooseForm, RegisterForm
 from django.template.loader import render_to_string
 from django.templatetags.static import static
@@ -2662,6 +2662,106 @@ _AR_RI = {
 }
 
 
+def _load_ifms_cma_df():
+    """Load and cache the active IFMS upload filtered to CMA rows.
+
+    Returns a pandas DataFrame or None if no active upload exists.
+    """
+    cached = cache.get('ifms_data')
+    if cached is not None:
+        return cached
+    try:
+        import pandas as pd
+        upload = IFMSUpload.objects.filter(is_active=True).latest('uploaded_at')
+        df = pd.read_excel(upload.file.path, sheet_name='IFMS')
+        cma = df[df['Account Program'] == 'CMA'].copy()
+        cache.set('ifms_data', cma, 60 * 60 * 12)   # 12-hour cache
+        return cma
+    except Exception as exc:
+        logger.warning('IFMS load error: %s', exc)
+        return None
+
+
+@login_required
+def search_ifms(request):
+    """AJAX endpoint: search the active IFMS upload by composite code or client name.
+
+    GET params:
+        q  — search term (composite code for exact match, or name fragment)
+
+    Returns JSON list of matching composites, each with aggregated strategy rows.
+    """
+    # Permission check
+    try:
+        allowed = request.user.profile.can_import_ifms
+    except Exception:
+        allowed = False
+    if not allowed:
+        return JsonResponse({'error': 'Permission denied.'}, status=403)
+
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return JsonResponse({'results': []})
+
+    cma = _load_ifms_cma_df()
+    if cma is None:
+        return JsonResponse({'error': 'No active IFMS upload found. Ask your administrator to upload the latest file.'}, status=404)
+
+    try:
+        import pandas as pd
+        # Exact composite code match first, then name contains fallback
+        q_upper = q.upper()
+        exact = cma[cma['Composite'].str.upper() == q_upper]
+        if exact.empty:
+            exact = cma[cma['Composite Description'].str.upper().str.contains(q_upper, na=False)]
+
+        if exact.empty:
+            return JsonResponse({'results': []})
+
+        # Distinct composites (return up to 10)
+        composites = (
+            exact[['Composite', 'Composite Description']]
+            .drop_duplicates()
+            .head(10)
+        )
+
+        results = []
+        for _, row in composites.iterrows():
+            comp_code = row['Composite']
+            comp_desc = row['Composite Description']
+            comp_rows = cma[cma['Composite'] == comp_code]
+
+            # Aggregate by IFMS Name across all sleeves in this composite
+            agg = (
+                comp_rows.groupby('IFMS Name')
+                .agg(market_value=('Total Market Value', 'sum'),
+                     ips_weight=('IPS Weight', 'first'))
+                .reset_index()
+            )
+            total_mv = agg['market_value'].sum()
+            strategies = []
+            for _, s in agg.iterrows():
+                current_w = round(s['market_value'] / total_mv * 100, 2) if total_mv else 0
+                ips_w = round(float(s['ips_weight']), 2) if pd.notna(s['ips_weight']) else ''
+                strategies.append({
+                    'name':           s['IFMS Name'],
+                    'current_weight': current_w,
+                    'ips_weight':     ips_w,
+                })
+
+            results.append({
+                'composite_code': comp_code,
+                'composite_desc': comp_desc,
+                'strategies':     strategies,
+            })
+
+        return JsonResponse({'results': results})
+
+    except Exception as exc:
+        logger.error('search_ifms error: %s', exc, exc_info=True)
+        return JsonResponse({'error': str(exc)}, status=500)
+
+
 def _build_ar_narrative_maps():
     """Build the five AR narrative maps from IPSCopyBlock DB records.
 
@@ -2707,6 +2807,12 @@ def annual_review_view(request):
     # Active mandate names for the strategy dropdown
     mandate_names = list(Mandate.objects.filter(is_active=True).order_by('display_order', 'name').values_list('name', flat=True))
 
+    # IFMS import permission
+    try:
+        can_import_ifms = request.user.profile.can_import_ifms
+    except Exception:
+        can_import_ifms = False
+
     context = {
         'risk_profile_choices':  list(risk_map.keys()),
         'portfolio_choices':     list(asset_mix_map.keys()),
@@ -2722,6 +2828,7 @@ def annual_review_view(request):
         'ri_narrative_map':          ri_map,
         'income_default_narrative':  income_default,
         'mandate_names':             mandate_names,
+        'can_import_ifms':           can_import_ifms,
     }
     return render(request, 'annual_review.html', context)
 
