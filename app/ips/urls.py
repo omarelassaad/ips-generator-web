@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     annual_review_view,
     search_ifms,
+    search_ifms_accounts,
     questionnaire_view,
     generate_ips_questionnaire_responses,
     generate_ips,
@@ -48,4 +49,5 @@ urlpatterns = [
     path('master-proposals/<int:proposal_id>/load/', load_master_proposal, name='load_master_proposal'),
     path('annual-review/', annual_review_view, name='annual_review'),
     path('annual-review/search-ifms/', search_ifms, name='search_ifms'),
+    path('choose-myself/search-ifms/', search_ifms_accounts, name='search_ifms_accounts'),
 ]

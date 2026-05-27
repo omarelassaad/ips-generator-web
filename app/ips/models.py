@@ -233,6 +233,7 @@ class Profile(models.Model):
     can_override_fee = models.BooleanField(default=False, help_text="Allow this user to override the calculated fee and trailer")
     can_use_master_proposals = models.BooleanField(default=False, help_text="Allow this user to load master/template proposals defined in the admin portal")
     can_import_ifms = models.BooleanField(default=False, help_text="Allow this user to import client data from the IFMS upload into Annual Review")
+    can_import_ifms_ips = models.BooleanField(default=False, help_text="Allow this user to import strategy and amount from IFMS into the IPS (Choose Myself)")
 
     def __str__(self):
         return f"{self.user.username} - {'Approved' if self.is_approved else 'Not Approved'}"

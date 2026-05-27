@@ -1607,6 +1607,7 @@ def choose_myself_view(request):
         'loaded_proposal_id': request.session.get('loaded_proposal_id'),
         'loaded_proposal_label': request.session.get('loaded_proposal_label', ''),
         'can_override_fee': getattr(request.user, 'profile', None) and request.user.profile.can_override_fee,
+        'can_import_ifms_ips': getattr(request.user, 'profile', None) and request.user.profile.can_import_ifms_ips,
         'client_household_name': client_household_name,
         'household_members': household_members,
         'pcq_advisor_name': pcq_advisor_name,
@@ -2759,6 +2760,72 @@ def search_ifms(request):
 
     except Exception as exc:
         logger.error('search_ifms error: %s', exc, exc_info=True)
+        return JsonResponse({'error': str(exc)}, status=500)
+
+
+@login_required
+def search_ifms_accounts(request):
+    """AJAX endpoint: return individual sleeve rows for a composite from the active IFMS upload.
+
+    Used by the IPS (Choose Myself) IFMS import panel.
+    Returns strategy (IFMS Name) and amount (Total Market Value) per sleeve row.
+
+    GET params:
+        q  — composite code (exact) or name fragment (contains)
+    """
+    try:
+        allowed = request.user.profile.can_import_ifms_ips
+    except Exception:
+        allowed = False
+    if not allowed:
+        return JsonResponse({'error': 'Permission denied.'}, status=403)
+
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return JsonResponse({'results': []})
+
+    cma = _load_ifms_cma_df()
+    if cma is None:
+        return JsonResponse({'error': 'No active IFMS upload found. Ask your administrator to upload the latest file.'}, status=404)
+
+    try:
+        import pandas as pd
+        q_upper = q.upper()
+        exact = cma[cma['Composite'].str.upper() == q_upper]
+        if exact.empty:
+            exact = cma[cma['Composite Description'].str.upper().str.contains(q_upper, na=False)]
+
+        if exact.empty:
+            return JsonResponse({'results': []})
+
+        composites = exact[['Composite', 'Composite Description']].drop_duplicates().head(10)
+
+        results = []
+        for _, row in composites.iterrows():
+            comp_code = row['Composite']
+            comp_desc = row['Composite Description']
+            comp_rows = cma[cma['Composite'] == comp_code]
+
+            accounts = []
+            for _, acc in comp_rows.iterrows():
+                mv = float(acc['Total Market Value']) if pd.notna(acc['Total Market Value']) else 0
+                if mv <= 0:
+                    continue
+                accounts.append({
+                    'strategy':     str(acc['IFMS Name']),
+                    'amount':       round(mv, 2),
+                })
+
+            results.append({
+                'composite_code': comp_code,
+                'composite_desc': comp_desc,
+                'accounts':       accounts,
+            })
+
+        return JsonResponse({'results': results})
+
+    except Exception as exc:
+        logger.error('search_ifms_accounts error: %s', exc, exc_info=True)
         return JsonResponse({'error': str(exc)}, status=500)
 
 

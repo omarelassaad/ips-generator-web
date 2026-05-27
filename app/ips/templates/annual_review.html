@@ -75,10 +75,12 @@
     color: #112055;
     background: #f4f7ff;
   }
-  .strat-table tfoot .tot-num { text-align: center; }
-  .diff-pos { color: #217a3c; }
-  .diff-neg { color: #c0392b; }
-  .diff-zero { color: #555; }
+  /* tot-num applies to both tfoot totals AND per-row diff cells */
+  .tot-num { text-align: center; }
+  .diff-cell { text-align: center; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .diff-pos  { color: #217a3c; }
+  .diff-neg  { color: #c0392b; }
+  .diff-zero { color: #888; }
   .screen-only-badge {
     font-size: 9px; font-weight: 400; color: #8899cc;
     margin-left: 4px; vertical-align: middle; letter-spacing: 0;

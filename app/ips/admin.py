@@ -13,10 +13,10 @@ from .models import (
 # ---------------------------------------------------------------------------
 
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'is_approved', 'can_override_fee', 'can_use_master_proposals', 'can_import_ifms')
-    list_filter = ('is_approved', 'can_override_fee', 'can_use_master_proposals', 'can_import_ifms')
+    list_display = ('user', 'is_approved', 'can_override_fee', 'can_use_master_proposals', 'can_import_ifms', 'can_import_ifms_ips')
+    list_filter = ('is_approved', 'can_override_fee', 'can_use_master_proposals', 'can_import_ifms', 'can_import_ifms_ips')
     search_fields = ('user__username', 'user__email')
-    list_editable = ('can_override_fee', 'can_use_master_proposals', 'can_import_ifms')
+    list_editable = ('can_override_fee', 'can_use_master_proposals', 'can_import_ifms', 'can_import_ifms_ips')
 
 class QuestionnaireResponseAdmin(admin.ModelAdmin):
     list_display = ('user', 'question', 'answer', 'score')
