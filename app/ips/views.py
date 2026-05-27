@@ -2704,6 +2704,9 @@ def annual_review_view(request):
 
     risk_map, asset_mix_map, time_horizon_map, liquidity_map, ri_map, income_default = _build_ar_narrative_maps()
 
+    # Active mandate names for the strategy dropdown
+    mandate_names = list(Mandate.objects.filter(is_active=True).order_by('display_order', 'name').values_list('name', flat=True))
+
     context = {
         'risk_profile_choices':  list(risk_map.keys()),
         'portfolio_choices':     list(asset_mix_map.keys()),
@@ -2718,6 +2721,7 @@ def annual_review_view(request):
         'liquidity_narrative_map':   {k: v[1] for k, v in liquidity_map.items()},
         'ri_narrative_map':          ri_map,
         'income_default_narrative':  income_default,
+        'mandate_names':             mandate_names,
     }
     return render(request, 'annual_review.html', context)
 
@@ -2799,7 +2803,9 @@ def _generate_annual_review_pdf(request):
     merger.write(merged)
     merger.close()
 
-    safe_name = (primary_name or 'Client').replace(' ', '_').replace('&', 'and')
+    safe_name = (primary_name or 'Client').replace(' ', '_').replace('&', 'and').replace(',', '')
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    filename = f"{safe_name}_{today_str}_Annual Review.pdf"
     response = HttpResponse(merged.getvalue(), content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename="Annual_Review_{safe_name}.pdf"'
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
