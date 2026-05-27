@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.core.cache import cache
-from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload, Mandate, FeeCategory, FeeTier, PortfolioProfile, IPSCopyBlock, SiteDocument, SavedProposal
+from .models import QuestionnaireResponse, ChooseMyselfData, LetPmChooseData, Profile, ReturnsUpload, Mandate, FeeCategory, FeeTier, PortfolioProfile, IPSCopyBlock, SiteDocument, SavedProposal, MasterProposal
 from .forms import QuestionnaireForm, ChooseMyselfForm, LetPmChooseForm, RegisterForm
 from django.template.loader import render_to_string
 from django.templatetags.static import static
@@ -1572,6 +1572,11 @@ def choose_myself_view(request):
         r['amount'] = str(r['amount'])  # Decimal → str for JSON serialisation
     existing_rows_json = existing_rows  # passed as a list; template uses json_script for safe serialisation
 
+    # Advisor name from PCQ (used in the IA email draft greeting)
+    pcq_advisor_name = QuestionnaireResponse.objects.filter(
+        user=request.user, question='advisor_name'
+    ).values_list('answer', flat=True).first() or ''
+
     # Build household member list for the account-owner dropdown
     _hm_primary   = QuestionnaireResponse.objects.filter(user=request.user, question='primary_client_name').values_list('answer', flat=True).first() or ''
     _hm_secondary = QuestionnaireResponse.objects.filter(user=request.user, question='secondary_client_name').values_list('answer', flat=True).first() or ''
@@ -1604,6 +1609,7 @@ def choose_myself_view(request):
         'can_override_fee': getattr(request.user, 'profile', None) and request.user.profile.can_override_fee,
         'client_household_name': client_household_name,
         'household_members': household_members,
+        'pcq_advisor_name': pcq_advisor_name,
     })
 
 @login_required
@@ -2510,13 +2516,27 @@ def save_proposal(request):
 
 @login_required
 def proposals_list(request):
-    """Show all saved proposals for the current user."""
+    """Show all saved proposals for the current user, plus master proposals if permitted."""
     try:
         proposals = SavedProposal.objects.filter(user=request.user)
     except Exception as e:
         logger.error(f"proposals_list error: {e}")
         proposals = []
-    return render(request, 'proposals.html', {'proposals': proposals})
+
+    master_proposals = []
+    can_use_masters = False
+    try:
+        can_use_masters = request.user.profile.can_use_master_proposals
+        if can_use_masters:
+            master_proposals = list(MasterProposal.objects.filter(is_active=True))
+    except Exception as e:
+        logger.error(f"proposals_list master_proposals error: {e}")
+
+    return render(request, 'proposals.html', {
+        'proposals': proposals,
+        'master_proposals': master_proposals,
+        'can_use_masters': can_use_masters,
+    })
 
 
 @login_required
@@ -2555,3 +2575,231 @@ def delete_proposal(request, proposal_id):
     except Exception as e:
         logger.error(f"delete_proposal error: {e}")
     return redirect('proposals_list')
+
+
+@login_required
+@require_POST
+def load_master_proposal(request, proposal_id):
+    """Load a master/template proposal into ChooseMyselfData and redirect to choose_myself."""
+    # Permission check
+    try:
+        can_use = request.user.profile.can_use_master_proposals
+    except Exception:
+        can_use = False
+    if not can_use:
+        messages.error(request, "You don't have permission to load master proposals.")
+        return redirect('proposals_list')
+
+    master = get_object_or_404(MasterProposal, id=proposal_id, is_active=True)
+    try:
+        rows = json.loads(master.data)
+        with transaction.atomic():
+            ChooseMyselfData.objects.filter(user=request.user).delete()
+            for r in rows:
+                ChooseMyselfData.objects.create(
+                    user=request.user,
+                    account_owner=r.get('account_owner', ''),
+                    account_type=r.get('account_type', ''),
+                    amount=r.get('amount', '0'),
+                    strategy=r.get('strategy', ''),
+                    version_number=r.get('version_number', 'N/A'),
+                )
+        # Store as a "loaded" proposal so choose_myself shows the label
+        request.session['loaded_proposal_id'] = None  # not a saved proposal
+        request.session['loaded_proposal_label'] = f"{master.label} (Master)"
+        # Apply overrides if set on the master proposal
+        if master.risk_profile_override:
+            request.session['risk_profile_override'] = master.risk_profile_override
+        if master.portfolio_override:
+            request.session['portfolio_override'] = master.portfolio_override
+    except Exception as e:
+        logger.error(f"load_master_proposal error: {e}", exc_info=True)
+        messages.error(request, f"Could not load master proposal: {e}")
+    return redirect('choose_myself')
+
+
+
+
+# ---------------------------------------------------------------------------
+# Annual Review
+# ---------------------------------------------------------------------------
+
+_AR_RISK_NARRATIVES = {
+    'Low Risk': "Your risk profile, determined based on your responses to the risk questionnaire, is classified as Low Risk. Investors with this profile generally prioritize capital preservation and prefer to minimize the possibility of losses. They tend to seek stability and security, even if it means accepting lower returns. This risk profile is ideal for those who are more risk-averse or have a shorter investment horizon. Therefore, an 'Income' asset mix is considered suitable for clients with this risk profile.",
+    'Low Medium Risk': "Your risk profile, determined based on your responses to the risk questionnaire, is classified as Low Medium Risk. This profile suits investors who are comfortable with a moderate level of risk in exchange for the potential of modest returns. They seek a balance between preserving capital and achieving some growth. These investors are prepared for minor fluctuations in their portfolio value. As such, an 'Income & Growth' asset mix is considered appropriate for clients with this risk profile.",
+    'Medium Risk': "Your risk profile, determined based on your responses to the risk questionnaire, is classified as Medium Risk. This profile indicates that you are open to accepting some risk in pursuit of better returns. You understand that your portfolio may experience occasional fluctuations in value and are comfortable with this as you seek higher gains. This risk profile is suitable for investors with a moderate investment horizon, making a 'Balanced' asset mix an appropriate choice for your investment strategy.",
+    'Medium High Risk': "Your risk profile, determined based on your responses to the risk questionnaire, is classified as Medium High Risk. Investors with this profile are willing to accept some fluctuations in their portfolio value in exchange for the potential of higher returns. While they aim for capital appreciation, they also value some income from their investments. This risk profile is suitable for those with a longer investment horizon. Consequently, a 'Growth & Income' asset mix is considered appropriate for clients with this risk profile.",
+    'High Risk': "Your risk profile, determined based on your responses to the risk questionnaire, is classified as High Risk. Investors with this profile are comfortable with more significant fluctuations in their portfolio value in pursuit of high returns. They are prepared to accept considerable risk in exchange for the potential of substantial gains. This risk profile is appropriate for those with a long-term investment horizon and a strong appetite for risk. Therefore, a 'Growth' asset mix is considered suitable for clients with this risk profile.",
+    'Very High Risk': "Your risk profile, determined based on your responses to the risk questionnaire, is classified as Very High Risk. Investors with this profile are willing to accept significant volatility and fluctuations in their portfolio value for the potential of maximum returns. They focus on high-growth opportunities and are comfortable with a high level of risk. This risk profile is most appropriate for those with a long-term investment horizon and a strong focus on growth. As such, a 'Maximum Growth' asset mix is considered appropriate for clients with this risk profile.",
+}
+
+_AR_ASSET_MIX_NARRATIVES = {
+    'Income': "The Income asset mix is designed to generate steady returns through investments primarily in bonds and fixed-income securities, with minimal equities.",
+    'Income & Growth': "The Income & Growth asset mix offers a combination of bonds and some equities, focusing on stable returns while providing the potential for modest growth. This mix aims to generate income through fixed-income securities and achieve some capital appreciation through equities.",
+    'Balanced': "The Balanced asset mix consists of an equal mix of equities and bonds, providing moderate exposure to both asset classes. This combination aims to achieve a balance between income generation and capital growth, offering a moderate risk-return profile. It is ideal for investors seeking a diversified approach to investing.",
+    'Growth & Income': "The Growth & Income asset mix emphasizes equities more than bonds, focusing on capital appreciation while maintaining some income generation. This mix is suitable for investors seeking growth with a medium-high risk tolerance.",
+    'Growth': "The Growth asset mix is primarily composed of equities, offering higher volatility with a focus on capital appreciation. It is ideal for investors seeking higher growth opportunities with a long-term horizon.",
+    'Maximum Growth': "The Maximum Growth asset mix is almost entirely made up of equities or high-risk assets, providing maximum exposure to market fluctuations. It targets the highest possible returns and is suitable for investors willing to accept very high risk.",
+}
+
+_AR_TIME_HORIZON = {
+    '1': ('Less than 1 year',  'Your investment portfolio is designed for a very short-term time horizon of less than one year. The focus will be on preserving capital and maintaining liquidity, prioritizing investments that are stable and easily convertible to cash.'),
+    '2': ('1–3 years',         'Your investment portfolio is designed with a short-to-medium term time horizon of 1 to 3 years. The strategy will balance between stability and modest growth, emphasizing relatively safe investments that offer some potential for appreciation while minimizing risk.'),
+    '3': ('3–5 years',         'Your investment portfolio is structured with a medium-term time horizon of 3 to 5 years. This allows for a balanced approach to risk and return, with the objective of achieving moderate growth while preserving capital.'),
+    '4': ('5–10 years',        'Your investment portfolio is tailored for a long-term time horizon of 5 to 10 years. With a focus on growth and capital appreciation, the investment strategy will be more aggressive. The approach will aim to optimize growth potential and manage risk, achieving significant appreciation over the extended period.'),
+    '5': ('More than 10 years','Your investment portfolio is planned with a long-term time horizon of more than 10 years. This extended duration allows for a more aggressive growth strategy, taking advantage of compounding growth potential and maximizing capital appreciation over the long run.'),
+}
+
+_AR_LIQUIDITY = {
+    '1': ('Very Important',     'You have indicated that having access to cash quickly is very important for your investment strategy. Your investment portfolio will prioritize liquidity to ensure that funds are readily available when needed, without significant delays or penalties.'),
+    '2': ('Somewhat Important', 'You have indicated that having some access to cash is somewhat important, but you can afford to wait for a short period. This implies a balance between liquidity and potential returns. Your investment portfolio will be structured to provide moderate liquidity, allowing for access to funds within a reasonable timeframe while still aiming for growth. This approach will help you meet occasional cash needs without sacrificing long-term investment goals.'),
+    '3': ('Not Important',      'You have indicated that having access to cash quickly is not important for your investment strategy. Your investment portfolio can therefore focus on growth and capital appreciation, with less emphasis on liquidity, allowing for potentially higher long-term returns.'),
+}
+
+_AR_RI = {
+    'RI':      'You have indicated a preference for an all responsible investing portfolio. Your investment strategy will prioritize selecting investments that meet environmental, social, and governance (ESG) criteria, aligning with your values by investing in companies committed to sustainable and ethical practices.',
+    'Neutral': 'You have indicated a neutral stance with no specific bias towards responsible investing. This means that your investment strategy will focus on optimizing returns without particular consideration for environmental, social, and governance (ESG) criteria. The portfolio will be designed to achieve your financial objectives based on traditional investment principles, ensuring that performance and risk management are prioritized according to your overall investment goals.',
+}
+
+
+def _build_ar_narrative_maps():
+    """Build the five AR narrative maps from IPSCopyBlock DB records.
+
+    Falls back to the hardcoded dicts if the DB category is empty (e.g. migration
+    not yet run).  Returns a tuple:
+        (risk_map, asset_mix_map, time_horizon_map, liquidity_map, ri_map, income_default)
+    """
+    # ── Risk Profile ──────────────────────────────────────────────────────────
+    db_rp = get_copy_blocks('ar_risk_profile')   # {key: (title, body)}
+    risk_map = {k: v[1] for k, v in db_rp.items()} if db_rp else _AR_RISK_NARRATIVES
+
+    # ── Asset Mix ─────────────────────────────────────────────────────────────
+    db_am = get_copy_blocks('ar_asset_mix')
+    asset_mix_map = {k: v[1] for k, v in db_am.items()} if db_am else _AR_ASSET_MIX_NARRATIVES
+
+    # ── Time Horizon ──────────────────────────────────────────────────────────
+    # IPSCopyBlock stores title in 'title' field; get_copy_blocks returns (title, body)
+    db_th = get_copy_blocks('ar_time_horizon')   # {key: (title, body)}
+    time_horizon_map = db_th if db_th else _AR_TIME_HORIZON
+
+    # ── Liquidity ─────────────────────────────────────────────────────────────
+    db_liq = get_copy_blocks('ar_liquidity')
+    liquidity_map = db_liq if db_liq else _AR_LIQUIDITY
+
+    # ── Responsible Investing ─────────────────────────────────────────────────
+    db_ri = get_copy_blocks('ar_responsible_investing')
+    ri_map = {k: v[1] for k, v in db_ri.items()} if db_ri else _AR_RI
+
+    # ── Income Needs (single default entry) ───────────────────────────────────
+    db_inc = get_copy_blocks('ar_income_needs')
+    income_default = db_inc.get('default', (None, ''))[1] if db_inc else ''
+
+    return risk_map, asset_mix_map, time_horizon_map, liquidity_map, ri_map, income_default
+
+
+@login_required
+def annual_review_view(request):
+    if request.method == 'POST':
+        return _generate_annual_review_pdf(request)
+
+    risk_map, asset_mix_map, time_horizon_map, liquidity_map, ri_map, income_default = _build_ar_narrative_maps()
+
+    context = {
+        'risk_profile_choices':  list(risk_map.keys()),
+        'portfolio_choices':     list(asset_mix_map.keys()),
+        'time_horizon_choices':  list(time_horizon_map.items()),   # [(key, (title, body)), ...]
+        'liquidity_choices':     list(liquidity_map.items()),       # [(key, (title, body)), ...]
+        'ri_choices':            [('RI', 'Responsible Investing'), ('Neutral', 'Neutral')],
+        # Pass raw Python dicts — json_script filter handles serialization.
+        # Do NOT pre-serialize with json.dumps() or json_script double-encodes them.
+        'risk_narrative_map':        risk_map,
+        'asset_mix_narrative_map':   asset_mix_map,
+        'time_horizon_narrative_map':{k: v[1] for k, v in time_horizon_map.items()},
+        'liquidity_narrative_map':   {k: v[1] for k, v in liquidity_map.items()},
+        'ri_narrative_map':          ri_map,
+        'income_default_narrative':  income_default,
+    }
+    return render(request, 'annual_review.html', context)
+
+
+def _generate_annual_review_pdf(request):
+    from weasyprint import HTML as WeasyHTML
+
+    primary_name           = request.POST.get('primary_name', '').strip()
+    secondary_name         = request.POST.get('secondary_name', '').strip()
+    entity_name            = request.POST.get('entity_name', '').strip()
+    advisor_name           = request.POST.get('advisor_name', '').strip()
+    risk_narrative         = request.POST.get('risk_narrative', '')
+    asset_mix_narrative    = request.POST.get('asset_mix_narrative', '')
+    time_horizon_narrative = request.POST.get('time_horizon_narrative', '')
+    income_narrative       = request.POST.get('income_narrative', '')
+    liquidity_narrative    = request.POST.get('liquidity_narrative', '')
+    ri_narrative           = request.POST.get('ri_narrative', '')
+    pm_commentary          = request.POST.get('pm_commentary', '')
+
+    strategy_names  = request.POST.getlist('strategy_name[]')
+    current_weights = request.POST.getlist('current_weight[]')
+    ips_weights     = request.POST.getlist('ips_weight[]')
+    strategy_rows   = [
+        {'strategy': s.strip(), 'current_weight': c, 'ips_weight': i}
+        for s, c, i in zip(strategy_names, current_weights, ips_weights)
+        if s.strip()
+    ]
+
+    if settings.DEBUG:
+        logo_path = Path(settings.BASE_DIR) / 'static' / 'images' / 'logo.png'
+    else:
+        logo_path = Path(settings.STATIC_ROOT) / 'images' / 'logo.png'
+
+    context = {
+        'primary_name': primary_name,
+        'secondary_name': secondary_name,
+        'entity_name': entity_name,
+        'advisor_name': advisor_name,
+        'risk_narrative': risk_narrative,
+        'asset_mix_narrative': asset_mix_narrative,
+        'time_horizon_narrative': time_horizon_narrative,
+        'income_narrative': income_narrative,
+        'liquidity_narrative': liquidity_narrative,
+        'ri_narrative': ri_narrative,
+        'pm_commentary': pm_commentary,
+        'strategy_rows': strategy_rows,
+        'logo_url': logo_path.as_uri(),
+    }
+
+    # Render body HTML → PDF
+    html_string = render_to_string('annual_review_pdf.html', context)
+    base_url = 'file://' + str(settings.BASE_DIR)
+    body_pdf_bytes = WeasyHTML(string=html_string, base_url=base_url).write_pdf()
+
+    # Annual Review has its own cover page; last page is shared with the IPS
+    first_page_path = get_site_document_path('ar_first_page', '')
+    last_page_path = get_site_document_path(
+        'ips_last_page',
+        os.path.join(settings.BASE_DIR, 'static', 'intro', 'IPS_Last_Page.pdf'),
+    )
+
+    merger = PdfMerger()
+
+    if os.path.exists(first_page_path):
+        with open(first_page_path, 'rb') as f:
+            merger.append(PdfReader(f))
+    else:
+        logger.warning('Annual Review: first page PDF not found at %s', first_page_path)
+
+    merger.append(PdfReader(io.BytesIO(body_pdf_bytes)))
+
+    if os.path.exists(last_page_path):
+        with open(last_page_path, 'rb') as f:
+            merger.append(PdfReader(f))
+    else:
+        logger.warning('Annual Review: last page PDF not found at %s', last_page_path)
+
+    merged = io.BytesIO()
+    merger.write(merged)
+    merger.close()
+
+    safe_name = (primary_name or 'Client').replace(' ', '_').replace('&', 'and')
+    response = HttpResponse(merged.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="Annual_Review_{safe_name}.pdf"'
+    return response

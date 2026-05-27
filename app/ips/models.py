@@ -176,6 +176,13 @@ class IPSCopyBlock(models.Model):
         ('liquidity_needs',           'Liquidity Needs'),
         ('responsible_investing',     'Responsible Investing'),
         ('risk_analytics_disclaimer', 'Risk Analytics Disclaimer'),
+        # Annual Review narratives
+        ('ar_risk_profile',          'AR – Risk Profile'),
+        ('ar_asset_mix',             'AR – Asset Mix'),
+        ('ar_time_horizon',          'AR – Time Horizon'),
+        ('ar_liquidity',             'AR – Liquidity'),
+        ('ar_responsible_investing', 'AR – Responsible Investing'),
+        ('ar_income_needs',          'AR – Income Needs'),
     ]
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, db_index=True)
     key      = models.CharField(max_length=100,
@@ -203,6 +210,7 @@ class SiteDocument(models.Model):
     KEY_CHOICES = [
         ('ips_first_page', 'IPS Cover Page'),
         ('ips_last_page',  'IPS Back Page'),
+        ('ar_first_page',  'Annual Review Cover Page'),
         ('cds_form_3',     'CDS Form 3 (Client-directed Sleeve Request)'),
     ]
     key         = models.CharField(max_length=50, unique=True, choices=KEY_CHOICES)
@@ -223,6 +231,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     is_approved = models.BooleanField(default=False)
     can_override_fee = models.BooleanField(default=False, help_text="Allow this user to override the calculated fee and trailer")
+    can_use_master_proposals = models.BooleanField(default=False, help_text="Allow this user to load master/template proposals defined in the admin portal")
 
     def __str__(self):
         return f"{self.user.username} - {'Approved' if self.is_approved else 'Not Approved'}"
@@ -295,6 +304,27 @@ class ReturnsUpload(models.Model):
 
     def __str__(self):
         return f"Returns as of {self.as_of_date} (uploaded {self.uploaded_at.strftime('%Y-%m-%d') if self.uploaded_at else '—'})"
+
+
+class MasterProposal(models.Model):
+    """Admin-defined template proposals that permitted users can load."""
+    label = models.CharField(max_length=200, unique=True)
+    description = models.TextField(blank=True, default='', help_text="Short description shown to advisors")
+    data = models.TextField(help_text="JSON list of account rows (same format as SavedProposal.data)")
+    risk_profile_override = models.CharField(max_length=100, blank=True, default='')
+    portfolio_override = models.CharField(max_length=100, blank=True, default='')
+    is_active = models.BooleanField(default=True, help_text="Inactive proposals are hidden from advisors")
+    display_order = models.PositiveSmallIntegerField(default=0, help_text="Lower = displayed first")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Master Proposal"
+        verbose_name_plural = "Master Proposals"
+        ordering = ['display_order', 'label']
+
+    def __str__(self):
+        return self.label
 
 
 class SavedProposal(models.Model):

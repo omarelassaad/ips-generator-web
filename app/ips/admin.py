@@ -4,7 +4,7 @@ from django.core.cache import cache
 from .models import (
     Profile, QuestionnaireResponse, ChooseMyselfData, LetPmChooseData,
     FeeCategory, FeeTier, Mandate, ReturnsUpload,
-    PortfolioProfile, IPSCopyBlock, SiteDocument,
+    PortfolioProfile, IPSCopyBlock, SiteDocument, MasterProposal,
 )
 
 
@@ -13,9 +13,10 @@ from .models import (
 # ---------------------------------------------------------------------------
 
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'is_approved')
-    list_filter = ('is_approved',)
+    list_display = ('user', 'is_approved', 'can_override_fee', 'can_use_master_proposals')
+    list_filter = ('is_approved', 'can_override_fee', 'can_use_master_proposals')
     search_fields = ('user__username', 'user__email')
+    list_editable = ('can_override_fee', 'can_use_master_proposals')
 
 class QuestionnaireResponseAdmin(admin.ModelAdmin):
     list_display = ('user', 'question', 'answer', 'score')
@@ -231,3 +232,51 @@ class SiteDocumentAdmin(admin.ModelAdmin):
             return format_html('<a href="{}" target="_blank">Download</a>', obj.file.url)
         return "No file uploaded"
     file_link.short_description = "Current File"
+
+
+# ---------------------------------------------------------------------------
+# Master Proposals
+# ---------------------------------------------------------------------------
+
+@admin.register(MasterProposal)
+class MasterProposalAdmin(admin.ModelAdmin):
+    list_display  = ('label', 'description_preview', 'overrides_summary', 'is_active', 'display_order', 'updated_at')
+    list_filter   = ('is_active',)
+    list_editable = ('is_active', 'display_order')
+    search_fields = ('label', 'description')
+    ordering      = ('display_order', 'label')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('label', 'description', 'is_active', 'display_order'),
+        }),
+        ('Overrides', {
+            'description': 'Optional — leave blank to use the loading advisor\'s questionnaire results.',
+            'fields': ('risk_profile_override', 'portfolio_override'),
+        }),
+        ('Account Data (JSON)', {
+            'classes': ('collapse',),
+            'description': (
+                'Paste a JSON array of account rows. Each row: '
+                '{"account_owner":"...", "account_type":"...", "amount":"...", "strategy":"...", "version_number":"N/A"}'
+            ),
+            'fields': ('data',),
+        }),
+        ('Timestamps', {
+            'classes': ('collapse',),
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+
+    def description_preview(self, obj):
+        return obj.description[:60] + '…' if len(obj.description) > 60 else obj.description or '—'
+    description_preview.short_description = "Description"
+
+    def overrides_summary(self, obj):
+        parts = []
+        if obj.risk_profile_override:
+            parts.append(f"Risk: {obj.risk_profile_override}")
+        if obj.portfolio_override:
+            parts.append(f"Portfolio: {obj.portfolio_override}")
+        return ', '.join(parts) if parts else '—'
+    overrides_summary.short_description = "Overrides"

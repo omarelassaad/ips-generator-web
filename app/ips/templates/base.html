@@ -25,6 +25,7 @@
                 <li><a href="{% url 'generate_ips_questionnaire_responses' %}" target="_blank" id="questionnaire-summary-link">| Last Completed Questionnaire Summary |</a></li>
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'proposals_list' %}">| My Saved Proposals |</a></li>
+                    <li><a href="{% url 'annual_review' %}">| Annual Review |</a></li>
                     <li><a href="{% url 'logout' %}">| Logout |</a></li>
                 {% else %}
                     <li><a href="{% url 'login' %}">| Login |</a></li>

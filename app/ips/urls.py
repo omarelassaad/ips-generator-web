@@ -1,6 +1,7 @@
 # urls.py
 from django.urls import path
 from .views import (
+    annual_review_view,
     questionnaire_view,
     generate_ips_questionnaire_responses,
     generate_ips,
@@ -20,6 +21,7 @@ from .views import (
     load_proposal,
     delete_proposal,
     import_pcq_pdf,
+    load_master_proposal,
 )
 
 urlpatterns = [
@@ -42,4 +44,6 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/load/', load_proposal, name='load_proposal'),
     path('proposals/<int:proposal_id>/delete/', delete_proposal, name='delete_proposal'),
     path('import-pcq/', import_pcq_pdf, name='import_pcq_pdf'),
+    path('master-proposals/<int:proposal_id>/load/', load_master_proposal, name='load_master_proposal'),
+    path('annual-review/', annual_review_view, name='annual_review'),
 ]

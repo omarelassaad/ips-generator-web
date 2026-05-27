@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Annual review</title>
+    <style>
+    /* ── Page setup — identical to IPS ── */
+    @page {
+        size: 8.5in 11in;
+        margin: 18mm;
+        @top-right {
+            content: element(logo);
+            margin-top: 0;
+            margin-right: 0;
+        }
+        @bottom-right {
+            content: counter(page);
+            color: #000000;
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            margin-bottom: 7mm;
+        }
+        background-color: #ffffff;
+    }
+
+    /* ── Global — identical to IPS ── */
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+        color: #000000;
+        font-size: 16px;
+    }
+
+    .container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+    }
+
+    /* Fixed logo — identical to IPS */
+    .logo {
+        display: block;
+        position: fixed;
+        top: -10mm;
+        right: -5mm;
+        width: 60px;
+        height: auto;
+        z-index: 1000;
+    }
+
+    /* ── Section headings — identical to IPS ── */
+    h2, .section-title {
+        color: #112055;
+        font-size: 18px;
+        font-weight: normal;
+        margin-top: 20px;
+        margin-bottom: 30px;
+    }
+
+    h3, .sub-heading {
+        color: black;
+        font-size: 14px;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    /* ── Content / page wrapper — identical to IPS ── */
+    .content {
+        background-color: #ffffff;
+    }
+
+    .page {
+        page-break-after: always;
+        position: relative;
+        background-color: #ffffff;
+    }
+
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    /* ── Tables — identical to IPS .content table ── */
+    .content table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: inherit;
+    }
+
+    .content table, .content th, .content td {
+        border: none;
+    }
+
+    .content th, .content td {
+        padding: 8px;
+        text-align: center;
+    }
+
+    .content th {
+        background-color: transparent;
+        font-weight: bold;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .content td {
+        border-bottom: 1px solid #ddd;
+    }
+
+    .content td:first-child {
+        text-align: left;
+    }
+
+    .content th:first-child {
+        text-align: left;
+    }
+
+    /* ── Signature styles — identical to IPS ── */
+    .signature-space {
+        height: 20px;
+    }
+
+    .signatures {
+        margin-top: 15px;
+    }
+
+    .signature-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+    }
+
+    .signature-line {
+        width: 45%;
+    }
+
+    .signature-line hr {
+        width: 100%;
+        margin: 0;
+        border: none;
+        border-top: 1px solid black;
+    }
+
+    .signature-line p {
+        margin: 5px 0;
+    }
+
+    /* ── Print ── */
+    @media print {
+        body { font-size: 10pt; }
+        h3, .sub-heading { font-size: 11pt; }
+        h2, .section-title { font-size: 15pt; }
+    }
+    </style>
+</head>
+<body>
+<img src="{{ logo_url }}" alt="Logo" class="logo">
+
+<div class="container">
+
+    <!-- Purpose -->
+    <div class="content page">
+        <h2 class="section-title">Purpose for an annual review</h2>
+        <p>The purpose of the annual review is to revisit the fundamentals of your Investment Policy Statement (IPS). It is necessary for us to review your investment philosophy, objectives, risk tolerances and time horizon to ensure that your portfolio is aligned to meet these needs.</p>
+        <p>Below you will find a summary of the information which you had previously provided in the questionnaire and the basis for our previous IPS recommendation. If any of this information has changed, then your asset allocation may need to be updated to reflect the changes. Please provide us with any feedback you believe is necessary in order for the Portfolio Manager to make a more informed decision in regard to your current asset allocation needs.</p>
+
+        <!-- Investment Philosophy & Objectives -->
+        <h2 class="section-title">Investment philosophy and objectives</h2>
+
+        <h3 class="sub-heading">Investment Philosophy</h3>
+        <p><strong>Risk Profile</strong> – {{ risk_narrative }}</p>
+
+        <h3 class="sub-heading">Investment Needs and Objectives</h3>
+        <p><strong>Asset Mix</strong> – {{ asset_mix_narrative }}</p>
+        <p><strong>Investment Horizon</strong> – {{ time_horizon_narrative }}</p>
+        <p><strong>Income Needs</strong> – {{ income_narrative }}</p>
+        <p><strong>Liquidity</strong> – {{ liquidity_narrative }}</p>
+        <p><strong>Responsible Investing Preference</strong> - {{ ri_narrative }}</p>
+    </div>
+
+    <!-- Annual Review Agreement -->
+    <div class="content page-break-before">
+        <h2 class="section-title">Annual review Agreement</h2>
+
+        <h3 class="sub-heading">Portfolio Manager Recommendation</h3>
+        <p>{{ pm_commentary }}</p>
+
+        {% if strategy_rows %}
+        <p><strong>Current Mix:</strong></p>
+        <div class="content">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Strategy</th>
+                        <th>Current Weight</th>
+                        <th>IPS Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in strategy_rows %}
+                    <tr>
+                        <td>{{ row.strategy }}</td>
+                        <td>{{ row.current_weight }}%</td>
+                        <td>{{ row.ips_weight }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <p>Going forward, should you have a material change, please contact <strong>{{ advisor_name }}</strong> immediately to ensure Aviso Wealth® Head Office is notified of the change in your personal or financial circumstances as it may impact your asset allocation.</p>
+
+        <h2 class="section-title">Annual Investment review Authorization</h2>
+        <p>We agree with the above recommendation based on our investment philosophy and objectives and the information contained in our Quarterly Investment review. We understand that this statement does not guarantee the attainment of any fixed rate of return on our investment. We agree to notify Aviso Wealth of any material change in our personal and financial situation and accept responsibility to ensure Aviso Wealth is notified regarding changes in our investment philosophy and objectives.</p>
+
+        <div class="signature-space"></div>
+
+        <div class="signatures">
+            <div class="signature-row">
+                <div class="signature-line">
+                    <div class="signature-space"></div>
+                    <hr>
+                    <p>{{ primary_name }}</p>
+                </div>
+                {% if secondary_name %}
+                <div class="signature-line">
+                    <div class="signature-space"></div>
+                    <hr>
+                    <p>{{ secondary_name }}</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="signature-row">
+                <div class="signature-line">
+                    <div class="signature-space"></div>
+                    <hr>
+                    <p>{{ advisor_name }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

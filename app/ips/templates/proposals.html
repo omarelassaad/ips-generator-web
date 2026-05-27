@@ -129,6 +129,44 @@
     padding: 1px 5px;
     margin-left: 4px;
   }
+
+  /* ── Master Proposals section ── */
+  .master-section {
+    margin-top: 40px;
+  }
+  .master-section h2 {
+    margin-bottom: 6px;
+  }
+  .master-section .section-subtitle {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 14px;
+  }
+  .master-badge {
+    display: inline-block;
+    font-size: 11px;
+    color: #fff;
+    background: #6a3fa0;
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .btn-load-master {
+    display: inline-block !important;
+    width: auto !important;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    vertical-align: middle;
+    background-color: #6a3fa0;
+    color: white;
+    margin-right: 6px;
+  }
+  .btn-load-master:hover { background-color: #552d85; }
 </style>
 
 <div class="proposals-container">
@@ -190,6 +228,57 @@
   <div class="empty-state">
     <p>No saved proposals yet.</p>
     <p>Go to <a href="{% url 'choose_myself' %}">Choose Myself</a> and use the <strong>Save Proposal</strong> button to save your current inputs.</p>
+  </div>
+  {% endif %}
+
+  {# ── Master Proposals (visible only to permitted users) ── #}
+  {% if can_use_masters %}
+  <div class="master-section">
+    <h2>Master Proposals <span class="master-badge">Admin Templates</span></h2>
+    <p class="section-subtitle">These template proposals are defined by your administrator. Loading one will replace your current account rows.</p>
+
+    {% if master_proposals %}
+    <table class="proposals-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Overrides</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mp in master_proposals %}
+        <tr>
+          <td>{{ mp.label }}</td>
+          <td style="color: #555;">{{ mp.description|default:"—" }}</td>
+          <td>
+            {% if mp.risk_profile_override %}
+              <span class="override-badge">Risk: {{ mp.risk_profile_override }}</span>
+            {% endif %}
+            {% if mp.portfolio_override %}
+              <span class="override-badge">Portfolio: {{ mp.portfolio_override }}</span>
+            {% endif %}
+            {% if not mp.risk_profile_override and not mp.portfolio_override %}
+              <span style="color: #aaa;">—</span>
+            {% endif %}
+          </td>
+          <td class="action-cell">
+            <form method="POST" action="{% url 'load_master_proposal' mp.id %}" style="display:inline;"
+                  onsubmit="return confirm('Load master proposal &quot;{{ mp.label|escapejs }}&quot;? Your current account rows will be replaced.');">
+              {% csrf_token %}
+              <button type="submit" class="btn-load-master">Load</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding: 24px;">
+      <p>No master proposals have been defined yet. Ask your administrator to add some in the admin portal.</p>
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 
