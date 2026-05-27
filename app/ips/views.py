@@ -2730,22 +2730,19 @@ def search_ifms(request):
         for _, row in composites.iterrows():
             comp_code = row['Composite']
             comp_desc = row['Composite Description']
-            comp_rows = cma[cma['Composite'] == comp_code]
+            comp_rows = cma[cma['Composite'] == comp_code].copy()
 
-            # Aggregate by IFMS Name across all sleeves in this composite
-            agg = (
-                comp_rows.groupby('IFMS Name')
-                .agg(market_value=('Total Market Value', 'sum'),
-                     ips_weight=('IPS Weight', 'first'))
-                .reset_index()
-            )
-            total_mv = agg['market_value'].sum()
+            # One row per sleeve — do NOT aggregate by IFMS Name.
+            # The same strategy can appear in multiple account types (e.g. RRSP + SRSP)
+            # and each sleeve has its own IPS weight target.
+            total_mv = comp_rows['Total Market Value'].sum()
             strategies = []
-            for _, s in agg.iterrows():
-                current_w = round(s['market_value'] / total_mv * 100, 2) if total_mv else 0
-                ips_w = round(float(s['ips_weight']), 2) if pd.notna(s['ips_weight']) else ''
+            for _, s in comp_rows.iterrows():
+                mv = float(s['Total Market Value']) if pd.notna(s['Total Market Value']) else 0
+                current_w = round(mv / total_mv * 100, 2) if total_mv else 0
+                ips_w = round(float(s['IPS Weight']), 2) if pd.notna(s['IPS Weight']) else ''
                 strategies.append({
-                    'name':           s['IFMS Name'],
+                    'name':           str(s['IFMS Name']),
                     'current_weight': current_w,
                     'ips_weight':     ips_w,
                 })
