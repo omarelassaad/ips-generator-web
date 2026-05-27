@@ -65,6 +65,24 @@
     font-family: inherit;
   }
   .strat-table .col-action { width: 36px; text-align: center; }
+  /* Totals footer row */
+  .strat-table tfoot td {
+    border-top: 2px solid #205098;
+    border-bottom: none;
+    padding: 7px 7px 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #112055;
+    background: #f4f7ff;
+  }
+  .strat-table tfoot .tot-num { text-align: center; }
+  .diff-pos { color: #217a3c; }
+  .diff-neg { color: #c0392b; }
+  .diff-zero { color: #555; }
+  .screen-only-badge {
+    font-size: 9px; font-weight: 400; color: #8899cc;
+    margin-left: 4px; vertical-align: middle; letter-spacing: 0;
+  }
   .btn-rm {
     background: none; border: none; color: #dc3545;
     font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; width: auto;
@@ -299,8 +317,9 @@
         <thead>
           <tr>
             <th>Strategy</th>
-            <th style="width:140px;">Current Weight (%)</th>
-            <th style="width:140px;">IPS Weight (%)</th>
+            <th style="width:130px;">Current Weight (%)</th>
+            <th style="width:130px;">IPS Weight (%)</th>
+            <th style="width:110px;">Diff (%)<span class="screen-only-badge">screen only</span></th>
             <th class="col-action"></th>
           </tr>
         </thead>
@@ -316,9 +335,19 @@
             </td>
             <td><input type="number" name="current_weight[]" step="0.01" min="0" max="100" placeholder="0.00"></td>
             <td><input type="number" name="ips_weight[]"     step="0.01" min="0" max="100" placeholder="0.00"></td>
+            <td class="diff-cell tot-num">—</td>
             <td class="col-action"><button type="button" class="btn-rm" title="Remove">&#215;</button></td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr>
+            <td><strong>Total</strong></td>
+            <td class="tot-num" id="tot-current">—</td>
+            <td class="tot-num" id="tot-ips">—</td>
+            <td class="tot-num" id="tot-diff">—</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
       <button type="button" class="btn-add-row" id="add-row">+ Add Strategy</button>
     </div>
@@ -385,6 +414,39 @@
   var riTxt = document.getElementById('txt-ri');
   if (riSel && riTxt && riMap[riSel.value] !== undefined) riTxt.value = riMap[riSel.value];
 
+  // ── Totals recalculation ─────────────────────────────────────────────────
+  function recalcTotals() {
+    var tbody = document.getElementById('strat-tbody');
+    var rows  = tbody.querySelectorAll('tr');
+    var sumC = 0, sumI = 0;
+    rows.forEach(function(tr) {
+      var cInput = tr.querySelector('input[name="current_weight[]"]');
+      var iInput = tr.querySelector('input[name="ips_weight[]"]');
+      var c = parseFloat(cInput && cInput.value) || 0;
+      var i = parseFloat(iInput && iInput.value) || 0;
+      sumC += c;
+      sumI += i;
+      // Per-row diff cell
+      var diffCell = tr.querySelector('.diff-cell');
+      if (diffCell) {
+        var rd = c - i;
+        diffCell.textContent = rd !== 0 ? (rd > 0 ? '+' : '') + rd.toFixed(2) + '%' : '—';
+        diffCell.className = 'diff-cell tot-num ' + (rd > 0 ? 'diff-pos' : rd < 0 ? 'diff-neg' : 'diff-zero');
+      }
+    });
+
+    var diff = sumC - sumI;
+    var fmt  = function(v) { return v.toFixed(2) + '%'; };
+    document.getElementById('tot-current').textContent = fmt(sumC);
+    document.getElementById('tot-ips').textContent     = fmt(sumI);
+    var diffEl = document.getElementById('tot-diff');
+    diffEl.textContent  = diff !== 0 ? (diff > 0 ? '+' : '') + fmt(diff) : '0.00%';
+    diffEl.className    = 'tot-num ' + (diff > 0 ? 'diff-pos' : diff < 0 ? 'diff-neg' : 'diff-zero');
+  }
+
+  // Delegate input events on the tbody for live updates
+  document.getElementById('strat-tbody').addEventListener('input', recalcTotals);
+
   // Add / remove strategy rows
   function makeRow() {
     var tmpl = document.getElementById('strat-options-tmpl');
@@ -393,16 +455,18 @@
     tr.innerHTML = '<td><select name="strategy_name[]">' + optionsHtml + '</select></td>'
       + '<td><input type="number" name="current_weight[]" step="0.01" min="0" max="100" placeholder="0.00"></td>'
       + '<td><input type="number" name="ips_weight[]"     step="0.01" min="0" max="100" placeholder="0.00"></td>'
+      + '<td class="diff-cell tot-num">—</td>'
       + '<td class="col-action"><button type="button" class="btn-rm" title="Remove">&#215;</button></td>';
     return tr;
   }
   document.getElementById('add-row').addEventListener('click', function () {
     document.getElementById('strat-tbody').appendChild(makeRow());
+    recalcTotals();
   });
   document.getElementById('strat-tbody').addEventListener('click', function (e) {
     if (e.target.classList.contains('btn-rm')) {
       var rows = this.querySelectorAll('tr');
-      if (rows.length > 1) e.target.closest('tr').remove();
+      if (rows.length > 1) { e.target.closest('tr').remove(); recalcTotals(); }
     }
   });
 
@@ -496,6 +560,7 @@
         }
       });
 
+      recalcTotals();
       setMsg('Loaded ' + composite.strategies.length + ' strategies for ' + composite.composite_desc + '.', 'info');
       ifmsResultsEl.style.display = 'none';
     });
